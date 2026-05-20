@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>図面作図業務 週次日報＆予定管理</title>
+    <link rel="stylesheet" href="style.css?v=2">
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div id="login-container" class="login-wrapper">
+        <div class="login-card">
+            <h2>システム ログイン</h2>
+            <p>担当者のメールアドレスとパスワードを入力してください。</p>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">メールアドレス</label>
+                    <input type="email" id="login-email" required placeholder="example@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">パスワード</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-large">ログイン</button>
+                <div id="login-error" class="message error hidden">ログインに失敗しました。</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- メインアプリ画面（ログイン後に表示） -->
+    <div id="app-container" class="app-container hidden">
+        <header class="no-print">
+            <div class="header-top">
+                <h1>週次日報 ＆ 予定管理システム</h1>
+                <div class="user-info">
+                    <span id="current-user-email"></span>
+                    <button id="btn-logout" class="btn btn-secondary btn-small">ログアウト</button>
+                </div>
+            </div>
+            
+            <nav class="tabs">
+                <button class="tab-btn active" data-target="schedule-input-view">予定入力</button>
+                <button class="tab-btn" data-target="gantt-view">月間予定チャート</button>
+                <button class="tab-btn" data-target="input-view">日報入力（実績）</button>
+                <button class="tab-btn" data-target="list-view">個人別一覧・レポート</button>
+                <button class="tab-btn" data-target="summary-view">工事別集計</button>
+            </nav>
+        </header>
+
+        <!-- 予定入力画面 -->
+        <main id="schedule-input-view" class="view active no-print">
+            <div class="form-card">
+                <h2>予定を登録</h2>
+                <form id="schedule-form">
+                    <div class="form-group">
+                        <label for="sched-project">工事名</label>
+                        <input type="text" id="sched-project" placeholder="例: 〇〇ビル新築工事" required>
+                    </div>
+                    <!-- 担当者名はログインユーザーのメールから自動で表示するためreadonly -->
+                    <div class="form-group">
+                        <label for="sched-author">担当者（自動）</label>
+                        <input type="text" id="sched-author" readonly>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="sched-start">開始日</label>
+                            <input type="date" id="sched-start" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sched-end">終了日</label>
+                            <input type="date" id="sched-end" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-notes">作業内容・備考</label>
+                        <input type="text" id="sched-notes" placeholder="主な作業内容など">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large">予定を登録</button>
+                    <div id="sched-submit-message" class="message hidden">予定を保存しました！</div>
+                </form>
+            </div>
+        </main>
+
+        <!-- 月間予定チャート（ガントチャート）画面 -->
+        <main id="gantt-view" class="view">
+            <div class="list-controls no-print">
+                <div class="filters">
+                    <input type="month" id="gantt-month">
+                </div>
+                <div class="actions">
+                    <button id="btn-export-gantt" class="btn btn-success">Excel出力</button>
+                    <button id="btn-print-gantt" class="btn btn-secondary">A3横 印刷</button>
+                </div>
+            </div>
+
+            <div class="print-header only-print">
+                <h2 id="print-gantt-title">月間作業予定表</h2>
+            </div>
+
+            <div class="table-container gantt-wrapper">
+                <div class="gantt-container" id="gantt-container">
+                    <!-- JSでガントチャートを描画します -->
+                </div>
+            </div>
+        </main>
+
+        <!-- 日報入力画面 -->
+        <main id="input-view" class="view no-print">
+            <div class="form-card">
+                <h2>週次日報（実績）の作成</h2>
+                <form id="report-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="week">対象週</label>
+                            <input type="week" id="week" required>
+                            <div id="week-display-hint" style="font-size: 0.85rem; color: #64748b; margin-top: 5px;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="author">担当者（自動）</label>
+                            <input type="text" id="author" readonly>
+                        </div>
+                    </div>
+
+                    <div class="days-container" id="days-container"></div>
+
+                    <div class="summary-section">
+                        <h3>今週のまとめ（レポート用）</h3>
+                        <div class="form-group">
+                            <label for="actual">実績（全体の振り返りなど）</label>
+                            <textarea id="actual" rows="3" placeholder="今週完了した主な内容などを記入" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="plan">予定（次週やること）</label>
+                            <textarea id="plan" rows="3" placeholder="来週行う予定を記入" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">備考</label>
+                            <textarea id="notes" rows="2" placeholder="特記事項があれば記入"></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">保存して送信</button>
+                    <div id="submit-message" class="message hidden">保存しました！</div>
+                </form>
+            </div>
+        </main>
+
+        <!-- 一覧画面（個人別・レポート表示用） -->
+        <main id="list-view" class="view">
+            <div class="list-controls no-print">
+                <div class="filters">
+                    <select id="filter-month"><option value="">すべての月</option></select>
+                    <select id="filter-author"><option value="">すべての担当者</option></select>
+                </div>
+                <div class="actions">
+                    <button id="btn-export" class="btn btn-success">Excel出力</button>
+                    <button id="btn-print" class="btn btn-secondary">A4縦 印刷</button>
+                </div>
+            </div>
+
+            <div class="print-header only-print">
+                <h2>週次完了レポート（個人別）</h2>
+            </div>
+
+            <div class="table-container no-print">
+                <table id="reports-table">
+                    <thead>
+                        <tr>
+                            <th>対象期間</th>
+                            <th>担当者</th>
+                            <th>月</th>
+                            <th>火</th>
+                            <th>水</th>
+                            <th>木</th>
+                            <th>金</th>
+                            <th>土</th>
+                            <th>日</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reports-tbody"></tbody>
+                </table>
+            </div>
+            
+            <div id="print-details-container" class="only-print"></div>
+
+            <!-- 【NEW】月間・個人別集計の表示エリア -->
+            <div id="personal-summary-container" class="table-container" style="margin-top: 30px;"></div>
+        </main>
+
+        <!-- 工事別集計画面 -->
+        <main id="summary-view" class="view">
+            <div class="list-controls no-print">
+                <div class="filters">
+                    <select id="summary-filter-week"><option value="">すべての週</option></select>
+                </div>
+                <div class="actions">
+                    <button id="btn-export-summary" class="btn btn-success">Excel出力</button>
+                    <button id="btn-print-summary" class="btn btn-secondary">A4縦 印刷</button>
+                </div>
+            </div>
+
+            <div class="print-header only-print">
+                <h2>工事別 作業時間集計</h2>
+            </div>
+
+            <div class="table-container">
+                <table id="summary-table">
+                    <thead>
+                        <tr>
+                            <th>工事名</th>
+                            <th>対象期間</th>
+                            <th>担当者</th>
+                            <th>作業時間（合計）</th>
+                            <th>主な作業内容</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-tbody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 作業行のテンプレート -->
+    <template id="task-row-template">
+        <div class="task-row">
+            <input type="text" class="task-project" placeholder="工事名" required>
+            <input type="text" class="task-detail" placeholder="作業内容" required>
+            <select class="task-hours" required>
+                <option value="">時間</option>
+                <option value="0.5">0.5H</option>
+                <option value="1.0">1.0H</option>
+                <option value="1.5">1.5H</option>
+                <option value="2.0">2.0H</option>
+                <option value="2.5">2.5H</option>
+                <option value="3.0">3.0H</option>
+                <option value="3.5">3.5H</option>
+                <option value="4.0">4.0H</option>
+                <option value="4.5">4.5H</option>
+                <option value="5.0">5.0H</option>
+                <option value="5.5">5.5H</option>
+                <option value="6.0">6.0H</option>
+                <option value="6.5">6.5H</option>
+                <option value="7.0">7.0H</option>
+                <option value="7.5">7.5H</option>
+                <option value="8.0">8.0H</option>
+                <option value="8.5">8.5H</option>
+                <option value="9.0">9.0H</option>
+                <option value="9.5">9.5H</option>
+                <option value="10.0">10.0H</option>
+                <option value="10.5">10.5H</option>
+                <option value="11.0">11.0H</option>
+                <option value="11.5">11.5H</option>
+                <option value="12.0">12.0H</option>
+            </select>
+            <button type="button" class="btn btn-danger btn-icon remove-task-btn" title="削除">×</button>
+        </div>
+    </template>
+
+    <!-- モジュールとしてapp.jsを読み込む（Firebase v10対応のため） -->
+    <script type="module" src="app.js?v=2"></script>
+</body>
+</html>

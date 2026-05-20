@@ -1,0 +1,12 @@
+{
+  "name": "weekly-report-app",
+  "version": "1.0.0",
+  "description": "週次日報・予定管理システム",
+  "scripts": {
+    "build": "node build-inject.js",
+    "start": "python -m http.server -d public 3000"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
