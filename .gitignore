@@ -1,0 +1,11 @@
+# Gitが無視すべきファイル
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+data.json
+schedules.json
+reports.json
+seed.py
+*.pyc
+__pycache__/
