@@ -246,3 +246,48 @@ body.dark-theme .gantt-author-cell {
 .gantt-wrapper, .table-container, .tabs {
     -webkit-overflow-scrolling: touch;
 }
+
+/* 工事別集計カレンダーのスタイル微調整 */
+#summary-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+#summary-table th, #summary-table td {
+    padding: 6px 4px;
+    font-size: 0.85rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+#summary-table th {
+    background: #f1f5f9;
+    font-weight: bold;
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+#summary-table td:first-child,
+#summary-table th:first-child {
+    border-left: 1px solid var(--border);
+}
+#summary-table tr:hover td {
+    background-color: #f8fafc;
+}
+/* ダークテーマ時の調整 */
+body.dark-theme #summary-table th {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+}
+body.dark-theme #summary-table td {
+    background: #0f172a;
+    border-color: #334155;
+    color: #cbd5e1;
+}
+body.dark-theme #summary-table td[style*="background-color"] {
+    background-color: #064e3b !important; /* ダークテーマ時の作業日ハイライト */
+    color: #34d399 !important;
+}
+body.dark-theme #summary-table td[style*="background: #f8fafc"],
+body.dark-theme #summary-table td[style*="background: rgb(248, 250, 252)"] {
+    background: #1e293b !important;
+}

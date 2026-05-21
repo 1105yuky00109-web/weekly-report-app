@@ -222,29 +222,24 @@
         <main id="summary-view" class="view">
             <div class="list-controls no-print">
                 <div class="filters">
-                    <select id="summary-filter-week"><option value="">すべての週</option></select>
+                    <span style="font-weight: bold; margin-right: 8px;">対象月:</span>
+                    <select id="summary-filter-month">
+                        <option value="">月を選択してください</option>
+                    </select>
                 </div>
                 <div class="actions">
                     <button id="btn-export-summary" class="btn btn-success">Excel出力</button>
-                    <button id="btn-print-summary" class="btn btn-secondary">A4縦 印刷</button>
+                    <button id="btn-print-summary" class="btn btn-secondary">A3横 印刷</button>
                 </div>
             </div>
 
             <div class="print-header only-print">
-                <h2>工事別 作業時間集計</h2>
+                <h2 id="print-summary-title">工事別 作業時間集計</h2>
             </div>
 
-            <div class="table-container">
-                <table id="summary-table">
-                    <thead>
-                        <tr>
-                            <th>工事名</th>
-                            <th>対象期間</th>
-                            <th>担当者</th>
-                            <th>作業時間（合計）</th>
-                            <th>主な作業内容</th>
-                        </tr>
-                    </thead>
+            <div class="table-container" style="overflow-x: auto;">
+                <table id="summary-table" style="min-width: 1200px; border-collapse: collapse;">
+                    <thead id="summary-thead"></thead>
                     <tbody id="summary-tbody"></tbody>
                 </table>
             </div>

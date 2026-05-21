@@ -246,13 +246,13 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
             
-            if (btn.dataset.target === 'gantt-view') {
+            if (btn.dataset.target === 'gantt-view' || btn.dataset.target === 'summary-view') {
                 document.body.classList.add('print-a3-landscape');
-                loadSchedules();
+                if (btn.dataset.target === 'gantt-view') loadSchedules();
+                if (btn.dataset.target === 'summary-view') loadReports(true);
             } else {
                 document.body.classList.remove('print-a3-landscape');
                 if (btn.dataset.target === 'list-view') loadReports(false);
-                if (btn.dataset.target === 'summary-view') loadReports(true);
             }
         });
     });
@@ -607,12 +607,16 @@ document.addEventListener('DOMContentLoaded', () => {
             filterMonth.value = cur;
         }
 
-        const summaryFilterWeek = document.getElementById('summary-filter-week');
-        if (summaryFilterWeek) {
-            const cur = summaryFilterWeek.value;
-            summaryFilterWeek.innerHTML = '<option value="">すべての週</option>';
-            weeks.forEach(w => summaryFilterWeek.innerHTML += `<option value="${w}">${w} (${formatWeekRange(w)})</option>`);
-            summaryFilterWeek.value = cur;
+        const summaryFilterMonth = document.getElementById('summary-filter-month');
+        if (summaryFilterMonth) {
+            const cur = summaryFilterMonth.value;
+            summaryFilterMonth.innerHTML = '<option value="">月を選択してください</option>';
+            months.forEach(m => summaryFilterMonth.innerHTML += `<option value="${m}">${m.replace('-', '年')}月</option>`);
+            if (cur) {
+                summaryFilterMonth.value = cur;
+            } else if (months.length > 0) {
+                summaryFilterMonth.value = months[0];
+            }
         }
 
         const filterAuthor = document.getElementById('filter-author');
@@ -740,58 +744,145 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderSummaryTable = () => {
-        const filterWeek = document.getElementById('summary-filter-week').value;
+        const filterMonth = document.getElementById('summary-filter-month').value;
+        const thead = document.getElementById('summary-thead');
         const tbody = document.getElementById('summary-tbody');
-        const filtered = allReports.filter(r => filterWeek === '' || r.week === filterWeek);
+        const printTitle = document.getElementById('print-summary-title');
+        
+        if (!thead || !tbody) return;
+        
+        if (!filterMonth) {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: #64748b;">対象月を選択してください。</td></tr>';
+            return;
+        }
+
+        const [year, month] = filterMonth.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        
+        if (printTitle) {
+            printTitle.textContent = `${year}年${month}月 工事別作業時間集計`;
+        }
+
+        // 1. カレンダーヘッダーの生成
+        let headHtml = `<tr>
+            <th style="min-width: 150px; background: #f1f5f9; position: sticky; left: 0; z-index: 10;">工事名</th>
+            <th style="min-width: 100px; background: #f1f5f9; position: sticky; left: 150px; z-index: 10;">担当者</th>`;
+        
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, month - 1, d);
+            const dayOfWeekStr = ['日','月','火','水','木','金','土'][dateObj.getDay()];
+            const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6) ? 'color:red;' : '';
+            headHtml += `<th style="min-width: 35px; text-align: center; font-size: 0.8rem; ${isWeekend}">${d}<br>${dayOfWeekStr}</th>`;
+        }
+        headHtml += `<th style="min-width: 80px; text-align: right; background: #f1f5f9;">合計</th></tr>`;
+        thead.innerHTML = headHtml;
+
+        // 2. データ集計
         const projectMap = {};
-
-        filtered.forEach(r => {
-            const wRange = formatWeekRange(r.week);
-            daysName.forEach(day => {
-                const ts = r.dailyLogs ? r.dailyLogs[day] : [];
-                if (ts) ts.forEach(t => {
-                    if (!t.project) return;
-                    if (!projectMap[t.project]) projectMap[t.project] = {};
-                    if (!projectMap[t.project][wRange]) projectMap[t.project][wRange] = {};
-                    if (!projectMap[t.project][wRange][r.author]) projectMap[t.project][wRange][r.author] = { hours: 0, details: new Set() };
-                    projectMap[t.project][wRange][r.author].hours += parseFloat(t.hours || 0);
-                    if (t.detail) projectMap[t.project][wRange][r.author].details.add(t.detail);
-                });
+        
+        allReports.forEach(r => {
+            const days = ['月','火','水','木','金','土','日'];
+            const dates = getDaysOfWeek(r.week);
+            if (!dates) return;
+            
+            days.forEach((day, idx) => {
+                const dateObj = dates[idx];
+                const dYear = dateObj.getFullYear();
+                const dMonth = dateObj.getMonth() + 1;
+                const dDay = dateObj.getDate();
+                
+                // 選択された月と一致するかチェック
+                if (dYear === year && dMonth === month) {
+                    const ts = r.dailyLogs ? r.dailyLogs[day] : [];
+                    if (ts) ts.forEach(t => {
+                        if (!t.project || !t.hours) return;
+                        const proj = t.project;
+                        const auth = r.author || '不明';
+                        const hrs = parseFloat(t.hours || 0);
+                        
+                        if (!projectMap[proj]) projectMap[proj] = {};
+                        if (!projectMap[proj][auth]) {
+                            projectMap[proj][auth] = {
+                                days: {},
+                                total: 0
+                            };
+                        }
+                        
+                        projectMap[proj][auth].days[dDay] = (projectMap[proj][auth].days[dDay] || 0) + hrs;
+                        projectMap[proj][auth].total += hrs;
+                    });
+                }
             });
         });
 
-        tbody.innerHTML = '';
-        Object.keys(projectMap).sort().forEach(proj => {
-            Object.keys(projectMap[proj]).sort().reverse().forEach(w => {
-                Object.keys(projectMap[proj][w]).sort().forEach(auth => {
-                    const data = projectMap[proj][w][auth];
-                    tbody.innerHTML += `<tr><td><strong>${proj}</strong></td><td>${w}</td><td>${auth}</td><td style="color:var(--primary); font-weight:bold;">${data.hours.toFixed(1)}H</td><td style="font-size:0.85rem;">${Array.from(data.details).join('、')}</td></tr>`;
-                });
+        // 3. テーブル行の生成
+        let bodyHtml = '';
+        const sortedProjects = Object.keys(projectMap).sort();
+        
+        if (sortedProjects.length === 0) {
+            bodyHtml = `<tr><td colspan="${daysInMonth + 3}" style="padding: 20px; text-align: center; color: #64748b;">該当する作業記録がありません。</td></tr>`;
+            tbody.innerHTML = bodyHtml;
+            return;
+        }
+
+        sortedProjects.forEach(proj => {
+            const authors = Object.keys(projectMap[proj]).sort();
+            authors.forEach((auth) => {
+                const data = projectMap[proj][auth];
+                bodyHtml += `<tr>`;
+                
+                bodyHtml += `<td style="font-weight: bold; background: #fff; position: sticky; left: 0; z-index: 5; border-right: 1px solid var(--border);">${proj}</td>`;
+                bodyHtml += `<td style="background: #fff; position: sticky; left: 150px; z-index: 5; border-right: 1px solid var(--border);">${auth}</td>`;
+                
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const hrs = data.days[d];
+                    const displayHrs = hrs ? hrs.toFixed(1) : '';
+                    const style = hrs ? 'background-color: #f0fdf4; font-weight: bold; text-align: center;' : 'text-align: center; color: #cbd5e1;';
+                    bodyHtml += `<td style="${style}">${hrs ? displayHrs : '-'}</td>`;
+                }
+                
+                bodyHtml += `<td style="text-align: right; font-weight: bold; color: var(--primary); background: #f8fafc;">${data.total.toFixed(1)}H</td>`;
+                bodyHtml += `</tr>`;
             });
         });
+        
+        tbody.innerHTML = bodyHtml;
     };
 
     ['filter-month', 'filter-author'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', renderTable);
     });
-    const summaryFilterWeek = document.getElementById('summary-filter-week');
-    if(summaryFilterWeek) summaryFilterWeek.addEventListener('change', renderSummaryTable);
+    const summaryFilterMonth = document.getElementById('summary-filter-month');
+    if(summaryFilterMonth) summaryFilterMonth.addEventListener('change', renderSummaryTable);
 
     // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
-    const doPrint = (contentSourceId, titleText) => {
-        // 既存のprint-areaを削除
+    const doPrint = (contentSourceId, titleText, isLandscape = false) => {
+        // 既存のprint-areaや動的スタイルを削除
         const existingArea = document.getElementById('print-area');
         if (existingArea) existingArea.remove();
+        const existingStyle = document.getElementById('print-dynamic-style');
+        if (existingStyle) existingStyle.remove();
 
         // 印刷コンテンツを取得
         const sourceEl = document.getElementById(contentSourceId);
         if (!sourceEl) { window.print(); return; }
 
+        // 横向き印刷用の@pageスタイルを動的に追加
+        const style = document.createElement('style');
+        style.id = 'print-dynamic-style';
+        if (isLandscape) {
+            style.innerHTML = '@media print { @page { size: A3 landscape !important; margin: 10mm !important; } }';
+        } else {
+            style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 10mm !important; } }';
+        }
+        document.head.appendChild(style);
+
         // #print-areaを作成してbodyに追加
         const printArea = document.createElement('div');
         printArea.id = 'print-area';
-        printArea.style.cssText = 'background:white; padding:15px;';
+        printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
 
         // タイトルを追加
         if (titleText) {
@@ -804,34 +895,52 @@ document.addEventListener('DOMContentLoaded', () => {
         // コンテンツをコピー
         const clone = sourceEl.cloneNode(true);
         clone.style.display = 'block';
+        
+        // 横向きの場合、テーブルがはみ出ないように幅やフォントサイズを調整し、stickyを解除
+        if (isLandscape) {
+            clone.style.width = '100%';
+            clone.style.fontSize = '8pt';
+            // sticky固定が印刷時に崩れる原因となるため、全セルのpositionをstaticに戻す
+            clone.querySelectorAll('th, td').forEach(el => {
+                el.style.position = 'static';
+                el.style.zIndex = 'auto';
+            });
+        }
+        
         printArea.appendChild(clone);
-
         document.body.appendChild(printArea);
 
         // 印刷後に削除
         window.print();
-        setTimeout(() => printArea.remove(), 1000);
+        setTimeout(() => {
+            printArea.remove();
+            const dynStyle = document.getElementById('print-dynamic-style');
+            if (dynStyle) dynStyle.remove();
+        }, 1000);
     };
 
     // A4縦印刷（個人別一覧・レポート）
     const btnPrint = document.getElementById('btn-print');
     if (btnPrint) {
         btnPrint.addEventListener('click', () => {
-            doPrint('print-details-container', '週次完了レポート（個人別）');
+            doPrint('print-details-container', '週次完了レポート（個人別）', false);
         });
     }
-    // A4縦印刷（工事別集計）
+    // A3横印刷（工事別集計）
     const btnPrintSummary = document.getElementById('btn-print-summary');
     if (btnPrintSummary) {
         btnPrintSummary.addEventListener('click', () => {
-            doPrint('summary-table', '工事別 作業時間集計');
+            const filterMonth = document.getElementById('summary-filter-month').value;
+            const [year, month] = filterMonth ? filterMonth.split('-') : ['', ''];
+            const titleText = year ? `${year}年${month}月 工事別作業時間集計` : '工事別作業時間集計';
+            doPrint('summary-table', titleText, true);
         });
     }
     // A3横印刷（ガントチャート）
     const btnPrintGantt = document.getElementById('btn-print-gantt');
     if (btnPrintGantt) {
         btnPrintGantt.addEventListener('click', () => {
-            doPrint('gantt-container', document.getElementById('print-gantt-title')?.textContent || '月間作業予定表');
+            doPrint('gantt-container', document.getElementById('print-gantt-title')?.textContent || '月間作業予定表', true);
         });
     }
 
@@ -938,42 +1047,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnExportSummary) {
         btnExportSummary.addEventListener('click', () => {
             if (typeof XLSX === 'undefined') return alert('Excelライブラリの読み込みに失敗しました。');
-            const filterWeek = document.getElementById('summary-filter-week').value;
-            const filtered = allReports.filter(r => filterWeek === '' || r.week === filterWeek);
-            const rows = [];
-            const projectMap = {};
-            filtered.forEach(r => {
-                const wRange = formatWeekRange(r.week);
-                ['月','火','水','木','金','土','日'].forEach(day => {
-                    const ts = r.dailyLogs ? r.dailyLogs[day] : [];
-                    if (ts) ts.forEach(t => {
-                        if (!t.project) return;
-                        if (!projectMap[t.project]) projectMap[t.project] = {};
-                        if (!projectMap[t.project][wRange]) projectMap[t.project][wRange] = {};
-                        if (!projectMap[t.project][wRange][r.author]) projectMap[t.project][wRange][r.author] = { hours: 0, details: new Set() };
-                        projectMap[t.project][wRange][r.author].hours += parseFloat(t.hours || 0);
-                        if (t.detail) projectMap[t.project][wRange][r.author].details.add(t.detail);
-                    });
-                });
-            });
-            Object.keys(projectMap).sort().forEach(proj => {
-                Object.keys(projectMap[proj]).sort().reverse().forEach(w => {
-                    Object.keys(projectMap[proj][w]).sort().forEach(auth => {
-                        const data = projectMap[proj][w][auth];
-                        rows.push({
-                            "工事名": proj,
-                            "対象期間": w,
-                            "担当者": auth,
-                            "合計作業時間(H)": data.hours,
-                            "主な作業内容": Array.from(data.details).join('、')
-                        });
-                    });
-                });
-            });
-            const ws = XLSX.utils.json_to_sheet(rows);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "工事別集計");
-            XLSX.writeFile(wb, "工事別集計.xlsx");
+            const filterMonth = document.getElementById('summary-filter-month').value;
+            if (!filterMonth) return alert('対象月を選択してください。');
+            
+            const [year, month] = filterMonth.split('-').map(Number);
+            const table = document.getElementById('summary-table');
+            const wb = XLSX.utils.table_to_book(table, { raw: true });
+            XLSX.writeFile(wb, `${year}年${month}月_工事別作業時間集計.xlsx`);
         });
     }
 });
