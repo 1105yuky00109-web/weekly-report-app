@@ -191,6 +191,46 @@ const getISOWeekString = (date) => {
     return `${tempDate.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 };
 
+// 2026年全体の週（月曜日の日付基準）を逆順でプルダウンの選択肢として生成する関数
+const generateWeekOptions = () => {
+    const select = document.getElementById('week');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    
+    const year = 2026;
+    const start = new Date(year, 0, 1);
+    const dayOfWeek = start.getDay();
+    const firstMonday = new Date(start.getTime() + ((dayOfWeek <= 1 ? 1 - dayOfWeek : 8 - dayOfWeek) * 24 * 60 * 60 * 1000));
+    
+    const options = [];
+    let currentMonday = new Date(firstMonday.getTime());
+    
+    while (currentMonday.getFullYear() === year) {
+        const weekStr = getISOWeekString(currentMonday);
+        const m = currentMonday.getMonth() + 1;
+        const d = currentMonday.getDate();
+        
+        const sunday = new Date(currentMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
+        const sm = sunday.getMonth() + 1;
+        const sd = sunday.getDate();
+        
+        options.push({
+            value: weekStr,
+            text: `${year}年 ${m}/${d} 〜 ${sm}/${sd} の週`
+        });
+        
+        currentMonday.setDate(currentMonday.getDate() + 7);
+    }
+    
+    options.reverse().forEach(opt => {
+        const el = document.createElement('option');
+        el.value = opt.value;
+        el.textContent = opt.text;
+        select.appendChild(el);
+    });
+};
+
 // 週の開始日（月曜日）から各曜日の実際の日付をラベルに表示する関数
 const updateDayLabels = () => {
     const weekInput = document.getElementById('week');
@@ -234,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekInput = document.getElementById('week');
     const weekDisplayHint = document.getElementById('week-display-hint');
     if (weekInput) {
+        generateWeekOptions();
         if (!weekInput.value) {
             weekInput.value = getISOWeekString(new Date());
         }
@@ -242,9 +283,13 @@ document.addEventListener('DOMContentLoaded', () => {
         weekInput.addEventListener('change', () => {
             weekDisplayHint.textContent = weekInput.value ? formatWeekRange(weekInput.value) + ' の報告' : '';
             updateDayLabels();
+            loadReportForSelectedWeek();
         });
         
-        setTimeout(updateDayLabels, 500);
+        setTimeout(() => {
+            updateDayLabels();
+            loadReportForSelectedWeek();
+        }, 500);
     }
 
     // テーマ切り替え初期化
@@ -329,14 +374,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const loadReportForSelectedWeek = () => {
+        const weekInput = document.getElementById('week');
+        const authorInput = document.getElementById('author');
+        if (!weekInput || !authorInput) return;
+        
+        const selectedWeek = weekInput.value;
+        const currentAuthor = authorInput.value;
+        if (!selectedWeek || !currentAuthor) return;
+        
+        const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
+        
+        // 全曜日クリア
+        daysName.forEach(day => {
+            const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+            if (taskList && taskList.clearAll) {
+                taskList.clearAll();
+                const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
+                if (reportText) reportText.value = '';
+            }
+        });
+        
+        if (existingReport) {
+            daysName.forEach(day => {
+                const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                if (taskList && taskList.addTaskRow) {
+                    const tasks = existingReport.dailyLogs ? (existingReport.dailyLogs[day] || []) : [];
+                    tasks.forEach(t => {
+                        taskList.addTaskRow(t.project, t.detail, t.hours, t.timeline || '');
+                    });
+                    if (tasks.length === 0) {
+                        taskList.addTaskRow();
+                    }
+                    const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
+                    if (reportText) {
+                        reportText.value = (existingReport.dailyReports && existingReport.dailyReports[day]) ? existingReport.dailyReports[day] : '';
+                    }
+                }
+            });
+            
+            const submitBtn = document.getElementById('btn-submit-report');
+            if (submitBtn) submitBtn.textContent = '登録（上書き更新）';
+        } else {
+            daysName.forEach(day => {
+                const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                if (taskList && taskList.addTaskRow) {
+                    taskList.addTaskRow();
+                }
+            });
+            const submitBtn = document.getElementById('btn-submit-report');
+            if (submitBtn) submitBtn.textContent = '登録';
+        }
+        calculateWeekTotal();
+    };
+
     if (daysContainer) {
         daysName.forEach(day => {
             const dayCard = document.createElement('div');
             dayCard.className = 'day-card';
+            const copyBtnHtml = day !== '月' ? `<button type="button" class="btn btn-secondary btn-small btn-copy-prev" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">前日からコピー</button>` : '';
             dayCard.innerHTML = `
-                <div class="day-header">
+                <div class="day-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <span class="day-label">${day}曜日</span>
-                    <span class="total-hours" style="font-size: 0.85rem; font-weight: normal;">計 0.0H</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        ${copyBtnHtml}
+                        <span class="total-hours" style="font-size: 0.85rem; font-weight: normal;">計 0.0H</span>
+                    </div>
                 </div>
                 <div class="day-body">
                     <div class="task-list" data-day="${day}"></div>
@@ -349,6 +452,41 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             daysContainer.appendChild(dayCard);
             const taskList = dayCard.querySelector('.task-list');
+            
+            const copyPrevBtn = dayCard.querySelector('.btn-copy-prev');
+            if (copyPrevBtn) {
+                copyPrevBtn.addEventListener('click', () => {
+                    const prevDayIdx = daysName.indexOf(day) - 1;
+                    if (prevDayIdx < 0) return;
+                    const prevDay = daysName[prevDayIdx];
+                    const prevTaskList = document.querySelector(`.task-list[data-day="${prevDay}"]`);
+                    if (!prevTaskList) return;
+                    
+                    const prevRows = prevTaskList.querySelectorAll('.task-row');
+                    if (prevRows.length === 0) {
+                        alert('前日の作業データがありません。');
+                        return;
+                    }
+                    
+                    const currentRows = taskList.querySelectorAll('.task-row');
+                    if (currentRows.length > 0) {
+                        const hasInput = Array.from(taskList.querySelectorAll('.task-project, .task-detail'))
+                            .some(input => input.value.trim() !== '');
+                        if (hasInput && !confirm('前日の内容をコピーしますか？（現在入力されている内容は消去されます）')) {
+                            return;
+                        }
+                    }
+                    
+                    taskList.clearAll();
+                    prevRows.forEach(row => {
+                        const proj = row.querySelector('.task-project').value;
+                        const detail = row.querySelector('.task-detail').value;
+                        const hours = row.querySelector('.task-hours').value;
+                        const timeline = row.querySelector('.task-timeline-data').value;
+                        taskList.addTaskRow(proj, detail, hours, timeline);
+                    });
+                });
+            }
             
             const calculateTotal = () => {
                 let total = 0;
@@ -566,7 +704,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 calculateTotal();
             };
 
-            addTaskRow();
             dayCard.querySelector('.btn-add-task').addEventListener('click', () => addTaskRow());
         });
     }
@@ -675,16 +812,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: new Date().toISOString()
             };
 
+            const selectedWeek = reportData.week;
+            const currentAuthor = reportData.author;
+            const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
+
             try {
-                await addDoc(collection(db, "reports"), reportData);
-                const msg = document.getElementById('submit-message');
-                msg.classList.remove('hidden');
-                reportForm.querySelectorAll('input:not([type="week"]):not([id="author"]), textarea, select').forEach(el => el.value = '');
-                document.querySelectorAll('.day-card').forEach(card => card.querySelector('.total-hours').textContent = '計 0.0H');
-                window.scrollTo(0, 0);
-                setTimeout(() => msg.classList.add('hidden'), 3000);
+                if (existingReport) {
+                    await updateDoc(doc(db, "reports", existingReport.id), reportData);
+                } else {
+                    await addDoc(collection(db, "reports"), reportData);
+                }
+                alert('登録が完了しました！');
+                await loadReports(false);
             } catch (error) {
-                console.error("Error adding document: ", error);
+                console.error("Error saving document: ", error);
                 alert('保存に失敗しました。');
             }
         });
@@ -822,13 +963,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const q = query(collection(db, "reports"));
             const querySnapshot = await getDocs(q);
-            allReports = querySnapshot.docs.map(doc => doc.data());
+            allReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             updateFilterOptions();
             updateCopySelect();
             updateProjectSuggestions();
-            if (isSummary) renderSummaryTable();
-            else renderTable();
+            if (isSummary) {
+                renderSummaryTable();
+            } else {
+                renderTable();
+                loadReportForSelectedWeek();
+            }
         } catch (e) {
             console.error("Error loading reports: ", e);
         }

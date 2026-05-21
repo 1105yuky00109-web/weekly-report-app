@@ -151,7 +151,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="week">対象週</label>
-                            <input type="week" id="week" required>
+                            <select id="week" required></select>
                             <div id="week-display-hint" style="font-size: 0.85rem; color: #64748b; margin-top: 5px;"></div>
                         </div>
                         <div class="form-group">
@@ -170,8 +170,8 @@
 
 
 
-                    <button type="submit" class="btn btn-primary btn-large">保存して送信</button>
-                    <div id="submit-message" class="message hidden">保存しました！</div>
+                    <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">登録</button>
+                    <div id="submit-message" class="message hidden">登録が完了しました！</div>
                 </form>
             </div>
         </main>
