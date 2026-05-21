@@ -146,7 +146,7 @@
         <!-- 日報入力画面 -->
         <main id="input-view" class="view no-print">
             <div class="form-card">
-                <h2>週次日報（実績）の作成</h2>
+                <h2>週次日報（実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
                 <form id="report-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -168,24 +168,7 @@
 
                     <div class="days-container" id="days-container"></div>
 
-                    <div class="summary-section">
-                        <h3 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-                            <span>今週のまとめ（レポート用）</span>
-                            <span id="week-total-hours" style="color: var(--primary); font-size: 1.1rem; font-weight: bold;">合計: 0.0H</span>
-                        </h3>
-                        <div class="form-group">
-                            <label for="actual">実績（全体の振り返りなど）</label>
-                            <textarea id="actual" rows="3" placeholder="今週完了した主な内容などを記入" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="plan">予定（次週やること）</label>
-                            <textarea id="plan" rows="3" placeholder="来週行う予定を記入" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="notes">備考</label>
-                            <textarea id="notes" rows="2" placeholder="特記事項があれば記入"></textarea>
-                        </div>
-                    </div>
+
 
                     <button type="submit" class="btn btn-primary btn-large">保存して送信</button>
                     <div id="submit-message" class="message hidden">保存しました！</div>

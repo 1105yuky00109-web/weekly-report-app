@@ -267,6 +267,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="day-body">
                     <div class="task-list" data-day="${day}"></div>
                     <button type="button" class="btn btn-add-task">＋ 工事・作業を追加</button>
+                    <div class="day-report-field" style="margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
+                        <label style="font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; display: block; color: var(--text-muted);">📝 日次レポート・備考</label>
+                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 0.9rem; background: var(--bg); color: var(--text); resize: vertical;"></textarea>
+                    </div>
                 </div>
             `;
             daysContainer.appendChild(dayCard);
@@ -341,16 +345,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     tasks.forEach(t => {
                         taskList.addTaskRow(t.project, t.detail, t.hours);
                     });
+                    const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
+                    if (reportText) {
+                        reportText.value = (sourceReport.dailyReports && sourceReport.dailyReports[day]) ? sourceReport.dailyReports[day] : '';
+                    }
                 }
             });
-            
-            // 週次まとめ部分もコピー
-            const actual = document.getElementById('actual');
-            const plan = document.getElementById('plan');
-            const notes = document.getElementById('notes');
-            if (actual) actual.value = sourceReport.actual || '';
-            if (plan) plan.value = sourceReport.plan || '';
-            if (notes) notes.value = sourceReport.notes || '';
 
             calculateWeekTotal();
             alert('コピーが完了しました！必要に応じて編集してください。');
@@ -402,13 +402,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 dailyLogs[day] = tasks;
             });
 
+            const dailyReports = {};
+            daysName.forEach(day => {
+                const textVal = document.querySelector(`.task-list[data-day="${day}"]`)
+                    .closest('.day-card')
+                    .querySelector('.day-report-text').value.trim();
+                dailyReports[day] = textVal;
+            });
+
             const reportData = {
                 week: document.getElementById('week').value,
                 author: document.getElementById('author').value,
                 dailyLogs,
-                actual: document.getElementById('actual').value,
-                plan: document.getElementById('plan').value,
-                notes: document.getElementById('notes').value,
+                dailyReports,
                 timestamp: new Date().toISOString()
             };
 
@@ -619,7 +625,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             const dates = getDaysOfWeek(r.week);
             const getDayLabel = (idx, name) => dates ? `${formatDate(dates[idx])}<br>(${name})` : name;
-            const renderCell = (day) => (r.dailyLogs && r.dailyLogs[day]) ? r.dailyLogs[day].map(t => `<div class="day-summary-cell"><strong>${t.project}</strong>${t.detail} (${parseFloat(t.hours||0).toFixed(1)}H)</div>`).join('') : '-';
+            const renderCell = (day) => {
+                const tasksHtml = (r.dailyLogs && r.dailyLogs[day]) ? r.dailyLogs[day].map(t => `<div class="day-summary-cell"><strong>${t.project}</strong>${t.detail} (${parseFloat(t.hours||0).toFixed(1)}H)</div>`).join('') : '';
+                const reportHtml = (r.dailyReports && r.dailyReports[day]) ? `<div class="day-report-summary-cell" style="font-size:0.8rem; color:#0284c7; margin-top:5px; border-top:1px dotted var(--border); padding-top:3px; white-space:pre-wrap; font-style:italic; text-align: left;">📝 ${r.dailyReports[day]}</div>` : '';
+                return (tasksHtml || reportHtml) ? (tasksHtml + reportHtml) : '-';
+            };
 
             tr.innerHTML = `
                 <td>${formatWeekRange(r.week)}</td>
@@ -637,10 +647,38 @@ document.addEventListener('DOMContentLoaded', () => {
             let printTasksHtml = '';
             daysName.forEach((day, idx) => {
                 const ts = r.dailyLogs ? r.dailyLogs[day] : [];
-                if (ts && ts.length > 0) {
-                    ts.forEach(t => {
-                        printTasksHtml += `<tr><td>${dates ? formatDate(dates[idx]) : ''}(${day})</td><td>${t.project}</td><td>${t.detail}</td><td>${parseFloat(t.hours||0).toFixed(1)}H</td></tr>`;
-                    });
+                const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
+                
+                if (ts.length > 0 || dailyRep) {
+                    const rowSpan = Math.max(ts.length, 1);
+                    if (ts.length > 0) {
+                        ts.forEach((t, tIdx) => {
+                            if (tIdx === 0) {
+                                printTasksHtml += `
+                                    <tr>
+                                        <td rowspan="${rowSpan}">${dates ? formatDate(dates[idx]) : ''}(${day})</td>
+                                        <td>${t.project}</td>
+                                        <td>${t.detail}</td>
+                                        <td>${parseFloat(t.hours||0).toFixed(1)}H</td>
+                                        <td rowspan="${rowSpan}" style="white-space: pre-wrap; font-size:0.85rem; text-align: left;">${dailyRep || '-'}</td>
+                                    </tr>`;
+                            } else {
+                                printTasksHtml += `
+                                    <tr>
+                                        <td>${t.project}</td>
+                                        <td>${t.detail}</td>
+                                        <td>${parseFloat(t.hours||0).toFixed(1)}H</td>
+                                    </tr>`;
+                            }
+                        });
+                    } else {
+                        printTasksHtml += `
+                            <tr>
+                                <td>${dates ? formatDate(dates[idx]) : ''}(${day})</td>
+                                <td colspan="3" style="color: #64748b; font-style: italic; text-align: center;">作業記録なし</td>
+                                <td style="white-space: pre-wrap; font-size:0.85rem; text-align: left;">${dailyRep}</td>
+                            </tr>`;
+                    }
                 }
             });
 
@@ -650,12 +688,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="print-report-body">
                         <strong>■ 業務実績（日別詳細）</strong>
                         <table class="print-task-table">
-                            <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th></tr></thead>
-                            <tbody>${printTasksHtml || '<tr><td colspan="4">記録なし</td></tr>'}</tbody>
+                            <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th><th>日次レポート・備考</th></tr></thead>
+                            <tbody>${printTasksHtml || '<tr><td colspan="5">記録なし</td></tr>'}</tbody>
                         </table>
-                        <strong>■ 今週のまとめ（実績）</strong><p style="white-space: pre-wrap;">${r.actual || '-'}</p><br>
-                        <strong>■ 次週の予定</strong><p style="white-space: pre-wrap;">${r.plan || '-'}</p><br>
-                        <strong>■ 備考</strong><p style="white-space: pre-wrap;">${r.notes || '-'}</p>
                     </div>
                 </div>
             `;
@@ -760,9 +795,11 @@ document.addEventListener('DOMContentLoaded', () => {
             filtered.forEach(r => {
                 const days = ['月','火','水','木','金','土','日'];
                 days.forEach(day => {
-                    if(r.dailyLogs && r.dailyLogs[day]){
-                        r.dailyLogs[day].forEach(t => {
-                            // 詳細一覧用のデータ
+                    const tasks = (r.dailyLogs && r.dailyLogs[day]) ? r.dailyLogs[day] : [];
+                    const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
+                    
+                    if (tasks.length > 0) {
+                        tasks.forEach(t => {
                             rows.push({
                                 "対象期間": formatWeekRange(r.week),
                                 "担当者": r.author,
@@ -770,15 +807,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 "工事名": t.project,
                                 "作業内容": t.detail,
                                 "作業時間(H)": t.hours,
-                                "実績": r.actual || "",
-                                "予定": r.plan || "",
-                                "備考": r.notes || ""
+                                "日次レポート・備考": dailyRep
                             });
-                            // 集計用のデータ蓄積
+                            
                             if (t.project) {
                                 if (!authorProjectHours[r.author]) authorProjectHours[r.author] = {};
                                 authorProjectHours[r.author][t.project] = (authorProjectHours[r.author][t.project] || 0) + parseFloat(t.hours || 0);
                             }
+                        });
+                    } else if (dailyRep) {
+                        rows.push({
+                            "対象期間": formatWeekRange(r.week),
+                            "担当者": r.author,
+                            "曜日": day,
+                            "工事名": "",
+                            "作業内容": "(工事入力なし)",
+                            "作業時間(H)": "",
+                            "日次レポート・備考": dailyRep
                         });
                     }
                 });
