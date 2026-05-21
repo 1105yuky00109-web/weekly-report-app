@@ -146,7 +146,12 @@
         <!-- 日報入力画面 -->
         <main id="input-view" class="view no-print">
             <div class="form-card">
-                <h2>週報（予定と実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
+                <div class="form-card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: inline-block; font-size: 1.3rem;">週報（予定と実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
+                    <button type="button" id="btn-print-weekly" class="btn btn-secondary btn-small" style="background-color: var(--primary); display: flex; align-items: center; gap: 5px; font-weight: bold;">
+                        🖨️ 週間行動予定表(A4)を印刷
+                    </button>
+                </div>
                 <form id="report-form">
                     <div class="form-row">
                         <div class="form-group">
@@ -287,6 +292,10 @@
     </template>
 
     <datalist id="project-suggestions"></datalist>
+    
+    <!-- 週間行動予定表（A4縦）の印刷用非表示コンテナ -->
+    <div id="print-weekly-action-container" class="only-print"></div>
+
     <!-- モジュールとしてapp.jsを読み込む（Firebase v10対応のため） -->
     <script type="module" src="app.js?v=2"></script>
 </body>

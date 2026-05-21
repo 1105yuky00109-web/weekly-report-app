@@ -1,11 +1,10 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyBero5buqjW670UPObtf4QiVX-rkhhFfPs",
-    authDomain: "weekly-report-93e5f.firebaseapp.com",
-    projectId: "weekly-report-93e5f",
-    storageBucket: "weekly-report-93e5f.firebasestorage.app",
-    messagingSenderId: "905872831436",
-    appId: "1:905872831436:web:1367ad0b1d54d9bba7a369",
-    measurementId: "G-HC3D9SGNJ0"
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -180,6 +179,41 @@ const getMonthStr = (weekStr) => {
     if (!days) return "";
     const d = days[0]; // 月曜日の日付を含む月をその週の「月」とする
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+// タイムラインの48文字から、作業の連続する時間帯を配列で返す関数（例: ["09:00〜12:00", "13:00〜17:00"]）
+const getTimelineIntervals = (timelineStr) => {
+    if (!timelineStr || timelineStr.length !== 48) return [];
+    const intervals = [];
+    let inInterval = false;
+    let startIdx = -1;
+    
+    for (let i = 0; i < 48; i++) {
+        const state = parseInt(timelineStr[i]);
+        if (state === 1) { // 作業
+            if (!inInterval) {
+                inInterval = true;
+                startIdx = i;
+            }
+        } else {
+            if (inInterval) {
+                inInterval = false;
+                intervals.push({ start: startIdx, end: i });
+            }
+        }
+    }
+    if (inInterval) {
+        intervals.push({ start: startIdx, end: 48 });
+    }
+    
+    return intervals.map(interval => {
+        const formatTime = (idx) => {
+            const h = Math.floor(idx / 2);
+            const m = (idx % 2 === 0) ? '00' : '30';
+            return `${String(h).padStart(2, '0')}:${m}`;
+        };
+        return `${formatTime(interval.start)}〜${formatTime(interval.end)}`;
+    });
 };
 
 // 今週のISO週（YYYY-Www）を取得する関数
@@ -357,6 +391,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // フォーム制御関数 (一括 disabled化/活性化)
+    const setFormLocked = (isLocked) => {
+        const form = document.getElementById('report-form');
+        if (!form) return;
+        
+        // 入力項目, ボタンを一括制御
+        form.querySelectorAll('input, textarea, select, button').forEach(el => {
+            if (el.id === 'week' || el.id === 'btn-print-weekly' || el.closest('#report-action-buttons')) {
+                return;
+            }
+            el.disabled = isLocked;
+        });
+        
+        // 日報コピー欄の無効化
+        const copySelect = document.getElementById('copy-past-report-select');
+        const copyBtn = document.getElementById('btn-copy-past-report');
+        if (copySelect) copySelect.disabled = isLocked;
+        if (copyBtn) copyBtn.disabled = isLocked;
+        
+        // タイムラインとパレットの操作無効化
+        document.querySelectorAll('.timeline-container-scroll, .timeline-palette').forEach(el => {
+            if (isLocked) {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.5';
+            } else {
+                const row = el.closest('.task-row');
+                if (row && row.classList.contains('leave-row')) {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.5';
+                } else {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                }
+            }
+        });
+        
+        // 追加・削除ボタンの非表示・表示切替
+        document.querySelectorAll('.btn-add-task, .remove-task-btn, .btn-copy-prev').forEach(btn => {
+            if (isLocked) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = '';
+            }
+        });
+    };
+
     // 日別入力枠
     const daysName = ['月', '火', '水', '木', '金', '土', '日'];
     const daysContainer = document.getElementById('days-container');
@@ -400,6 +480,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // デフォルトではロック解除
+        setFormLocked(false);
+        
         if (existingReport) {
             daysName.forEach(day => {
                 const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
@@ -429,8 +512,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (badge) {
-                badge.className = 'status-badge ' + (status === 'confirmed' ? 'status-confirmed' : 'status-plan');
-                badge.textContent = status === 'confirmed' ? '実績確定済み' : '予定（未確定）';
+                if (status === 'approved') {
+                    badge.className = 'status-badge status-approved';
+                    badge.textContent = '上長承認済み';
+                } else if (status === 'confirmed') {
+                    badge.className = 'status-badge status-confirmed';
+                    badge.textContent = '実績確定済み';
+                } else {
+                    badge.className = 'status-badge status-plan';
+                    badge.textContent = '予定（未確定）';
+                }
+            }
+            
+            // ロック処理
+            if (status === 'approved') {
+                setFormLocked(true);
             }
             
             if (actionContainer) {
@@ -443,12 +539,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (btnSavePlan) {
                         btnSavePlan.addEventListener('click', () => saveReport('plan'));
                     }
+                } else if (status === 'approved') {
+                    actionContainer.innerHTML = `
+                        <button type="button" id="btn-unapprove-report" class="btn btn-danger btn-large">上長承認を取り消す</button>
+                    `;
+                    const btnUnapprove = document.getElementById('btn-unapprove-report');
+                    if (btnUnapprove) {
+                        btnUnapprove.addEventListener('click', () => saveReport('confirmed'));
+                    }
                 } else if (status === 'confirmed') {
-                    actionContainer.innerHTML = `<button type="submit" id="btn-submit-report" class="btn btn-success btn-large">実績確定を更新（上書き）</button>`;
+                    actionContainer.innerHTML = `
+                        <button type="submit" id="btn-submit-report" class="btn btn-success btn-large" style="flex: 1;">実績確定を更新（上書き）</button>
+                        <button type="button" id="btn-approve-report" class="btn btn-primary btn-large" style="flex: 1; background-color: var(--primary);">上長承認する</button>
+                    `;
+                    const btnApprove = document.getElementById('btn-approve-report');
+                    if (btnApprove) {
+                        btnApprove.addEventListener('click', () => saveReport('approved'));
+                    }
                 } else {
                     actionContainer.innerHTML = `
-                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
-                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定として一時保存</button>
+                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large" style="flex: 1;">実績として確定登録</button>
                     `;
                     const btnSavePlan = document.getElementById('btn-save-plan');
                     if (btnSavePlan) {
@@ -481,8 +592,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     actionContainer.innerHTML = `
-                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
-                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定として一時保存</button>
+                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large" style="flex: 1;">実績として確定登録</button>
                     `;
                     const btnSavePlan = document.getElementById('btn-save-plan');
                     if (btnSavePlan) {
@@ -909,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
             author: document.getElementById('author').value,
             dailyLogs,
             dailyReports,
-            status, // 'plan' または 'confirmed'
+            status, // 'plan', 'confirmed', 'approved'
             timestamp: new Date().toISOString()
         };
 
@@ -917,13 +1028,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentAuthor = reportData.author;
         const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
 
+        if (status === 'approved') {
+            reportData.approvedAt = new Date().toISOString();
+            reportData.approvedBy = currentUser.displayName || currentUser.email.split('@')[0];
+        } else {
+            reportData.approvedAt = null;
+            reportData.approvedBy = null;
+        }
+
         try {
             if (existingReport) {
                 await updateDoc(doc(db, "reports", existingReport.id), reportData);
             } else {
                 await addDoc(collection(db, "reports"), reportData);
             }
-            alert(status === 'confirmed' ? '実績を確定登録しました！' : '予定を一時保存しました！');
+            if (status === 'approved') {
+                alert('上長承認を登録しました！');
+            } else if (status === 'confirmed') {
+                alert('実績を確定登録しました！');
+            } else {
+                alert('予定を一時保存しました！');
+            }
             await loadReports(false);
         } catch (error) {
             console.error("Error saving document: ", error);
@@ -1440,6 +1565,243 @@ document.addEventListener('DOMContentLoaded', () => {
         btnPrintGantt.addEventListener('click', () => {
             doPrint('gantt-container', document.getElementById('print-gantt-title')?.textContent || '月間作業予定表', true);
         });
+    }
+
+    // 週間行動予定表（A4縦）の印刷処理
+    const printWeeklyReport = () => {
+        const weekInput = document.getElementById('week');
+        const authorInput = document.getElementById('author');
+        if (!weekInput || !authorInput) return;
+        
+        const weekVal = weekInput.value;
+        const weekText = weekInput.options[weekInput.selectedIndex]?.text || '';
+        const authorVal = authorInput.value;
+        
+        // 承認状態の取得（画面のステータスバッジから判定）
+        const badge = document.getElementById('report-status-badge');
+        const isApproved = badge && badge.classList.contains('status-approved');
+        
+        // 承認日付の取得
+        const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
+        let approvedDateStr = '';
+        if (isApproved && existingReport && existingReport.approvedAt) {
+            const appDate = new Date(existingReport.approvedAt);
+            approvedDateStr = `${appDate.getMonth() + 1}/${appDate.getDate()}`;
+        } else if (isApproved) {
+            const now = new Date();
+            approvedDateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+        }
+        
+        // 画面の入力内容を収集
+        const daysData = {};
+        daysName.forEach(day => {
+            const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
+            const rows = dayCard.querySelectorAll('.task-row');
+            const tasks = [];
+            rows.forEach(row => {
+                const project = row.querySelector('.task-project').value.trim();
+                const detail = row.querySelector('.task-detail').value.trim();
+                const hours = parseFloat(row.querySelector('.task-hours').value || 0);
+                const timeline = row.querySelector('.task-timeline-data').value;
+                if (project || detail || hours || timeline) {
+                    tasks.push({ project, detail, hours, timeline });
+                }
+            });
+            const reportText = dayCard.querySelector('.day-report-text').value.trim();
+            daysData[day] = { tasks, reportText };
+        });
+        
+        const dates = getDaysOfWeek(weekVal);
+        const formatPrintDate = (dateObj, dayName) => {
+            if (!dateObj) return `${dayName}曜日`;
+            return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日<br>(${dayName})`;
+        };
+        
+        let html = `<div class="weekly-print-wrapper">`;
+        
+        // ヘッダー（A4印刷フォーマット）
+        html += `
+        <div class="weekly-print-header">
+            <div style="width: 200px; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 8.5pt; font-weight: bold; border: 1px solid #000; padding: 2px 6px; width: fit-content;">WF申請</span>
+            </div>
+            <div class="weekly-print-title">週間行動予定表（工事管理課）</div>
+            <div>
+                <table class="approval-table">
+                    <thead>
+                        <tr>
+                            <th>部長</th>
+                            <th>上長</th>
+                            <th>担当者</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td></td>
+                            <td>
+                                ${isApproved ? `<div class="stamp-approved">済<br><span>${approvedDateStr}</span></div>` : ''}
+                            </td>
+                            <td style="font-weight: bold; font-size: 9pt; writing-mode: vertical-rl; text-align: center; padding: 5px 0; letter-spacing: 2px;">
+                                ${authorVal.substring(0, 6)}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        `;
+        
+        // サブヘッダー（対象週と凡例）
+        html += `
+        <div class="weekly-print-subheader">
+            <div style="font-size: 9pt;">対象週: ${weekText} (${formatWeekRange(weekVal)})</div>
+            <div class="legend-box">
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #000;"></span>
+                    <span>作業</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #ef4444;"></span>
+                    <span>休憩</span>
+                </div>
+            </div>
+        </div>
+        `;
+        
+        // 各曜日のデータ出力
+        daysName.forEach((day, idx) => {
+            const dayObj = daysData[day];
+            const tasks = dayObj.tasks;
+            const reportText = dayObj.reportText;
+            const dateObj = dates ? dates[idx] : null;
+            
+            html += `<div class="print-day-block">`;
+            
+            // テーブル
+            html += `
+            <table class="print-day-table">
+                <thead>
+                    <tr>
+                        <th class="col-date">日時</th>
+                        <th class="col-project">訪問先</th>
+                        <th class="col-time">時間</th>
+                        <th class="col-direct">直行直帰</th>
+                        <th class="col-detail">記録</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            if (tasks.length === 0) {
+                html += `
+                    <tr>
+                        <td class="col-date">${formatPrintDate(dateObj, day)}</td>
+                        <td class="col-project">-</td>
+                        <td class="col-time">-</td>
+                        <td class="col-direct"></td>
+                        <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt;">${reportText || ''}</td>
+                    </tr>
+                `;
+            } else {
+                tasks.forEach((task, tIdx) => {
+                    const timeIntervals = getTimelineIntervals(task.timeline);
+                    const timeStr = timeIntervals.join('<br>') || (task.hours > 0 ? `${parseFloat(task.hours).toFixed(1)}H` : '-');
+                    
+                    let detailContent = task.detail || '';
+                    if (tIdx === tasks.length - 1 && reportText) {
+                        detailContent += `
+                            <div style="font-size: 8pt; color: #475569; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; font-style: italic;">
+                                📝 日次報告: ${reportText}
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                        <tr>
+                            ${tIdx === 0 ? `<td class="col-date" rowspan="${tasks.length}">${formatPrintDate(dateObj, day)}</td>` : ''}
+                            <td class="col-project" style="text-align: left; font-weight: bold;">${task.project || ''}</td>
+                            <td class="col-time" style="font-size: 8pt;">${timeStr}</td>
+                            <td class="col-direct"></td>
+                            <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt;">${detailContent}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += `
+                </tbody>
+            </table>
+            `;
+            
+            // マージタイムライン
+            let mergedTimeline = Array(48).fill(0);
+            let dayTotal = 0;
+            tasks.forEach(task => {
+                dayTotal += parseFloat(task.hours || 0);
+                if (task.timeline && task.timeline.length === 48) {
+                    for (let i = 0; i < 48; i++) {
+                        const val = parseInt(task.timeline[i]);
+                        if (val === 1) {
+                            mergedTimeline[i] = 1;
+                        } else if (val === 2 && mergedTimeline[i] !== 1) {
+                            mergedTimeline[i] = 2;
+                        }
+                    }
+                }
+            });
+            
+            html += `
+            <div class="print-timeline-row">
+                <div class="print-timeline-label">時間</div>
+                <div class="print-timeline-hours">
+                    <div class="print-timeline-header-cells">
+            `;
+            for (let h = 0; h < 24; h++) {
+                html += `<div class="print-timeline-hour-cell">${h}</div>`;
+            }
+            html += `
+                    </div>
+                    <div class="print-timeline-grid-cells">
+            `;
+            for (let i = 0; i < 48; i++) {
+                const state = mergedTimeline[i];
+                html += `<div class="print-timeline-cell" data-state="${state}"></div>`;
+            }
+            html += `
+                    </div>
+                </div>
+                <div class="print-timeline-total">計 ${dayTotal.toFixed(1)}H</div>
+            </div>
+            `;
+            
+            html += `</div>`; // .print-day-block
+        });
+        
+        html += `</div>`; // .weekly-print-wrapper
+        
+        // 印刷用コンテナへの挿入
+        const printContainer = document.getElementById('print-weekly-action-container');
+        if (printContainer) {
+            printContainer.innerHTML = html;
+        }
+        
+        // 印刷の実行
+        const style = document.createElement('style');
+        style.id = 'print-dynamic-style';
+        style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 8mm 10mm !important; } }';
+        document.head.appendChild(style);
+        
+        window.print();
+        
+        setTimeout(() => {
+            const dynStyle = document.getElementById('print-dynamic-style');
+            if (dynStyle) dynStyle.remove();
+        }, 1000);
+    };
+
+    const btnPrintWeekly = document.getElementById('btn-print-weekly');
+    if (btnPrintWeekly) {
+        btnPrintWeekly.addEventListener('click', printWeeklyReport);
     }
 
 

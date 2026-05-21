@@ -1,11 +1,8 @@
-// Netlifyビルド時に環境変数をapp.jsに注入するスクリプト
+// Netlifyビルド時に環境変数をapp.jsおよびseed.jsに注入するスクリプト
 // node build-inject.js で実行
 
 const fs = require('fs');
 const path = require('path');
-
-const appJsPath = path.join(__dirname, 'public', 'app.js');
-let content = fs.readFileSync(appJsPath, 'utf-8');
 
 // 環境変数からFirebase設定を取得
 const config = {
@@ -17,7 +14,7 @@ const config = {
     appId: process.env.FIREBASE_APP_ID || ''
 };
 
-// app.js内のfirebaseConfigブロックを環境変数の値で置き換える
+// firebaseConfigブロックを環境変数の値で置き換える
 const newConfig = `const firebaseConfig = {
     apiKey: "${config.apiKey}",
     authDomain: "${config.authDomain}",
@@ -27,11 +24,24 @@ const newConfig = `const firebaseConfig = {
     appId: "${config.appId}"
 };`;
 
-// 既存のfirebaseConfigブロックを正規表現で置換
-content = content.replace(
-    /const firebaseConfig = \{[\s\S]*?\};/,
-    newConfig
-);
+const injectTo = (filename) => {
+    const filePath = path.join(__dirname, 'public', filename);
+    if (!fs.existsSync(filePath)) {
+        console.log(`⚠️ ファイルが見つかりません: ${filename}`);
+        return;
+    }
+    let content = fs.readFileSync(filePath, 'utf-8');
+    
+    // 既存のfirebaseConfigブロックを正規表現で置換
+    content = content.replace(
+        /const firebaseConfig = \{[\s\S]*?\};/,
+        newConfig
+    );
+    
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`✅ Firebase設定の注入が完了しました: ${filename}`);
+};
 
-fs.writeFileSync(appJsPath, content, 'utf-8');
-console.log('✅ Firebase設定の注入が完了しました。');
+injectTo('app.js');
+injectTo('seed.js');
+

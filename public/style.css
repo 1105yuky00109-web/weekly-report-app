@@ -164,14 +164,25 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 /* --- 印刷用スタイル --- */
 @media print {
     body * { visibility: hidden; }
-    #print-area, #print-area * { visibility: visible; }
+    #print-area, #print-area *,
+    #print-weekly-action-container, #print-weekly-action-container * { 
+        visibility: visible; 
+    }
     #print-area {
         position: fixed;
         top: 0; left: 0;
         width: 100%;
         background: white;
     }
-    @page { size: A4 portrait; margin: 10mm; }
+    #print-weekly-action-container {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        background: white;
+        color: black;
+        font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif;
+    }
+    @page { size: A4 portrait; margin: 8mm 10mm; }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }
@@ -183,6 +194,208 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     .gantt-cell, .gantt-bar-bg-cell { border-right: 1px solid #000; border-bottom: 1px solid #000; }
     .gantt-header-cell, .gantt-proj-cell, .gantt-author-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .gantt-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* 週間行動予定表（A4縦）用の特別スタイル */
+    .weekly-print-wrapper {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .weekly-print-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+    .weekly-print-title {
+        font-size: 18pt;
+        font-weight: bold;
+        text-align: center;
+        flex: 1;
+        margin-top: 10px;
+        letter-spacing: 2px;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+    .approval-table {
+        border-collapse: collapse;
+        margin-left: 20px;
+    }
+    .approval-table th {
+        font-size: 7.5pt;
+        padding: 2px 6px;
+        border: 1px solid #000;
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        text-align: center;
+        width: 50px;
+    }
+    .approval-table td {
+        border: 1px solid #000;
+        width: 50px;
+        height: 50px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 8pt;
+        position: relative;
+        padding: 0;
+    }
+    .stamp-approved {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 7.5pt;
+        font-weight: bold;
+        line-height: 1.1;
+        margin: auto;
+        transform: rotate(-10deg);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .stamp-approved span {
+        font-size: 6.5pt;
+    }
+    .weekly-print-subheader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 8.5pt;
+        margin-bottom: 4px;
+        font-weight: bold;
+    }
+    .legend-box {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .legend-color {
+        width: 14px;
+        height: 14px;
+        border: 1px solid #000;
+        display: inline-block;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .print-day-block {
+        border: 2px solid #000;
+        margin-bottom: 8px;
+        page-break-inside: avoid;
+        display: flex;
+        flex-direction: column;
+    }
+    .print-day-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .print-day-table th, .print-day-table td {
+        border: 1px solid #000;
+        padding: 4px 6px;
+        font-size: 8.5pt;
+        vertical-align: middle;
+        height: 24px;
+    }
+    .print-day-table th {
+        background: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: bold;
+        text-align: center;
+    }
+    .col-date { width: 12%; text-align: center; font-weight: bold; }
+    .col-project { width: 22%; }
+    .col-time { width: 15%; text-align: center; }
+    .col-direct { width: 8%; text-align: center; }
+    .col-detail { width: 43%; }
+
+    .print-timeline-row {
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #000;
+        background: #fff;
+        height: 30px;
+        box-sizing: border-box;
+    }
+    .print-timeline-label {
+        width: 12%;
+        font-size: 7.5pt;
+        text-align: center;
+        font-weight: bold;
+        border-right: 1px solid #000;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        box-sizing: border-box;
+    }
+    .print-timeline-hours {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border-right: 1px solid #000;
+        box-sizing: border-box;
+    }
+    .print-timeline-header-cells {
+        display: grid;
+        grid-template-columns: repeat(24, 1fr);
+        font-size: 6.5pt;
+        text-align: center;
+        height: 12px;
+        line-height: 12px;
+        border-bottom: 1px solid #000;
+        box-sizing: border-box;
+    }
+    .print-timeline-hour-cell {
+        border-right: 1px solid #ccc;
+    }
+    .print-timeline-hour-cell:last-child {
+        border-right: none;
+    }
+    .print-timeline-grid-cells {
+        display: grid;
+        grid-template-columns: repeat(48, 1fr);
+        height: 18px;
+        box-sizing: border-box;
+    }
+    .print-timeline-cell {
+        border-right: 1px dashed #ccc;
+        height: 100%;
+    }
+    .print-timeline-cell:nth-child(2n) {
+        border-right: 1px solid #000;
+    }
+    .print-timeline-cell:last-child {
+        border-right: none;
+    }
+    .print-timeline-cell[data-state="0"] { background: #fff !important; }
+    .print-timeline-cell[data-state="1"] { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-timeline-cell[data-state="2"] { background: #ef4444 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    
+    .print-timeline-total {
+        width: 10%;
+        font-size: 8pt;
+        text-align: center;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        box-sizing: border-box;
+    }
 }
 
 /* A3横印刷（ガントチャート用） */
@@ -540,6 +753,16 @@ body.dark-theme .status-badge.status-confirmed {
     background-color: #064e3b;
     color: #6ee7b7;
     border-color: #047857;
+}
+.status-badge.status-approved {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+body.dark-theme .status-badge.status-approved {
+    background-color: #172554;
+    color: #93c5fd;
+    border-color: #1e3a8a;
 }
 
 /* 日報フォーム下部アクションボタン */
