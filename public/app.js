@@ -305,20 +305,147 @@ document.addEventListener('DOMContentLoaded', () => {
                 calculateWeekTotal();
             };
 
-            const addTaskRow = (projVal = '', detailVal = '', hoursVal = '') => {
+            const addTaskRow = (projVal = '', detailVal = '', hoursVal = '', timelineVal = '') => {
                 const clone = taskRowTemplate.content.cloneNode(true);
                 const row = clone.querySelector('.task-row');
                 
                 const projInput = row.querySelector('.task-project');
                 const detailInput = row.querySelector('.task-detail');
-                const hoursSelect = row.querySelector('.task-hours');
+                const hoursInput = row.querySelector('.task-hours');
+                const timelineInput = row.querySelector('.task-timeline-data');
+                const hoursTotalSpan = row.querySelector('.timeline-hours-total');
                 
                 if (projVal) projInput.value = projVal;
                 if (detailVal) detailInput.value = detailVal;
-                if (hoursVal) hoursSelect.value = hoursVal;
+                
+                let stateArray = Array(48).fill(0); // 0:なし, 1:作業, 2:休憩
+                if (timelineVal && timelineVal.length === 48) {
+                    stateArray = timelineVal.split('').map(Number);
+                } else if (hoursVal) {
+                    const hours = parseFloat(hoursVal);
+                    if (!isNaN(hours)) {
+                        const slotCount = Math.round(hours * 2);
+                        const startSlot = 16; // 8:00
+                        for (let i = 0; i < slotCount; i++) {
+                            if (startSlot + i < 48) {
+                                stateArray[startSlot + i] = 1;
+                            }
+                        }
+                    }
+                }
+                
+                const headerContainer = row.querySelector('.timeline-hours-header');
+                for (let h = 0; h < 24; h++) {
+                    const lbl = document.createElement('div');
+                    lbl.className = 'timeline-hour-label';
+                    lbl.textContent = h;
+                    headerContainer.appendChild(lbl);
+                }
+                
+                const cellsGrid = row.querySelector('.timeline-cells-grid');
+                const cellElements = [];
+                for (let i = 0; i < 48; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'timeline-cell';
+                    cell.dataset.index = i;
+                    cell.dataset.state = stateArray[i];
+                    
+                    const hour = Math.floor(i / 2);
+                    const min = (i % 2 === 0) ? '00' : '30';
+                    const nextHour = Math.floor((i + 1) / 2);
+                    const nextMin = ((i + 1) % 2 === 0) ? '00' : '30';
+                    cell.title = `${String(hour).padStart(2, '0')}:${min}〜${String(nextHour).padStart(2, '0')}:${nextMin}`;
+                    
+                    cellsGrid.appendChild(cell);
+                    cellElements.push(cell);
+                }
+                
+                let currentMode = 1;
+                const paletteBtns = row.querySelectorAll('.palette-btn');
+                paletteBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        paletteBtns.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentMode = parseInt(btn.dataset.mode);
+                    });
+                });
+                
+                let isDrawing = false;
+                
+                const updateCellState = (index) => {
+                    if (index < 0 || index >= 48) return;
+                    stateArray[index] = currentMode;
+                    cellElements[index].dataset.state = currentMode;
+                    
+                    const workCount = stateArray.filter(s => s === 1).length;
+                    const totalHours = workCount * 0.5;
+                    hoursTotalSpan.textContent = totalHours.toFixed(1);
+                    hoursInput.value = totalHours.toFixed(1);
+                    timelineInput.value = stateArray.join('');
+                    
+                    calculateTotal();
+                };
 
-                row.querySelector('.remove-task-btn').addEventListener('click', () => { row.remove(); calculateTotal(); });
-                hoursSelect.addEventListener('change', calculateTotal);
+                cellsGrid.addEventListener('mousedown', (e) => {
+                    const cell = e.target.closest('.timeline-cell');
+                    if (cell) {
+                        isDrawing = true;
+                        const idx = parseInt(cell.dataset.index);
+                        updateCellState(idx);
+                    }
+                });
+                
+                cellsGrid.addEventListener('mousemove', (e) => {
+                    if (!isDrawing) return;
+                    const cell = e.target.closest('.timeline-cell');
+                    if (cell) {
+                        const idx = parseInt(cell.dataset.index);
+                        updateCellState(idx);
+                    }
+                });
+                
+                const stopDrawing = () => { isDrawing = false; };
+                window.addEventListener('mouseup', stopDrawing);
+                
+                cellsGrid.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const cell = target ? target.closest('.timeline-cell') : null;
+                    if (cell && cell.parentNode === cellsGrid) {
+                        isDrawing = true;
+                        const idx = parseInt(cell.dataset.index);
+                        updateCellState(idx);
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+                
+                cellsGrid.addEventListener('touchmove', (e) => {
+                    if (!isDrawing) return;
+                    const touch = e.touches[0];
+                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const cell = target ? target.closest('.timeline-cell') : null;
+                    if (cell && cell.parentNode === cellsGrid) {
+                        const idx = parseInt(cell.dataset.index);
+                        updateCellState(idx);
+                    }
+                    e.preventDefault();
+                }, { passive: false });
+                
+                cellsGrid.addEventListener('touchend', stopDrawing);
+                
+                const initialWorkCount = stateArray.filter(s => s === 1).length;
+                const initialHours = initialWorkCount * 0.5;
+                hoursTotalSpan.textContent = initialHours.toFixed(1);
+                hoursInput.value = initialHours.toFixed(1);
+                timelineInput.value = stateArray.join('');
+                
+                row.querySelector('.remove-task-btn').addEventListener('click', () => {
+                    window.removeEventListener('mouseup', stopDrawing);
+                    row.remove();
+                    calculateTotal();
+                });
+                
                 taskList.appendChild(row);
                 calculateTotal();
             };
@@ -362,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskList.clearAll();
                     const tasks = sourceReport.dailyLogs[day] || [];
                     tasks.forEach(t => {
-                        taskList.addTaskRow(t.project, t.detail, t.hours);
+                        taskList.addTaskRow(t.project, t.detail, t.hours, t.timeline || '');
                     });
                     const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
                     if (reportText) {
@@ -416,7 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const project = row.querySelector('.task-project').value.trim();
                     const detail = row.querySelector('.task-detail').value.trim();
                     const hours = row.querySelector('.task-hours').value;
-                    if (project || detail || hours) tasks.push({ project, detail, hours });
+                    const timeline = row.querySelector('.task-timeline-data').value;
+                    if (project || detail || hours || timeline) tasks.push({ project, detail, hours, timeline });
                 });
                 dailyLogs[day] = tasks;
             });

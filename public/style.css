@@ -291,3 +291,130 @@ body.dark-theme #summary-table td[style*="background: #f8fafc"],
 body.dark-theme #summary-table td[style*="background: rgb(248, 250, 252)"] {
     background: #1e293b !important;
 }
+
+/* 実績タイムライン用スタイル */
+.timeline-task-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+.task-row-top {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+}
+.task-row-bottom {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+    flex-wrap: nowrap;
+}
+.timeline-palette {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.palette-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+.palette-btn:hover {
+    background: #f1f5f9;
+}
+.palette-btn.active {
+    border-color: var(--primary);
+    background: #eff6ff;
+    color: var(--primary);
+}
+.color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.timeline-container-scroll {
+    flex: 1;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
+}
+.timeline-bar-wrapper {
+    min-width: 600px; /* 横スクロール可能にするために最小幅を確保 */
+    padding: 5px;
+}
+.timeline-hours-header {
+    display: grid;
+    grid-template-columns: repeat(24, 1fr);
+    font-size: 0.7rem;
+    color: #475569;
+    margin-bottom: 2px;
+    text-align: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 2px;
+}
+.timeline-hour-label {
+    grid-column: span 1;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.timeline-cells-grid {
+    display: grid;
+    grid-template-columns: repeat(48, 1fr);
+    height: 25px;
+    border: 1px solid #cbd5e1;
+    border-radius: 3px;
+    background: #fff;
+    overflow: hidden;
+}
+.timeline-cell {
+    border-right: 1px dashed #e2e8f0;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.1s;
+}
+.timeline-cell:last-child {
+    border-right: none;
+}
+/* 1時間ごとの区切り線を実線にする */
+.timeline-cell:nth-child(2n) {
+    border-right: 1px solid #cbd5e1;
+}
+.timeline-cell:last-child {
+    border-right: none;
+}
+/* 各セルの状態色 */
+.timeline-cell[data-state="0"] { background: #ffffff !important; }
+.timeline-cell[data-state="1"] { background: #000000 !important; } /* 作業 */
+.timeline-cell[data-state="2"] { background: #ef4444 !important; } /* 休憩 */
+
+.timeline-summary {
+    font-size: 1.1rem;
+    font-weight: bold;
+    width: 70px;
+    text-align: right;
+    flex-shrink: 0;
+    color: var(--text);
+}
+.timeline-hours-total {
+    color: var(--primary);
+    margin-right: 2px;
+}

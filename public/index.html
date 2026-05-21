@@ -248,37 +248,44 @@
 
     <!-- 作業行のテンプレート -->
     <template id="task-row-template">
-        <div class="task-row">
-            <input type="text" class="task-project" placeholder="工事名" required list="project-suggestions">
-            <input type="text" class="task-detail" placeholder="作業内容" required>
-            <select class="task-hours" required>
-                <option value="">時間</option>
-                <option value="0.5">0.5H</option>
-                <option value="1.0">1.0H</option>
-                <option value="1.5">1.5H</option>
-                <option value="2.0">2.0H</option>
-                <option value="2.5">2.5H</option>
-                <option value="3.0">3.0H</option>
-                <option value="3.5">3.5H</option>
-                <option value="4.0">4.0H</option>
-                <option value="4.5">4.5H</option>
-                <option value="5.0">5.0H</option>
-                <option value="5.5">5.5H</option>
-                <option value="6.0">6.0H</option>
-                <option value="6.5">6.5H</option>
-                <option value="7.0">7.0H</option>
-                <option value="7.5">7.5H</option>
-                <option value="8.0">8.0H</option>
-                <option value="8.5">8.5H</option>
-                <option value="9.0">9.0H</option>
-                <option value="9.5">9.5H</option>
-                <option value="10.0">10.0H</option>
-                <option value="10.5">10.5H</option>
-                <option value="11.0">11.0H</option>
-                <option value="11.5">11.5H</option>
-                <option value="12.0">12.0H</option>
-            </select>
-            <button type="button" class="btn btn-danger btn-icon remove-task-btn" title="削除">×</button>
+        <div class="task-row timeline-task-row">
+            <div class="task-row-top">
+                <input type="text" class="task-project" placeholder="工事名" required list="project-suggestions" style="flex: 2;">
+                <input type="text" class="task-detail" placeholder="作業内容" required style="flex: 3;">
+                <button type="button" class="btn btn-danger btn-icon remove-task-btn" title="削除">×</button>
+            </div>
+            
+            <div class="task-row-bottom">
+                <!-- パレット（モード選択） -->
+                <div class="timeline-palette">
+                    <button type="button" class="palette-btn btn-work active" data-mode="1" title="作業時間(黒)で塗る">
+                        <span class="color-dot" style="background:#000;"></span>作業
+                    </button>
+                    <button type="button" class="palette-btn btn-break" data-mode="2" title="休憩時間(赤)で塗る">
+                        <span class="color-dot" style="background:#ef4444;"></span>休憩
+                    </button>
+                    <button type="button" class="palette-btn btn-clear" data-mode="0" title="消しゴム">
+                        🗑️
+                    </button>
+                </div>
+                
+                <!-- タイムラインコンテナ -->
+                <div class="timeline-container-scroll">
+                    <div class="timeline-bar-wrapper">
+                        <!-- 時間ヘッダー (0〜24時) -->
+                        <div class="timeline-hours-header"></div>
+                        <!-- セルグリッド (48セル) -->
+                        <div class="timeline-cells-grid"></div>
+                    </div>
+                </div>
+                
+                <!-- 合計時間表示 -->
+                <div class="timeline-summary">
+                    <span class="timeline-hours-total">0.0</span>H
+                    <input type="hidden" class="task-hours" value="0.0">
+                    <input type="hidden" class="task-timeline-data" value="">
+                </div>
+            </div>
         </div>
     </template>
 
