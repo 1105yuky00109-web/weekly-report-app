@@ -33,14 +33,19 @@ const linkToSignup = document.getElementById('link-to-signup');
 const linkToLogin = document.getElementById('link-to-login');
 
 // 認証状態の監視
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // displayNameがまだ反映されていない場合に備えて再読み込み
+        if (!user.displayName) {
+            try { await user.reload(); user = auth.currentUser; } catch(e) {}
+        }
+
         // ログイン成功時
-        currentUser = user;
-        document.getElementById('current-user-email').textContent = user.email;
+        currentUser = auth.currentUser;
+        document.getElementById('current-user-email').textContent = currentUser.email;
         
         // 担当者入力欄に表示名（氏名）を自動設定（未設定の場合はメールアドレスの@より前を使用）
-        const nameDisplay = user.displayName || user.email.split('@')[0];
+        const nameDisplay = currentUser.displayName || currentUser.email.split('@')[0];
         document.getElementById('author').value = nameDisplay;
         document.getElementById('sched-author').value = nameDisplay;
         
@@ -88,16 +93,30 @@ if (signupForm) {
         const errorMsg = document.getElementById('signup-error');
         const successMsg = document.getElementById('signup-success');
         
+        if (!name) {
+            errorMsg.classList.remove('hidden');
+            errorMsg.textContent = 'フルネーム（氏名）を入力してください。';
+            return;
+        }
+        
         createUserWithEmailAndPassword(auth, email, pass)
             .then((userCredential) => {
+                // displayNameを登録
                 return updateProfile(userCredential.user, {
                     displayName: name
-                });
+                }).then(() => userCredential.user);
             })
-            .then(() => {
+            .then((user) => {
+                // updateProfile完了後、担当者欄を即座に更新
+                currentUser = auth.currentUser;
+                const authorEl = document.getElementById('author');
+                const schedAuthorEl = document.getElementById('sched-author');
+                if (authorEl) authorEl.value = name;
+                if (schedAuthorEl) schedAuthorEl.value = name;
+                
                 errorMsg.classList.add('hidden');
                 successMsg.classList.remove('hidden');
-                successMsg.textContent = 'アカウントが作成されました！自動的にログインします。';
+                successMsg.textContent = `「${name}」で登録しました！自動的にログインします。`;
                 signupForm.reset();
             })
             .catch((error) => {
