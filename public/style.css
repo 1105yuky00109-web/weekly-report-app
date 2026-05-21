@@ -163,40 +163,30 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 
 /* --- 印刷用スタイル --- */
 @media print {
-    body { background: white !important; overflow: visible; }
-    .app-container { max-width: 100%; padding: 0; }
-    .no-print { display: none !important; }
-    /* only-printのコンテナを表示 */
-    .only-print { display: block !important; margin-bottom: 20px; }
-    /* activeなviewのみ表示（タブコンテンツ）*/
-    .view { display: none !important; }
-    .view.active { display: block !important; }
-    @page { size: auto; margin: 10mm; }
-    .table-container { box-shadow: none; margin-bottom: 30px; overflow: visible; }
-    table { border: 1px solid #000; width: 100%; min-width: 0; }
-    th, td { border: 1px solid #000; padding: 6px; font-size: 9pt; }
-    th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-report-card { border: 2px solid #000; margin-bottom: 25px; page-break-inside: avoid; border-radius: 4px; }
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        background: white;
+    }
+    @page { size: A4 portrait; margin: 10mm; }
+    .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }
-    .print-task-table { margin-top: 10px; width: 100%; margin-bottom: 15px; }
-    /* 個人別集計はA4印刷では非表示 */
-    #personal-summary-container { display: none !important; }
-    
-    .gantt-container { box-shadow: none; padding: 0; min-width: 0; }
+    .print-task-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+    .print-task-table th, .print-task-table td { border: 1px solid #000; padding: 6px; font-size: 9pt; }
+    .print-task-table th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-gantt-title { font-size: 1.2rem; font-weight: bold; padding: 10px 0; margin-bottom: 15px; border-bottom: 2px solid #000; }
     .gantt-grid { border-top: 2px solid #000; border-left: 2px solid #000; }
     .gantt-cell, .gantt-bar-bg-cell { border-right: 1px solid #000; border-bottom: 1px solid #000; }
     .gantt-header-cell, .gantt-proj-cell, .gantt-author-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .gantt-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none; }
-    header, .tabs { display: none !important; }
+    .gantt-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
 /* A3横印刷（ガントチャート用） */
-body.print-a3-landscape { }
-@media print {
-    body.print-a3-landscape { }
-    body.print-a3-landscape * { }
-}
-/* @page はbody classで上書きできないためJSで対応 */
+
 
 /* ダークテーマ用の追加スタイル */
 body.dark-theme input[type="text"], 

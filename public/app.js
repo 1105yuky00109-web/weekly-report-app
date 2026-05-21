@@ -658,39 +658,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let printTasksHtml = '';
             daysName.forEach((day, idx) => {
-                const ts = r.dailyLogs ? r.dailyLogs[day] : [];
+                // ts が undefined になる場合に備えてフォールバック
+                const ts = (r.dailyLogs && Array.isArray(r.dailyLogs[day])) ? r.dailyLogs[day] : [];
                 const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
                 
-                if (ts.length > 0 || dailyRep) {
-                    const rowSpan = Math.max(ts.length, 1);
-                    if (ts.length > 0) {
-                        ts.forEach((t, tIdx) => {
-                            if (tIdx === 0) {
-                                printTasksHtml += `
-                                    <tr>
-                                        <td rowspan="${rowSpan}">${dates ? formatDate(dates[idx]) : ''}(${day})</td>
-                                        <td>${t.project}</td>
-                                        <td>${t.detail}</td>
-                                        <td>${parseFloat(t.hours||0).toFixed(1)}H</td>
-                                        <td rowspan="${rowSpan}" style="white-space: pre-wrap; font-size:0.85rem; text-align: left;">${dailyRep || '-'}</td>
-                                    </tr>`;
-                            } else {
-                                printTasksHtml += `
-                                    <tr>
-                                        <td>${t.project}</td>
-                                        <td>${t.detail}</td>
-                                        <td>${parseFloat(t.hours||0).toFixed(1)}H</td>
-                                    </tr>`;
-                            }
-                        });
-                    } else {
-                        printTasksHtml += `
-                            <tr>
-                                <td>${dates ? formatDate(dates[idx]) : ''}(${day})</td>
-                                <td colspan="3" style="color: #64748b; font-style: italic; text-align: center;">作業記録なし</td>
-                                <td style="white-space: pre-wrap; font-size:0.85rem; text-align: left;">${dailyRep}</td>
-                            </tr>`;
-                    }
+                if (ts.length > 0) {
+                    ts.forEach((t) => {
+                        // 行ごとに日付・レポートを繰り返す（rowspanなし・シンプル実装）
+                        printTasksHtml += `<tr>
+                            <td>${dates ? formatDate(dates[idx]) : ''}(${day})</td>
+                            <td>${t.project || ''}</td>
+                            <td>${t.detail || ''}</td>
+                            <td style="text-align:center;">${parseFloat(t.hours||0).toFixed(1)}H</td>
+                            <td style="white-space: pre-wrap; font-size:0.85rem;">${dailyRep}</td>
+                        </tr>`;
+                    });
+                } else if (dailyRep) {
+                    // 作業なし・日報のみの日
+                    printTasksHtml += `<tr>
+                        <td>${dates ? formatDate(dates[idx]) : ''}(${day})</td>
+                        <td colspan="3" style="color: #64748b; font-style: italic;">作業記録なし</td>
+                        <td style="white-space: pre-wrap; font-size:0.85rem;">${dailyRep}</td>
+                    </tr>`;
                 }
             });
 
@@ -701,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <strong>■ 業務実績（日別詳細）</strong>
                         <table class="print-task-table">
                             <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th><th>日次レポート・備考</th></tr></thead>
-                            <tbody>${printTasksHtml || '<tr><td colspan="5">記録なし</td></tr>'}</tbody>
+                            <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b;">記録なし</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -770,7 +759,63 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryFilterWeek = document.getElementById('summary-filter-week');
     if(summaryFilterWeek) summaryFilterWeek.addEventListener('change', renderSummaryTable);
 
-    document.querySelectorAll('[id^="btn-print"]').forEach(btn => btn.addEventListener('click', () => window.print()));
+    // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
+    const doPrint = (contentSourceId, titleText) => {
+        // 既存のprint-areaを削除
+        const existingArea = document.getElementById('print-area');
+        if (existingArea) existingArea.remove();
+
+        // 印刷コンテンツを取得
+        const sourceEl = document.getElementById(contentSourceId);
+        if (!sourceEl) { window.print(); return; }
+
+        // #print-areaを作成してbodyに追加
+        const printArea = document.createElement('div');
+        printArea.id = 'print-area';
+        printArea.style.cssText = 'background:white; padding:15px;';
+
+        // タイトルを追加
+        if (titleText) {
+            const titleEl = document.createElement('h2');
+            titleEl.className = 'print-gantt-title';
+            titleEl.textContent = titleText;
+            printArea.appendChild(titleEl);
+        }
+
+        // コンテンツをコピー
+        const clone = sourceEl.cloneNode(true);
+        clone.style.display = 'block';
+        printArea.appendChild(clone);
+
+        document.body.appendChild(printArea);
+
+        // 印刷後に削除
+        window.print();
+        setTimeout(() => printArea.remove(), 1000);
+    };
+
+    // A4縦印刷（個人別一覧・レポート）
+    const btnPrint = document.getElementById('btn-print');
+    if (btnPrint) {
+        btnPrint.addEventListener('click', () => {
+            doPrint('print-details-container', '週次完了レポート（個人別）');
+        });
+    }
+    // A4縦印刷（工事別集計）
+    const btnPrintSummary = document.getElementById('btn-print-summary');
+    if (btnPrintSummary) {
+        btnPrintSummary.addEventListener('click', () => {
+            doPrint('summary-table', '工事別 作業時間集計');
+        });
+    }
+    // A3横印刷（ガントチャート）
+    const btnPrintGantt = document.getElementById('btn-print-gantt');
+    if (btnPrintGantt) {
+        btnPrintGantt.addEventListener('click', () => {
+            doPrint('gantt-container', document.getElementById('print-gantt-title')?.textContent || '月間作業予定表');
+        });
+    }
+
 
     // Excel Export (Gantt)
     const btnExportGantt = document.getElementById('btn-export-gantt');
