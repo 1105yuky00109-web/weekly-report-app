@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     if (isLeave) {
                         row.classList.add('leave-row');
-                        detailInput.value = val;
+                        detailInput.value = '';
                         detailInput.disabled = true;
                         detailInput.removeAttribute('required');
                         
@@ -893,7 +893,7 @@ document.addEventListener('DOMContentLoaded', () => {
             days.forEach(day => {
                 const ts = r.dailyLogs ? r.dailyLogs[day] : [];
                 if (ts) ts.forEach(t => {
-                    if (t.project) {
+                    if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
                         authorProjectHours[r.author][t.project] = (authorProjectHours[r.author][t.project] || 0) + parseFloat(t.hours || 0);
                     }
                 });
@@ -1039,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (ts) ts.forEach(t => {
                         if (!t.project || !t.hours) return;
                         const proj = t.project;
+                        if (['有給', '欠勤', '休日'].includes(proj)) return;
                         const auth = r.author || '不明';
                         const hrs = parseFloat(t.hours || 0);
                         
@@ -1236,7 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 "日次レポート・備考": dailyRep
                             });
                             
-                            if (t.project) {
+                            if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
                                 if (!authorProjectHours[r.author]) authorProjectHours[r.author] = {};
                                 authorProjectHours[r.author][t.project] = (authorProjectHours[r.author][t.project] || 0) + parseFloat(t.hours || 0);
                             }

@@ -91,7 +91,7 @@ textarea { resize: vertical; }
     .task-hours { flex: 1; min-width: 90px; }
 }
 
-.btn-add-task { margin-top: 10px; font-size: 0.9rem; padding: 8px 12px; background: #fff; border: 1px solid var(--primary); color: var(--primary); width: 100%; }
+.btn.btn-add-task { margin-top: 10px; font-size: 0.9rem; padding: 8px 12px; background: #fff; border: 1px solid var(--primary); color: var(--primary); width: 100%; }
 
 .summary-section { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 25px; }
 .summary-section h3 { margin-bottom: 15px; font-size: 1.1rem; }
@@ -217,7 +217,7 @@ body.dark-theme .task-row {
     background: #0f172a;
     border-color: #334155;
 }
-body.dark-theme .btn-add-task {
+body.dark-theme .btn.btn-add-task {
     background: #1e293b;
     border-color: var(--primary);
     color: var(--primary);
