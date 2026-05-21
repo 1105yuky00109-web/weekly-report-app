@@ -10,7 +10,7 @@ const firebaseConfig = {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Firebase初期化
 const app = initializeApp(firebaseConfig);
@@ -442,7 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const q = query(collection(db, "schedules"));
             const querySnapshot = await getDocs(q);
-            allSchedules = querySnapshot.docs.map(doc => doc.data());
+            // doc.idも一緒に保存（編集・削除で使用）
+            allSchedules = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             renderGanttChart();
             updateProjectSuggestions();
         } catch (e) {
@@ -493,8 +494,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const gridEnd = endDay + 3;
             const authorColor = colors[uniqueAuthors.indexOf(s.author) % colors.length];
 
-            html += `<div class="gantt-bar" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; margin: 5px 0; background-color: ${authorColor};">
-                        ${s.notes || s.project}
+            // data-idを付与してクリックで編集モーダルを開く
+            html += `<div class="gantt-bar" data-id="${s.id}" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; margin: 5px 0; background-color: ${authorColor}; cursor: pointer;" title="クリックして編集">
+                        ✏️ ${s.notes || s.project}
                      </div>`;
         });
 
@@ -504,6 +506,15 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</div>`;
         container.innerHTML = html;
         document.getElementById('print-gantt-title').textContent = `${year}年${month}月 作業予定表`;
+
+        // ガントバークリックで編集モーダルを開く
+        container.querySelectorAll('.gantt-bar[data-id]').forEach(bar => {
+            bar.addEventListener('click', () => {
+                const schedId = bar.dataset.id;
+                const sched = allSchedules.find(s => s.id === schedId);
+                if (sched) openEditModal(sched);
+            });
+        });
     };
     ganttMonthInput.addEventListener('change', renderGanttChart);
 
@@ -534,7 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('copy-past-report-select');
         if (!select || !currentUser) return;
         
-        const myName = currentUser.email.split('@')[0];
+        // displayName優先、なければメールのID部分で比較
+        const myName = currentUser.displayName || currentUser.email.split('@')[0];
         const myReports = allReports.filter(r => r.author === myName);
         myReports.sort((a, b) => (a.week < b.week ? 1 : -1)); // 降順
         
@@ -901,3 +913,150 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// --- ガントチャート予定編集モーダル ---
+// openEditModal はDOMContentLoadedの外で定義（クロージャから呼ばれるため）
+// db / updateDoc / deleteDoc / doc はモジュールスコープで参照可能
+function openEditModal(sched) {
+    // 既存モーダルがあれば削除
+    const existing = document.getElementById('edit-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'edit-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 9999;
+        display: flex; justify-content: center; align-items: center; padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white; color: #1e293b;
+        border-radius: 12px; padding: 30px; width: 100%; max-width: 500px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        box-sizing: border-box;
+    `;
+
+    modal.innerHTML = `
+        <h3 style="margin-bottom: 20px; font-size: 1.2rem; border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #1e293b;">
+            ✏️ 予定の修正
+        </h3>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">工事名 <span style="color:red">*</span></label>
+            <input type="text" id="edit-project" value="${(sched.project || '').replace(/"/g, '&quot;')}"
+                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">担当者</label>
+            <input type="text" id="edit-author" value="${(sched.author || '').replace(/"/g, '&quot;')}"
+                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:140px;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">開始日 <span style="color:red">*</span></label>
+                <input type="date" id="edit-start" value="${sched.start || ''}"
+                    style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+            </div>
+            <div style="flex:1; min-width:140px;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">終了日 <span style="color:red">*</span></label>
+                <input type="date" id="edit-end" value="${sched.end || ''}"
+                    style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">作業内容・備考</label>
+            <textarea id="edit-notes" rows="3"
+                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; resize:vertical; box-sizing:border-box; color:#1e293b;">${sched.notes || ''}</textarea>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="edit-save-btn" style="flex:2; min-width:120px; padding:12px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:1rem;">
+                💾 保存する
+            </button>
+            <button id="edit-delete-btn" style="flex:1; min-width:80px; padding:12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:1rem;">
+                🗑️ 削除
+            </button>
+            <button id="edit-cancel-btn" style="flex:1; min-width:80px; padding:12px; background:#64748b; color:#fff; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:1rem;">
+                ✕ キャンセル
+            </button>
+        </div>
+        <div id="edit-modal-msg" style="display:none; margin-top:12px; padding:10px; border-radius:6px; text-align:center; font-weight:bold;"></div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // オーバーレイ背景クリックで閉じる
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    // キャンセルボタン
+    document.getElementById('edit-cancel-btn').addEventListener('click', () => overlay.remove());
+
+    // 保存ボタン
+    document.getElementById('edit-save-btn').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('edit-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+
+        const updatedData = {
+            project: document.getElementById('edit-project').value.trim(),
+            author: document.getElementById('edit-author').value.trim(),
+            start: document.getElementById('edit-start').value,
+            end: document.getElementById('edit-end').value,
+            notes: document.getElementById('edit-notes').value.trim(),
+        };
+
+        if (!updatedData.project || !updatedData.start || !updatedData.end) {
+            alert('工事名・開始日・終了日は必須です。');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 保存する';
+            return;
+        }
+        if (updatedData.start > updatedData.end) {
+            alert('終了日は開始日より後の日付にしてください。');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 保存する';
+            return;
+        }
+
+        try {
+            await updateDoc(doc(db, "schedules", sched.id), updatedData);
+
+            const msg = document.getElementById('edit-modal-msg');
+            msg.style.display = 'block';
+            msg.style.background = '#dcfce7';
+            msg.style.color = '#166534';
+            msg.textContent = '✅ 保存しました！';
+
+            setTimeout(() => {
+                overlay.remove();
+                window.loadSchedules();
+            }, 1000);
+        } catch (err) {
+            console.error(err);
+            alert('保存に失敗しました: ' + err.message);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 保存する';
+        }
+    });
+
+    // 削除ボタン
+    document.getElementById('edit-delete-btn').addEventListener('click', async () => {
+        if (!confirm(`「${sched.project}」の予定を削除しますか？\nこの操作は取り消せません。`)) return;
+
+        const delBtn = document.getElementById('edit-delete-btn');
+        delBtn.disabled = true;
+        delBtn.textContent = '削除中...';
+
+        try {
+            await deleteDoc(doc(db, "schedules", sched.id));
+            overlay.remove();
+            window.loadSchedules();
+        } catch (err) {
+            console.error(err);
+            alert('削除に失敗しました: ' + err.message);
+            delBtn.disabled = false;
+            delBtn.innerHTML = '🗑️ 削除';
+        }
+    });
+}
