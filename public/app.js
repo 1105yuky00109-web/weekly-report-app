@@ -182,14 +182,69 @@ const getMonthStr = (weekStr) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
+// 今週のISO週（YYYY-Www）を取得する関数
+const getISOWeekString = (date) => {
+    const tempDate = new Date(date.valueOf());
+    tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+    const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((tempDate - yearStart) / 86400000) + 1) / 7);
+    return `${tempDate.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+};
+
+// 週の開始日（月曜日）から各曜日の実際の日付をラベルに表示する関数
+const updateDayLabels = () => {
+    const weekInput = document.getElementById('week');
+    if (!weekInput || !weekInput.value) return;
+    
+    const getMondayOfISOWeek = (weekStr) => {
+        const parts = weekStr.split('-W');
+        if (parts.length !== 2) return null;
+        const year = parseInt(parts[0], 10);
+        const week = parseInt(parts[1], 10);
+        
+        const simple = new Date(year, 0, 4);
+        const dayOfWeek = simple.getDay();
+        const ISOweekStart = new Date(simple.valueOf() - (dayOfWeek ? dayOfWeek - 1 : 6) * 86400000);
+        return new Date(ISOweekStart.valueOf() + (week - 1) * 7 * 86400000);
+    };
+    
+    const monday = getMondayOfISOWeek(weekInput.value);
+    if (!monday) return;
+    
+    const daysMap = { '月': 0, '火': 1, '水': 2, '木': 3, '金': 4, '土': 5, '日': 6 };
+    
+    document.querySelectorAll('.day-card').forEach(card => {
+        const labelSpan = card.querySelector('.day-label');
+        const taskList = card.querySelector('.task-list');
+        if (!labelSpan || !taskList) return;
+        
+        const dayName = taskList.dataset.day;
+        const offset = daysMap[dayName];
+        if (offset === undefined) return;
+        
+        const targetDate = new Date(monday.getTime() + offset * 86400000);
+        const m = targetDate.getMonth() + 1;
+        const d = targetDate.getDate();
+        labelSpan.textContent = `${m}/${d} (${dayName})`;
+    });
+};
+
 // --- 初期化ロジック群 ---
 document.addEventListener('DOMContentLoaded', () => {
     const weekInput = document.getElementById('week');
     const weekDisplayHint = document.getElementById('week-display-hint');
     if (weekInput) {
+        if (!weekInput.value) {
+            weekInput.value = getISOWeekString(new Date());
+        }
+        weekDisplayHint.textContent = weekInput.value ? formatWeekRange(weekInput.value) + ' の報告' : '';
+        
         weekInput.addEventListener('change', () => {
             weekDisplayHint.textContent = weekInput.value ? formatWeekRange(weekInput.value) + ' の報告' : '';
+            updateDayLabels();
         });
+        
+        setTimeout(updateDayLabels, 500);
     }
 
     // テーマ切り替え初期化
@@ -440,6 +495,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 hoursInput.value = initialHours.toFixed(1);
                 timelineInput.value = stateArray.join('');
                 
+                // 有給・欠勤・休日時の入力制御ロジック
+                const checkProjectStatus = () => {
+                    const val = projInput.value.trim();
+                    const isLeave = ['有給', '欠勤', '休日'].includes(val);
+                    
+                    if (isLeave) {
+                        row.classList.add('leave-row');
+                        detailInput.value = val;
+                        detailInput.disabled = true;
+                        detailInput.removeAttribute('required');
+                        
+                        const timelineScroll = row.querySelector('.timeline-container-scroll');
+                        const timelinePalette = row.querySelector('.timeline-palette');
+                        if (timelineScroll) {
+                            timelineScroll.style.pointerEvents = 'none';
+                            timelineScroll.style.opacity = '0.5';
+                        }
+                        if (timelinePalette) {
+                            timelinePalette.style.pointerEvents = 'none';
+                            timelinePalette.style.opacity = '0.5';
+                        }
+                        
+                        stateArray.fill(0);
+                        cellElements.forEach(cell => cell.dataset.state = 0);
+                        hoursTotalSpan.textContent = '0.0';
+                        hoursInput.value = '0.0';
+                        timelineInput.value = stateArray.join('');
+                    } else {
+                        row.classList.remove('leave-row');
+                        if (detailInput.disabled) {
+                            detailInput.value = '';
+                            detailInput.disabled = false;
+                            detailInput.setAttribute('required', 'required');
+                        }
+                        const timelineScroll = row.querySelector('.timeline-container-scroll');
+                        const timelinePalette = row.querySelector('.timeline-palette');
+                        if (timelineScroll) {
+                            timelineScroll.style.pointerEvents = 'auto';
+                            timelineScroll.style.opacity = '1';
+                        }
+                        if (timelinePalette) {
+                            timelinePalette.style.pointerEvents = 'auto';
+                            timelinePalette.style.opacity = '1';
+                        }
+                    }
+                    calculateTotal();
+                };
+                
+                projInput.addEventListener('input', checkProjectStatus);
+                projInput.addEventListener('change', checkProjectStatus);
+                
+                if (projVal) {
+                    checkProjectStatus();
+                }
+
                 row.querySelector('.remove-task-btn').addEventListener('click', () => {
                     window.removeEventListener('mouseup', stopDrawing);
                     row.remove();
@@ -456,7 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 calculateTotal();
             };
 
-            if (['月', '火', '水', '木', '金'].includes(day)) addTaskRow();
+            addTaskRow();
             dayCard.querySelector('.btn-add-task').addEventListener('click', () => addTaskRow());
         });
     }
@@ -668,6 +778,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 工事名サジェスト（Datalist）の更新
     const updateProjectSuggestions = () => {
         const suggestions = new Set();
+        suggestions.add('有給');
+        suggestions.add('欠勤');
+        suggestions.add('休日');
         allSchedules.forEach(s => { if (s.project) suggestions.add(s.project); });
         allReports.forEach(r => {
             if (r.dailyLogs) {

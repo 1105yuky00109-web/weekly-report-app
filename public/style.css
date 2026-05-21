@@ -418,3 +418,23 @@ body.dark-theme #summary-table td[style*="background: rgb(248, 250, 252)"] {
     color: var(--primary);
     margin-right: 2px;
 }
+
+/* 有給・欠勤・休日行のグレーアウト用 */
+.timeline-task-row.leave-row {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    opacity: 0.75;
+}
+body.dark-theme .timeline-task-row.leave-row {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    opacity: 0.65;
+}
+.timeline-task-row.leave-row input:disabled {
+    background: #e2e8f0 !important;
+    color: #64748b !important;
+}
+body.dark-theme .timeline-task-row.leave-row input:disabled {
+    background: #334155 !important;
+    color: #94a3b8 !important;
+}
