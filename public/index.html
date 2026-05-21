@@ -73,18 +73,18 @@
             </div>
             
             <nav class="tabs">
-                <button class="tab-btn active" data-target="schedule-input-view">予定入力</button>
-                <button class="tab-btn" data-target="gantt-view">月間予定チャート</button>
-                <button class="tab-btn" data-target="input-view">日報入力（実績）</button>
-                <button class="tab-btn" data-target="list-view">個人別一覧・レポート</button>
-                <button class="tab-btn" data-target="summary-view">工事別集計</button>
+                <button class="tab-btn active tab-gantt" data-target="schedule-input-view">月間予定入力</button>
+                <button class="tab-btn tab-gantt" data-target="gantt-view">月間予定チャート</button>
+                <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
+                <button class="tab-btn tab-weekly" data-target="list-view">個人別一覧・レポート</button>
+                <button class="tab-btn tab-weekly" data-target="summary-view">工事別集計</button>
             </nav>
         </header>
 
         <!-- 予定入力画面 -->
         <main id="schedule-input-view" class="view active no-print">
             <div class="form-card">
-                <h2>予定を登録</h2>
+                <h2>月間予定を登録</h2>
                 <form id="schedule-form">
                     <div class="form-group">
                         <label for="sched-project">工事名</label>
@@ -146,11 +146,11 @@
         <!-- 日報入力画面 -->
         <main id="input-view" class="view no-print">
             <div class="form-card">
-                <h2>週次日報（実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
+                <h2>週報（予定と実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
                 <form id="report-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="week">対象週</label>
+                            <label for="week">対象週 <span id="report-status-badge" class="status-badge status-none">未登録</span></label>
                             <select id="week" required></select>
                             <div id="week-display-hint" style="font-size: 0.85rem; color: #64748b; margin-top: 5px;"></div>
                         </div>
@@ -168,10 +168,7 @@
 
                     <div class="days-container" id="days-container"></div>
 
-
-
-                    <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">登録</button>
-                    <div id="submit-message" class="message hidden">登録が完了しました！</div>
+                    <div id="report-action-buttons" class="report-actions"></div>
                 </form>
             </div>
         </main>

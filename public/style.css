@@ -438,3 +438,67 @@ body.dark-theme .timeline-task-row.leave-row input:disabled {
     background: #334155 !important;
     color: #94a3b8 !important;
 }
+
+/* --- 追加カスタムスタイル --- */
+
+/* タブの色分け */
+.tab-btn.tab-gantt.active {
+    background: var(--primary) !important;
+    color: white !important;
+}
+.tab-btn.tab-weekly.active {
+    background: var(--success) !important;
+    color: white !important;
+}
+
+/* ステータスバッジ */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+.status-badge.status-none {
+    background-color: #cbd5e1;
+    color: #334155;
+}
+.status-badge.status-plan {
+    background-color: #ffedd5;
+    color: #d97706;
+    border: 1px solid #fbd38d;
+}
+.status-badge.status-confirmed {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+body.dark-theme .status-badge.status-none {
+    background-color: #334155;
+    color: #cbd5e1;
+}
+body.dark-theme .status-badge.status-plan {
+    background-color: #431407;
+    color: #fdba74;
+    border-color: #9a3412;
+}
+body.dark-theme .status-badge.status-confirmed {
+    background-color: #064e3b;
+    color: #6ee7b7;
+    border-color: #047857;
+}
+
+/* 日報フォーム下部アクションボタン */
+.report-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+.report-actions .btn {
+    flex: 1;
+    min-width: 150px;
+}
+

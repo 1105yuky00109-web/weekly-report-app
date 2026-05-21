@@ -377,6 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadReportForSelectedWeek = () => {
         const weekInput = document.getElementById('week');
         const authorInput = document.getElementById('author');
+        const badge = document.getElementById('report-status-badge');
+        const actionContainer = document.getElementById('report-action-buttons');
         if (!weekInput || !authorInput) return;
         
         const selectedWeek = weekInput.value;
@@ -413,8 +415,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            const submitBtn = document.getElementById('btn-submit-report');
-            if (submitBtn) submitBtn.textContent = '登録（上書き更新）';
+            // ステータスに応じた処理
+            const status = existingReport.status || 'confirmed'; // 古いデータは確定済み扱い
+            if (badge) {
+                badge.className = 'status-badge ' + (status === 'confirmed' ? 'status-confirmed' : 'status-plan');
+                badge.textContent = status === 'confirmed' ? '実績確定済み' : '予定（未確定）';
+            }
+            
+            if (actionContainer) {
+                if (status === 'confirmed') {
+                    actionContainer.innerHTML = `<button type="submit" id="btn-submit-report" class="btn btn-success btn-large">実績確定を更新（上書き）</button>`;
+                } else {
+                    actionContainer.innerHTML = `
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
+                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
+                    `;
+                    const btnSavePlan = document.getElementById('btn-save-plan');
+                    if (btnSavePlan) {
+                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                    }
+                }
+            }
         } else {
             daysName.forEach(day => {
                 const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
@@ -422,8 +443,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     taskList.addTaskRow();
                 }
             });
-            const submitBtn = document.getElementById('btn-submit-report');
-            if (submitBtn) submitBtn.textContent = '登録';
+            
+            if (badge) {
+                badge.className = 'status-badge status-none';
+                badge.textContent = '未登録';
+            }
+            
+            if (actionContainer) {
+                actionContainer.innerHTML = `
+                    <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
+                    <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
+                `;
+                const btnSavePlan = document.getElementById('btn-save-plan');
+                if (btnSavePlan) {
+                    btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                }
+            }
         }
         calculateWeekTotal();
     };
@@ -779,55 +814,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 日報(Report)保存 - Firebase Firestore
     const reportForm = document.getElementById('report-form');
+
+    const saveReport = async (status) => {
+        if (reportForm && !reportForm.checkValidity()) {
+            reportForm.reportValidity();
+            return;
+        }
+
+        const dailyLogs = {};
+        daysName.forEach(day => {
+            const rows = document.querySelector(`.task-list[data-day="${day}"]`).querySelectorAll('.task-row');
+            const tasks = [];
+            rows.forEach(row => {
+                const project = row.querySelector('.task-project').value.trim();
+                const detail = row.querySelector('.task-detail').value.trim();
+                const hours = row.querySelector('.task-hours').value;
+                const timeline = row.querySelector('.task-timeline-data').value;
+                if (project || detail || hours || timeline) tasks.push({ project, detail, hours, timeline });
+            });
+            dailyLogs[day] = tasks;
+        });
+
+        const dailyReports = {};
+        daysName.forEach(day => {
+            const textVal = document.querySelector(`.task-list[data-day="${day}"]`)
+                .closest('.day-card')
+                .querySelector('.day-report-text').value.trim();
+            dailyReports[day] = textVal;
+        });
+
+        const reportData = {
+            week: document.getElementById('week').value,
+            author: document.getElementById('author').value,
+            dailyLogs,
+            dailyReports,
+            status, // 'plan' または 'confirmed'
+            timestamp: new Date().toISOString()
+        };
+
+        const selectedWeek = reportData.week;
+        const currentAuthor = reportData.author;
+        const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
+
+        try {
+            if (existingReport) {
+                await updateDoc(doc(db, "reports", existingReport.id), reportData);
+            } else {
+                await addDoc(collection(db, "reports"), reportData);
+            }
+            alert(status === 'confirmed' ? '実績を確定登録しました！' : '予定を一時保存しました！');
+            await loadReports(false);
+        } catch (error) {
+            console.error("Error saving document: ", error);
+            alert('保存に失敗しました。');
+        }
+    };
+
     if (reportForm) {
         reportForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const dailyLogs = {};
-            daysName.forEach(day => {
-                const rows = document.querySelector(`.task-list[data-day="${day}"]`).querySelectorAll('.task-row');
-                const tasks = [];
-                rows.forEach(row => {
-                    const project = row.querySelector('.task-project').value.trim();
-                    const detail = row.querySelector('.task-detail').value.trim();
-                    const hours = row.querySelector('.task-hours').value;
-                    const timeline = row.querySelector('.task-timeline-data').value;
-                    if (project || detail || hours || timeline) tasks.push({ project, detail, hours, timeline });
-                });
-                dailyLogs[day] = tasks;
-            });
-
-            const dailyReports = {};
-            daysName.forEach(day => {
-                const textVal = document.querySelector(`.task-list[data-day="${day}"]`)
-                    .closest('.day-card')
-                    .querySelector('.day-report-text').value.trim();
-                dailyReports[day] = textVal;
-            });
-
-            const reportData = {
-                week: document.getElementById('week').value,
-                author: document.getElementById('author').value,
-                dailyLogs,
-                dailyReports,
-                timestamp: new Date().toISOString()
-            };
-
-            const selectedWeek = reportData.week;
-            const currentAuthor = reportData.author;
-            const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
-
-            try {
-                if (existingReport) {
-                    await updateDoc(doc(db, "reports", existingReport.id), reportData);
-                } else {
-                    await addDoc(collection(db, "reports"), reportData);
-                }
-                alert('登録が完了しました！');
-                await loadReports(false);
-            } catch (error) {
-                console.error("Error saving document: ", error);
-                alert('保存に失敗しました。');
-            }
+            await saveReport('confirmed');
         });
     }
 
@@ -948,7 +994,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // displayName優先、なければメールのID部分で比較
         const myName = currentUser.displayName || currentUser.email.split('@')[0];
-        const myReports = allReports.filter(r => r.author === myName);
+        // 確定済み(confirmed)またはステータス未定義の過去データのみをコピー対象とする
+        const myReports = allReports.filter(r => r.author === myName && (r.status === undefined || r.status === 'confirmed'));
         myReports.sort((a, b) => (a.week < b.week ? 1 : -1)); // 降順
         
         select.innerHTML = '<option value="">過去の日報からコピーして作成...</option>';
@@ -1022,6 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const personalSummary = document.getElementById('personal-summary-container');
 
         const filtered = allReports.filter(r => 
+            (r.status === undefined || r.status === 'confirmed') &&
             (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
             (filterAuthor === '' || r.author === filterAuthor)
         );
@@ -1168,6 +1216,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const projectMap = {};
         
         allReports.forEach(r => {
+            // 実績確定済み(confirmed)またはステータス未定義の過去データのみを集計対象とする
+            if (r.status !== undefined && r.status !== 'confirmed') return;
             const days = ['月','火','水','木','金','土','日'];
             const dates = getDaysOfWeek(r.week);
             if (!dates) return;
@@ -1358,6 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const filterMonth = document.getElementById('filter-month').value;
             const filterAuthor = document.getElementById('filter-author').value;
             const filtered = allReports.filter(r => 
+                (r.status === undefined || r.status === 'confirmed') &&
                 (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
                 (filterAuthor === '' || r.author === filterAuthor)
             );
