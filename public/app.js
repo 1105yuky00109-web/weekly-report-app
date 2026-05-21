@@ -9,7 +9,7 @@ const firebaseConfig = {
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Firebase初期化
@@ -39,10 +39,10 @@ onAuthStateChanged(auth, (user) => {
         currentUser = user;
         document.getElementById('current-user-email').textContent = user.email;
         
-        // 担当者入力欄にメールアドレスを自動設定（@より前をデフォルトの名前にする等も可能）
-        const namePrefix = user.email.split('@')[0];
-        document.getElementById('author').value = namePrefix;
-        document.getElementById('sched-author').value = namePrefix;
+        // 担当者入力欄に表示名（氏名）を自動設定（未設定の場合はメールアドレスの@より前を使用）
+        const nameDisplay = user.displayName || user.email.split('@')[0];
+        document.getElementById('author').value = nameDisplay;
+        document.getElementById('sched-author').value = nameDisplay;
         
         loginContainer.classList.add('hidden');
         if (signupContainer) signupContainer.classList.add('hidden');
@@ -82,12 +82,18 @@ loginForm.addEventListener('submit', (e) => {
 if (signupForm) {
     signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const name = document.getElementById('signup-name').value.trim();
         const email = document.getElementById('signup-email').value;
         const pass = document.getElementById('signup-password').value;
         const errorMsg = document.getElementById('signup-error');
         const successMsg = document.getElementById('signup-success');
         
         createUserWithEmailAndPassword(auth, email, pass)
+            .then((userCredential) => {
+                return updateProfile(userCredential.user, {
+                    displayName: name
+                });
+            })
             .then(() => {
                 errorMsg.classList.add('hidden');
                 successMsg.classList.remove('hidden');
