@@ -9,7 +9,7 @@ const firebaseConfig = {
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Firebase初期化
@@ -24,9 +24,13 @@ let allSchedules = [];
 
 // DOM要素
 const loginContainer = document.getElementById('login-container');
+const signupContainer = document.getElementById('signup-container');
 const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
+const signupForm = document.getElementById('signup-form');
 const btnLogout = document.getElementById('btn-logout');
+const linkToSignup = document.getElementById('link-to-signup');
+const linkToLogin = document.getElementById('link-to-login');
 
 // 認証状態の監視
 onAuthStateChanged(auth, (user) => {
@@ -41,6 +45,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('sched-author').value = namePrefix;
         
         loginContainer.classList.add('hidden');
+        if (signupContainer) signupContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
         
         // データ初期読み込み
@@ -50,6 +55,7 @@ onAuthStateChanged(auth, (user) => {
         // ログアウト状態
         currentUser = null;
         loginContainer.classList.remove('hidden');
+        if (signupContainer) signupContainer.classList.add('hidden');
         appContainer.classList.add('hidden');
     }
 });
@@ -71,6 +77,53 @@ loginForm.addEventListener('submit', (e) => {
             errorMsg.textContent = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
         });
 });
+
+// 新規アカウント登録処理
+if (signupForm) {
+    signupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const pass = document.getElementById('signup-password').value;
+        const errorMsg = document.getElementById('signup-error');
+        const successMsg = document.getElementById('signup-success');
+        
+        createUserWithEmailAndPassword(auth, email, pass)
+            .then(() => {
+                errorMsg.classList.add('hidden');
+                successMsg.classList.remove('hidden');
+                successMsg.textContent = 'アカウントが作成されました！自動的にログインします。';
+                signupForm.reset();
+            })
+            .catch((error) => {
+                console.error(error);
+                errorMsg.classList.remove('hidden');
+                successMsg.classList.add('hidden');
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMsg.textContent = 'このメールアドレスはすでに使用されています。';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMsg.textContent = 'パスワードは6文字以上で設定してください。';
+                } else {
+                    errorMsg.textContent = '登録に失敗しました。メールアドレスとパスワードを確認してください。';
+                }
+            });
+    });
+}
+
+// ログインと新規登録画面の切り替え
+if (linkToSignup) {
+    linkToSignup.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginContainer.classList.add('hidden');
+        signupContainer.classList.remove('hidden');
+    });
+}
+if (linkToLogin) {
+    linkToLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        signupContainer.classList.add('hidden');
+        loginContainer.classList.remove('hidden');
+    });
+}
 
 // ログアウト処理
 btnLogout.addEventListener('click', () => {
@@ -114,6 +167,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // テーマ切り替え初期化
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+    }
+
+    // 日付ショートカット処理
+    document.querySelectorAll('.btn-date-shortcut').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const type = btn.dataset.type;
+            const targetInput = document.getElementById(targetId);
+            if (!targetInput) return;
+
+            const now = new Date();
+            let dateVal = '';
+
+            if (type === 'today') {
+                dateVal = now.toISOString().split('T')[0];
+            } else if (type === 'tomorrow') {
+                now.setDate(now.getDate() + 1);
+                dateVal = now.toISOString().split('T')[0];
+            } else if (type === 'next-monday') {
+                const daysUntilNextMonday = (1 - now.getDay() + 7) % 7 || 7;
+                now.setDate(now.getDate() + daysUntilNextMonday);
+                dateVal = now.toISOString().split('T')[0];
+            }
+
+            targetInput.value = dateVal;
+            // 終了日も同じ日に自動設定
+            const endInput = document.getElementById('sched-end');
+            if (endInput && !endInput.value) {
+                endInput.value = dateVal;
+            }
+        });
+    });
+
     // タブ切り替え
     const tabBtns = document.querySelectorAll('.tab-btn');
     const views = document.querySelectorAll('.view');
@@ -140,6 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const daysContainer = document.getElementById('days-container');
     const taskRowTemplate = document.getElementById('task-row-template');
 
+    const calculateWeekTotal = () => {
+        let weekTotal = 0;
+        document.querySelectorAll('.total-hours').forEach(span => {
+            const h = parseFloat(span.textContent.replace('計 ', '').replace('H', ''));
+            if (!isNaN(h)) weekTotal += h;
+        });
+        const weekTotalSpan = document.getElementById('week-total-hours');
+        if (weekTotalSpan) {
+            weekTotalSpan.textContent = `合計: ${weekTotal.toFixed(1)}H`;
+        }
+    };
+
     if (daysContainer) {
         daysName.forEach(day => {
             const dayCard = document.createElement('div');
@@ -156,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             daysContainer.appendChild(dayCard);
             const taskList = dayCard.querySelector('.task-list');
+            
             const calculateTotal = () => {
                 let total = 0;
                 taskList.querySelectorAll('.task-hours').forEach(sel => {
@@ -163,16 +273,81 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!isNaN(val)) total += val;
                 });
                 dayCard.querySelector('.total-hours').textContent = `計 ${total.toFixed(1)}H`;
+                calculateWeekTotal();
             };
-            const addTaskRow = () => {
+
+            const addTaskRow = (projVal = '', detailVal = '', hoursVal = '') => {
                 const clone = taskRowTemplate.content.cloneNode(true);
                 const row = clone.querySelector('.task-row');
+                
+                const projInput = row.querySelector('.task-project');
+                const detailInput = row.querySelector('.task-detail');
+                const hoursSelect = row.querySelector('.task-hours');
+                
+                if (projVal) projInput.value = projVal;
+                if (detailVal) detailInput.value = detailVal;
+                if (hoursVal) hoursSelect.value = hoursVal;
+
                 row.querySelector('.remove-task-btn').addEventListener('click', () => { row.remove(); calculateTotal(); });
-                row.querySelector('.task-hours').addEventListener('change', calculateTotal);
+                hoursSelect.addEventListener('change', calculateTotal);
                 taskList.appendChild(row);
+                calculateTotal();
             };
+
+            taskList.addTaskRow = addTaskRow;
+            taskList.clearAll = () => {
+                taskList.innerHTML = '';
+                calculateTotal();
+            };
+
             if (['月', '火', '水', '木', '金'].includes(day)) addTaskRow();
-            dayCard.querySelector('.btn-add-task').addEventListener('click', addTaskRow);
+            dayCard.querySelector('.btn-add-task').addEventListener('click', () => addTaskRow());
+        });
+    }
+
+    // 過去日報コピー処理の実装
+    const btnCopy = document.getElementById('btn-copy-past-report');
+    const copySelect = document.getElementById('copy-past-report-select');
+    if (btnCopy && copySelect) {
+        btnCopy.addEventListener('click', () => {
+            const selectedIdx = copySelect.value;
+            if (selectedIdx === '') {
+                alert('コピー元の日報を選択してください。');
+                return;
+            }
+            const myReports = JSON.parse(copySelect.dataset.reportsJson || '[]');
+            const sourceReport = myReports[selectedIdx];
+            if (!sourceReport || !sourceReport.dailyLogs) {
+                alert('日報データの読み込みに失敗しました。');
+                return;
+            }
+
+            if (!confirm('現在入力中の内容をクリアして、選択した過去の日報をコピーしますか？')) {
+                return;
+            }
+
+            // コピー実行
+            daysName.forEach(day => {
+                const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                if (taskList && taskList.clearAll && taskList.addTaskRow) {
+                    taskList.clearAll();
+                    const tasks = sourceReport.dailyLogs[day] || [];
+                    tasks.forEach(t => {
+                        taskList.addTaskRow(t.project, t.detail, t.hours);
+                    });
+                }
+            });
+            
+            // 週次まとめ部分もコピー
+            const actual = document.getElementById('actual');
+            const plan = document.getElementById('plan');
+            const notes = document.getElementById('notes');
+            if (actual) actual.value = sourceReport.actual || '';
+            if (plan) plan.value = sourceReport.plan || '';
+            if (notes) notes.value = sourceReport.notes || '';
+
+            calculateWeekTotal();
+            alert('コピーが完了しました！必要に応じて編集してください。');
         });
     }
 
@@ -257,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const querySnapshot = await getDocs(q);
             allSchedules = querySnapshot.docs.map(doc => doc.data());
             renderGanttChart();
+            updateProjectSuggestions();
         } catch (e) {
             console.error("Error loading schedules: ", e);
         }
@@ -319,6 +495,44 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     ganttMonthInput.addEventListener('change', renderGanttChart);
 
+    // 工事名サジェスト（Datalist）の更新
+    const updateProjectSuggestions = () => {
+        const suggestions = new Set();
+        allSchedules.forEach(s => { if (s.project) suggestions.add(s.project); });
+        allReports.forEach(r => {
+            if (r.dailyLogs) {
+                Object.values(r.dailyLogs).forEach(tasks => {
+                    if (Array.isArray(tasks)) {
+                        tasks.forEach(t => { if (t.project) suggestions.add(t.project); });
+                    }
+                });
+            }
+        });
+        const datalist = document.getElementById('project-suggestions');
+        if (datalist) {
+            datalist.innerHTML = Array.from(suggestions)
+                .sort()
+                .map(p => `<option value="${p}">`)
+                .join('');
+        }
+    };
+
+    // コピー選択肢の更新
+    const updateCopySelect = () => {
+        const select = document.getElementById('copy-past-report-select');
+        if (!select || !currentUser) return;
+        
+        const myName = currentUser.email.split('@')[0];
+        const myReports = allReports.filter(r => r.author === myName);
+        myReports.sort((a, b) => (a.week < b.week ? 1 : -1)); // 降順
+        
+        select.innerHTML = '<option value="">過去の日報からコピーして作成...</option>';
+        myReports.forEach((r, idx) => {
+            select.innerHTML += `<option value="${idx}">${r.week} (${formatWeekRange(r.week)})</option>`;
+        });
+        select.dataset.reportsJson = JSON.stringify(myReports);
+    };
+
     // データ読み込み（日報）
     window.loadReports = async (isSummary = false) => {
         try {
@@ -327,6 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
             allReports = querySnapshot.docs.map(doc => doc.data());
             
             updateFilterOptions();
+            updateCopySelect();
+            updateProjectSuggestions();
             if (isSummary) renderSummaryTable();
             else renderTable();
         } catch (e) {

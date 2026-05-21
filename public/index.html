@@ -24,7 +24,34 @@
                     <input type="password" id="login-password" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-large">ログイン</button>
+                <div class="auth-toggle-link" style="margin-top: 15px; text-align: center;">
+                    <a href="#" id="link-to-signup" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: bold;">新規アカウント作成はこちら</a>
+                </div>
                 <div id="login-error" class="message error hidden">ログインに失敗しました。</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新規登録画面 -->
+    <div id="signup-container" class="login-wrapper hidden">
+        <div class="login-card">
+            <h2>新規アカウント登録</h2>
+            <p>担当者のメールアドレスとパスワードを入力してください。</p>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label for="signup-email">メールアドレス</label>
+                    <input type="email" id="signup-email" required placeholder="example@company.com">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">パスワード（6文字以上）</label>
+                    <input type="password" id="signup-password" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary btn-large">アカウントを作成</button>
+                <div class="auth-toggle-link" style="margin-top: 15px; text-align: center;">
+                    <a href="#" id="link-to-login" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: bold;">ログイン画面へ戻る</a>
+                </div>
+                <div id="signup-error" class="message error hidden">登録に失敗しました。</div>
+                <div id="signup-success" class="message success hidden">登録が完了しました！</div>
             </form>
         </div>
     </div>
@@ -36,6 +63,7 @@
                 <h1>週次日報 ＆ 予定管理システム</h1>
                 <div class="user-info">
                     <span id="current-user-email"></span>
+                    <button id="theme-toggle" class="btn btn-secondary btn-small" title="テーマ切り替え">🌓 テーマ切替</button>
                     <button id="btn-logout" class="btn btn-secondary btn-small">ログアウト</button>
                 </div>
             </div>
@@ -56,7 +84,7 @@
                 <form id="schedule-form">
                     <div class="form-group">
                         <label for="sched-project">工事名</label>
-                        <input type="text" id="sched-project" placeholder="例: 〇〇ビル新築工事" required>
+                        <input type="text" id="sched-project" placeholder="例: 〇〇ビル新築工事" required list="project-suggestions">
                     </div>
                     <!-- 担当者名はログインユーザーのメールから自動で表示するためreadonly -->
                     <div class="form-group">
@@ -72,6 +100,11 @@
                             <label for="sched-end">終了日</label>
                             <input type="date" id="sched-end" required>
                         </div>
+                    </div>
+                    <div class="date-shortcuts" style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="today">開始日を今日</button>
+                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="tomorrow">開始日を明日</button>
+                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="next-monday">開始日を来週月曜</button>
                     </div>
                     <div class="form-group">
                         <label for="sched-notes">作業内容・備考</label>
@@ -123,10 +156,19 @@
                         </div>
                     </div>
 
+                    <div class="copy-past-section" style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; border: 1px solid var(--border);">
+                        <span style="font-size: 0.9rem; font-weight: bold; white-space: nowrap;">日報コピー:</span>
+                        <select id="copy-past-report-select" style="flex: 1; padding: 8px; font-size: 0.9rem;"></select>
+                        <button type="button" id="btn-copy-past-report" class="btn btn-secondary btn-small" style="padding: 8px 15px;">コピーする</button>
+                    </div>
+
                     <div class="days-container" id="days-container"></div>
 
                     <div class="summary-section">
-                        <h3>今週のまとめ（レポート用）</h3>
+                        <h3 style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                            <span>今週のまとめ（レポート用）</span>
+                            <span id="week-total-hours" style="color: var(--primary); font-size: 1.1rem; font-weight: bold;">合計: 0.0H</span>
+                        </h3>
                         <div class="form-group">
                             <label for="actual">実績（全体の振り返りなど）</label>
                             <textarea id="actual" rows="3" placeholder="今週完了した主な内容などを記入" required></textarea>
@@ -225,7 +267,7 @@
     <!-- 作業行のテンプレート -->
     <template id="task-row-template">
         <div class="task-row">
-            <input type="text" class="task-project" placeholder="工事名" required>
+            <input type="text" class="task-project" placeholder="工事名" required list="project-suggestions">
             <input type="text" class="task-detail" placeholder="作業内容" required>
             <select class="task-hours" required>
                 <option value="">時間</option>
@@ -258,6 +300,7 @@
         </div>
     </template>
 
+    <datalist id="project-suggestions"></datalist>
     <!-- モジュールとしてapp.jsを読み込む（Firebase v10対応のため） -->
     <script type="module" src="app.js?v=2"></script>
 </body>
