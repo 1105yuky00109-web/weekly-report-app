@@ -385,6 +385,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentAuthor = authorInput.value;
         if (!selectedWeek || !currentAuthor) return;
         
+        const currentWeek = getISOWeekString(new Date());
+        const isFutureWeek = selectedWeek > currentWeek; // 選択された週が今日より未来の週かどうか
+        
         const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
         
         // 全曜日クリア
@@ -416,14 +419,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // ステータスに応じた処理
-            const status = existingReport.status || 'confirmed'; // 古いデータは確定済み扱い
+            let status = existingReport.status;
+            if (!status) {
+                status = isFutureWeek ? 'plan' : 'confirmed'; // 古いデータは未来の週なら予定、過去なら確定済み扱いとする
+            }
+            // 未来の週は強制的に予定(plan)状態とする
+            if (isFutureWeek) {
+                status = 'plan';
+            }
+            
             if (badge) {
                 badge.className = 'status-badge ' + (status === 'confirmed' ? 'status-confirmed' : 'status-plan');
                 badge.textContent = status === 'confirmed' ? '実績確定済み' : '予定（未確定）';
             }
             
             if (actionContainer) {
-                if (status === 'confirmed') {
+                if (isFutureWeek) {
+                    // 未来の週は予定の更新（一時保存）のみ可能
+                    actionContainer.innerHTML = `
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定を更新（一時保存）</button>
+                    `;
+                    const btnSavePlan = document.getElementById('btn-save-plan');
+                    if (btnSavePlan) {
+                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                    }
+                } else if (status === 'confirmed') {
                     actionContainer.innerHTML = `<button type="submit" id="btn-submit-report" class="btn btn-success btn-large">実績確定を更新（上書き）</button>`;
                 } else {
                     actionContainer.innerHTML = `
@@ -450,13 +470,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (actionContainer) {
-                actionContainer.innerHTML = `
-                    <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
-                    <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
-                `;
-                const btnSavePlan = document.getElementById('btn-save-plan');
-                if (btnSavePlan) {
-                    btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                if (isFutureWeek) {
+                    // 未来の週は予定として一時保存のみ可能
+                    actionContainer.innerHTML = `
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
+                    `;
+                    const btnSavePlan = document.getElementById('btn-save-plan');
+                    if (btnSavePlan) {
+                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                    }
+                } else {
+                    actionContainer.innerHTML = `
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
+                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large">実績として確定登録</button>
+                    `;
+                    const btnSavePlan = document.getElementById('btn-save-plan');
+                    if (btnSavePlan) {
+                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                    }
                 }
             }
         }
