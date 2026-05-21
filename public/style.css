@@ -441,13 +441,65 @@ body.dark-theme .timeline-task-row.leave-row input:disabled {
 
 /* --- 追加カスタムスタイル --- */
 
-/* タブの色分け */
+/* タブのグループ別初期スタイル (枠線と薄い背景) */
+.tab-btn.tab-gantt {
+    border: 2px solid #93c5fd; /* 薄い青の枠線 */
+    background: #eff6ff;      /* 非常に薄い青の背景 */
+    color: #1e3a8a;           /* 濃い青のテキスト */
+}
+.tab-btn.tab-gantt:hover {
+    background: #dbeafe;      /* ホバー時に少し濃く */
+    border-color: #60a5fa;
+}
 .tab-btn.tab-gantt.active {
     background: var(--primary) !important;
+    border-color: var(--primary) !important;
     color: white !important;
+}
+
+.tab-btn.tab-weekly {
+    border: 2px solid #a7f3d0; /* 薄い緑の枠線 */
+    background: #ecfdf5;      /* 非常に薄い緑の背景 */
+    color: #064e3b;           /* 濃い緑のテキスト */
+}
+.tab-btn.tab-weekly:hover {
+    background: #d1fae5;      /* ホバー時に少し濃く */
+    border-color: #34d399;
 }
 .tab-btn.tab-weekly.active {
     background: var(--success) !important;
+    border-color: var(--success) !important;
+    color: white !important;
+}
+
+/* ダークテーマ用のタブボタン調整 */
+body.dark-theme .tab-btn.tab-gantt {
+    border-color: #1e3a8a;
+    background: #172554;
+    color: #93c5fd;
+}
+body.dark-theme .tab-btn.tab-gantt:hover {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+}
+body.dark-theme .tab-btn.tab-gantt.active {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+}
+
+body.dark-theme .tab-btn.tab-weekly {
+    border-color: #064e3b;
+    background: #022c22;
+    color: #a7f3d0;
+}
+body.dark-theme .tab-btn.tab-weekly:hover {
+    background: #064e3b;
+    border-color: #10b981;
+}
+body.dark-theme .tab-btn.tab-weekly.active {
+    background: var(--success) !important;
+    border-color: var(--success) !important;
     color: white !important;
 }
 

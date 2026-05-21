@@ -852,6 +852,36 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 工事名が「有給」「欠勤」「休日」以外のとき、作業時間が 0H のままであればエラーにする
+        let hasZeroHoursError = false;
+        let errorDay = '';
+        let errorProject = '';
+
+        daysName.forEach(day => {
+            const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+            if (!taskList) return;
+            const rows = taskList.querySelectorAll('.task-row');
+            rows.forEach(row => {
+                const project = row.querySelector('.task-project').value.trim();
+                const hoursVal = row.querySelector('.task-hours').value;
+                const hours = parseFloat(hoursVal || 0);
+                
+                // 工事名が入力されており、かつ「有給」「欠勤」「休日」でない場合
+                if (project && !['有給', '欠勤', '休日'].includes(project)) {
+                    if (hours <= 0) {
+                        hasZeroHoursError = true;
+                        errorDay = day;
+                        errorProject = project;
+                    }
+                }
+            });
+        });
+
+        if (hasZeroHoursError) {
+            alert(`【${errorDay}曜日】の「${errorProject}」の作業時間が 0 時間になっています。\nタイムラインをドラッグして作業時間（黒いバー）を入力してください。`);
+            return;
+        }
+
         const dailyLogs = {};
         daysName.forEach(day => {
             const rows = document.querySelector(`.task-list[data-day="${day}"]`).querySelectorAll('.task-row');
