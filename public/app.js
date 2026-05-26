@@ -2358,7 +2358,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
-        // 既存のprint-areaや動的スタイルを削除
+        // 既存のprint-active-areaや動的スタイルを削除
         const existingArea = document.getElementById('print-active-area');
         if (existingArea) existingArea.remove();
         const existingStyle = document.getElementById('print-dynamic-style');
@@ -2378,7 +2378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.head.appendChild(style);
 
-        // #print-areaを作成してbodyに追加
+        // #print-active-areaを作成してbodyに追加
         const printArea = document.createElement('div');
         printArea.id = 'print-active-area';
         printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
@@ -2397,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 横向きの場合、テーブルがはみ出ないように幅やフォントサイズを調整し、stickyを解除
         if (isLandscape) {
-            clone.style.width = '100%';
+            clone.style.width = 'max-content'; // 横長グリッドが潰れないようにmax-contentにする
             clone.style.fontSize = '8pt';
             // sticky固定が印刷時に崩れる原因となるため、全セルのpositionをstaticに戻す
             clone.querySelectorAll('th, td, .gantt-cell').forEach(el => {
@@ -2409,13 +2409,15 @@ document.addEventListener('DOMContentLoaded', () => {
         printArea.appendChild(clone);
         document.body.appendChild(printArea);
 
-        // 印刷後に削除
-        window.print();
+        // スタイル適用とレンダリングのためのウェイトを挟んでから印刷を実行
         setTimeout(() => {
-            printArea.remove();
-            const dynStyle = document.getElementById('print-dynamic-style');
-            if (dynStyle) dynStyle.remove();
-        }, 1000);
+            window.print();
+            setTimeout(() => {
+                printArea.remove();
+                const dynStyle = document.getElementById('print-dynamic-style');
+                if (dynStyle) dynStyle.remove();
+            }, 1000);
+        }, 150);
     };
 
     // A4縦印刷（個人別一覧・レポート）

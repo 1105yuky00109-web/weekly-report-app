@@ -2359,7 +2359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
         // 既存のprint-areaや動的スタイルを削除
-        const existingArea = document.getElementById('print-area');
+        const existingArea = document.getElementById('print-active-area');
         if (existingArea) existingArea.remove();
         const existingStyle = document.getElementById('print-dynamic-style');
         if (existingStyle) existingStyle.remove();
@@ -2380,7 +2380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // #print-areaを作成してbodyに追加
         const printArea = document.createElement('div');
-        printArea.id = 'print-area';
+        printArea.id = 'print-active-area';
         printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
 
         // タイトルを追加
