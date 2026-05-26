@@ -4,6 +4,23 @@
 const fs = require('fs');
 const path = require('path');
 
+// .envファイルから環境変数をロード（ローカルビルド用）
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+            const parts = trimmed.split('=');
+            if (parts.length >= 2) {
+                const key = parts[0].trim();
+                const value = parts.slice(1).join('=').trim();
+                process.env[key] = value;
+            }
+        }
+    });
+}
+
 // 環境変数からFirebase設定を取得
 const config = {
     apiKey: process.env.FIREBASE_API_KEY || '',
@@ -44,4 +61,5 @@ const injectTo = (filename) => {
 
 injectTo('app.js');
 injectTo('seed.js');
+injectTo('system-admin.js');
 

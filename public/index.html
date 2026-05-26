@@ -3,300 +3,642 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>図面作図業務 週次日報＆予定管理</title>
-    <link rel="stylesheet" href="style.css?v=2">
+    <title>工事・日報管理システム</title>
+    <link rel="stylesheet" href="style-v4.css?v=20260527-01">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- ExcelJS for Styled Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <!-- 動的な印刷スタイル（JS側から書き換え） -->
+    <style id="print-dynamic-style"></style>
 </head>
 <body>
-    <!-- ログイン画面 -->
-    <div id="login-container" class="login-wrapper">
-        <div class="login-card">
-            <h2>システム ログイン</h2>
-            <p>担当者のメールアドレスとパスワードを入力してください。</p>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="login-email">メールアドレス</label>
-                    <input type="email" id="login-email" required placeholder="example@company.com">
-                </div>
-                <div class="form-group">
-                    <label for="login-password">パスワード</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-large">ログイン</button>
-                <div class="auth-toggle-link" style="margin-top: 15px; text-align: center;">
-                    <a href="#" id="link-to-signup" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: bold;">新規アカウント作成はこちら</a>
-                </div>
-                <div id="login-error" class="message error hidden">ログインに失敗しました。</div>
-            </form>
-        </div>
+
+<!-- ========== 読み込み中 ========== -->
+<div id="loading-container" class="login-wrapper">
+    <div class="login-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;">
+        <div class="spinner" style="width:40px;height:40px;border:4px solid rgba(37,99,235,0.1);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div>
+        <div style="font-size:1.2rem;font-weight:bold;color:var(--primary);">システム読み込み中...</div>
+        <p style="margin-top:8px;font-size:0.9rem;color:var(--text-muted);">接続状態を確認しています。少々お待ちください。</p>
     </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 
-    <!-- 新規登録画面 -->
-    <div id="signup-container" class="login-wrapper hidden">
-        <div class="login-card">
-            <h2>新規アカウント登録</h2>
-            <p>担当者のメールアドレスとパスワードを入力してください。</p>
-            <form id="signup-form">
-                <div class="form-group">
-                    <label for="signup-name">フルネーム（氏名）</label>
-                    <input type="text" id="signup-name" required placeholder="例: 山田 太郎">
-                </div>
-                <div class="form-group">
-                    <label for="signup-email">メールアドレス</label>
-                    <input type="email" id="signup-email" required placeholder="example@company.com">
-                </div>
-                <div class="form-group">
-                    <label for="signup-password">パスワード（6文字以上）</label>
-                    <input type="password" id="signup-password" required minlength="6">
-                </div>
-                <button type="submit" class="btn btn-primary btn-large">アカウントを作成</button>
-                <div class="auth-toggle-link" style="margin-top: 15px; text-align: center;">
-                    <a href="#" id="link-to-login" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: bold;">ログイン画面へ戻る</a>
-                </div>
-                <div id="signup-error" class="message error hidden">登録に失敗しました。</div>
-                <div id="signup-success" class="message success hidden">登録が完了しました！</div>
-            </form>
-        </div>
-    </div>
-
-    <!-- メインアプリ画面（ログイン後に表示） -->
-    <div id="app-container" class="app-container hidden">
-        <header class="no-print">
-            <div class="header-top">
-                <h1>週次日報 ＆ 予定管理システム</h1>
-                <div class="user-info">
-                    <span id="current-user-email"></span>
-                    <button id="theme-toggle" class="btn btn-secondary btn-small" title="テーマ切り替え">🌓 テーマ切替</button>
-                    <button id="btn-logout" class="btn btn-secondary btn-small">ログアウト</button>
-                </div>
+<!-- ========== ログイン画面 ========== -->
+<div id="login-container" class="login-wrapper hidden">
+    <div class="login-card">
+        <h2>システム ログイン</h2>
+        <p>ご登録済みのメールアドレスとパスワードを入力してください。</p>
+        <form id="login-form" autocomplete="off">
+            <div class="form-group">
+                <label for="login-email">メールアドレス</label>
+                <input type="email" id="login-email" required placeholder="example@company.com" autocomplete="off">
             </div>
-            
-            <nav class="tabs">
-                <button class="tab-btn active tab-gantt" data-target="schedule-input-view">月間予定入力</button>
-                <button class="tab-btn tab-gantt" data-target="gantt-view">月間予定チャート</button>
-                <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
-                <button class="tab-btn tab-weekly" data-target="list-view">個人別一覧・レポート</button>
-                <button class="tab-btn tab-weekly" data-target="summary-view">工事別集計</button>
-            </nav>
-        </header>
-
-        <!-- 予定入力画面 -->
-        <main id="schedule-input-view" class="view active no-print">
-            <div class="form-card">
-                <h2>月間予定を登録</h2>
-                <form id="schedule-form">
-                    <div class="form-group">
-                        <label for="sched-project">工事名</label>
-                        <input type="text" id="sched-project" placeholder="例: 〇〇ビル新築工事" required list="project-suggestions">
-                    </div>
-                    <!-- 担当者名はログインユーザーのメールから自動で表示するためreadonly -->
-                    <div class="form-group">
-                        <label for="sched-author">担当者（自動）</label>
-                        <input type="text" id="sched-author" readonly>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="sched-start">開始日</label>
-                            <input type="date" id="sched-start" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="sched-end">終了日</label>
-                            <input type="date" id="sched-end" required>
-                        </div>
-                    </div>
-                    <div class="date-shortcuts" style="margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="today">開始日を今日</button>
-                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="tomorrow">開始日を明日</button>
-                        <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="next-monday">開始日を来週月曜</button>
-                    </div>
-                    <div class="form-group">
-                        <label for="sched-notes">作業内容・備考</label>
-                        <input type="text" id="sched-notes" placeholder="主な作業内容など">
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-large">予定を登録</button>
-                    <div id="sched-submit-message" class="message hidden">予定を保存しました！</div>
-                </form>
-            </div>
-        </main>
-
-        <!-- 月間予定チャート（ガントチャート）画面 -->
-        <main id="gantt-view" class="view">
-            <div class="list-controls no-print">
-                <div class="filters">
-                    <input type="month" id="gantt-month">
-                </div>
-                <div class="actions">
-                    <button id="btn-export-gantt" class="btn btn-success">Excel出力</button>
-                    <button id="btn-print-gantt" class="btn btn-secondary">A3横 印刷</button>
-                </div>
-            </div>
-
-            <div class="print-header only-print">
-                <h2 id="print-gantt-title">月間作業予定表</h2>
-            </div>
-
-            <div class="table-container gantt-wrapper">
-                <div class="gantt-container" id="gantt-container">
-                    <!-- JSでガントチャートを描画します -->
-                </div>
-            </div>
-        </main>
-
-        <!-- 日報入力画面 -->
-        <main id="input-view" class="view no-print">
-            <div class="form-card">
-                <div class="form-card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); margin-bottom: 20px; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                    <h2 style="border-bottom: none; margin-bottom: 0; padding-bottom: 0; display: inline-block; font-size: 1.3rem;">週報（予定と実績）の作成 <span id="week-total-hours" style="font-size: 1.1rem; color: var(--primary); margin-left: 15px; font-weight: bold;">合計: 0.0H</span></h2>
-                    <button type="button" id="btn-print-weekly" class="btn btn-secondary btn-small" style="background-color: var(--primary); display: flex; align-items: center; gap: 5px; font-weight: bold;">
-                        🖨️ 週間行動予定表(A4)を印刷
+            <div class="form-group">
+                <label for="login-password">パスワード</label>
+                <div style="position:relative;display:flex;align-items:center;">
+                    <input type="password" id="login-password" required style="padding-right:40px;width:100%;" autocomplete="new-password">
+                    <button type="button" class="toggle-password-btn" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;color:var(--text-muted);"
+                        onclick="const inp=document.getElementById('login-password');const t=inp.type==='text';inp.type=t?'password':'text';this.querySelector('.eye-open').style.display=t?'block':'none';this.querySelector('.eye-closed').style.display=t?'none':'block';">
+                        <svg class="eye-icon eye-open" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:22px;height:22px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+                        <svg class="eye-icon eye-closed" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:22px;height:22px;display:none;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
                     </button>
                 </div>
-                <form id="report-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="week">対象週 <span id="report-status-badge" class="status-badge status-none">未登録</span></label>
-                            <select id="week" required></select>
-                            <div id="week-display-hint" style="font-size: 0.85rem; color: #64748b; margin-top: 5px;"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="author">担当者（自動）</label>
-                            <input type="text" id="author" readonly>
+            </div>
+            <button type="submit" id="btn-login" class="btn btn-primary btn-large">ログイン</button>
+            <div id="login-error" class="message error hidden">ログインに失敗しました。</div>
+        </form>
+
+        <div style="margin-top:20px;text-align:center;border-top:1px solid var(--border);padding-top:16px;">
+            <button type="button" id="btn-show-reset" style="background:none;border:none;color:#2563eb;font-size:0.9rem;cursor:pointer;text-decoration:underline;">パスワードをお忘れの方はこちら</button>
+        </div>
+        <div id="reset-password-section" style="display:none;margin-top:16px;">
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;">
+                <p style="font-size:0.9rem;color:#1d4ed8;margin-bottom:12px;font-weight:600;">🔑 パスワードの再設定</p>
+                <p style="font-size:0.85rem;color:#374151;margin-bottom:14px;line-height:1.5;">登録済みのメールアドレスを入力すると、再設定用のリンクをお送りします。</p>
+                <div style="display:flex;gap:8px;">
+                    <input type="email" id="reset-email" placeholder="メールアドレスを入力" style="flex:1;padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:0.9rem;">
+                    <button type="button" id="btn-send-reset" class="btn btn-primary" style="padding:10px 16px;font-size:0.9rem;">送信</button>
+                </div>
+                <div id="reset-success" class="message hidden" style="margin-top:10px;background:#f0fdf4;color:#16a34a;border-radius:6px;padding:10px;font-size:0.85rem;"></div>
+                <div id="reset-error" class="message hidden" style="margin-top:10px;background:#fef2f2;color:#dc2626;border-radius:6px;padding:10px;font-size:0.85rem;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== メインアプリ ========== -->
+<div id="app-container" class="app-container hidden">
+    <header class="no-print">
+        <div class="header-top">
+            <h1>工事・日報管理システム</h1>
+            <div class="user-info">
+                <span id="current-company-name" style="margin-right:15px;font-weight:bold;color:var(--primary-color,#2563eb);"></span>
+                <span id="user-role-badge" style="display:none;margin-right:15px;font-weight:bold;padding:4px 8px;border-radius:4px;font-size:0.8rem;"></span>
+                <span id="current-user-email"></span>
+                <button id="theme-toggle" class="btn btn-secondary btn-small" title="テーマ切り替え">🌙 テーマ切替</button>
+                <button id="btn-logout" class="btn btn-secondary btn-small">ログアウト</button>
+            </div>
+        </div>
+        <nav class="tabs">
+            <button class="tab-btn active tab-gantt" data-target="schedule-input-view">工事登録</button>
+            <button class="tab-btn tab-gantt" data-target="gantt-view">工程管理表</button>
+            <button class="tab-btn tab-gantt" data-target="qualifications-view">🏅 資格・担当者管理</button>
+            <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
+            <button class="tab-btn tab-weekly" data-target="list-view">個人別一覧・レポート</button>
+            <button class="tab-btn tab-weekly" data-target="summary-view">工事別集計</button>
+            <button id="tab-employee-manage" class="tab-btn" data-target="employee-manage-view" style="display:none;background:#7c3aed;color:white;">👥 社員管理</button>
+        </nav>
+    </header>
+
+    <!-- ======== 工事登録画面 ======== -->
+    <main id="schedule-input-view" class="view active no-print">
+        <div class="form-card">
+            <h2 id="schedule-form-title">工事を登録</h2>
+            <form id="schedule-form">
+                <input type="hidden" id="sched-id" value="">
+
+                <!-- 1. 工事名 & 2. 元請 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-project">工事名 <span style="color:red">*</span></label>
+                        <input type="text" id="sched-project" placeholder="例: ○○ビル新築工事" required list="project-list">
+                        <datalist id="project-list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-client">元請</label>
+                        <input type="text" id="sched-client" placeholder="例: 西武建設">
+                    </div>
+                </div>
+
+                <!-- 3. 現場住所 -->
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label for="sched-address">現場住所</label>
+                        <input type="text" id="sched-address" placeholder="例: 東京都新宿区○○">
+                    </div>
+                </div>
+
+                <!-- 4. 開始日 & 終了日 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-start">開始日 <span style="color:red">*</span></label>
+                        <input type="date" id="sched-start" required>
+                        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="today">今日</button>
+                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="tomorrow">明日</button>
+                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="next-monday">来週月曜</button>
                         </div>
                     </div>
-
-                    <div class="copy-past-section" style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; border: 1px solid var(--border);">
-                        <span style="font-size: 0.9rem; font-weight: bold; white-space: nowrap;">日報コピー:</span>
-                        <select id="copy-past-report-select" style="flex: 1; padding: 8px; font-size: 0.9rem;"></select>
-                        <button type="button" id="btn-copy-past-report" class="btn btn-secondary btn-small" style="padding: 8px 15px;">コピーする</button>
+                    <div class="form-group">
+                        <label for="sched-end">終了日 <span style="color:red">*</span></label>
+                        <input type="date" id="sched-end" required>
                     </div>
-
-                    <div class="days-container" id="days-container"></div>
-
-                    <div id="report-action-buttons" class="report-actions"></div>
-                </form>
-            </div>
-        </main>
-
-        <!-- 一覧画面（個人別・レポート表示用） -->
-        <main id="list-view" class="view">
-            <div class="list-controls no-print">
-                <div class="filters">
-                    <select id="filter-month"><option value="">すべての月</option></select>
-                    <select id="filter-author"><option value="">すべての担当者</option></select>
                 </div>
-                <div class="actions">
-                    <button id="btn-export" class="btn btn-success">Excel出力</button>
-                    <button id="btn-print" class="btn btn-secondary">A4縦 印刷</button>
+
+                <!-- 5. 仕入 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-supplier1">仕入（仕入先①）</label>
+                        <input type="text" id="sched-supplier1" placeholder="例: センクシア">
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-supplier2">製作工場①（仕入先②）</label>
+                        <input type="text" id="sched-supplier2" placeholder="例: たかね工業">
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-supplier3">製作工場②（仕入先③）</label>
+                        <input type="text" id="sched-supplier3" placeholder="例: 大建工業">
+                    </div>
+                </div>
+
+                <!-- 6. 数量 & 営業 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-memo-qty">数量（ｔ、㎡）</label>
+                        <input type="text" id="sched-memo-qty" placeholder="例: 10t / 150㎡ / 200">
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-sales-rep">営業担当</label>
+                        <select id="sched-sales-rep">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 7. 主任技術者 & 工務担当 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-chief-tech">主任技術者</label>
+                        <select id="sched-chief-tech">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-const-rep">工務担当</label>
+                        <select id="sched-const-rep">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 8. 管理補助 & 工事担当 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sched-subcontractor">管理補助</label>
+                        <input type="text" id="sched-subcontractor" placeholder="例: 斎藤組">
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-site-rep">工事担当</label>
+                        <select id="sched-site-rep">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 備考・模様・完了 -->
+                <div class="form-row">
+                    <div class="form-group" style="flex:3;">
+                        <label for="sched-notes">作業内容・備考</label>
+                        <input type="text" id="sched-notes" placeholder="主な作業内容などの自由メモ">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="sched-bar-pattern">バーの模様</label>
+                        <select id="sched-bar-pattern">
+                            <option value="solid">塗りつぶし（通常）</option>
+                            <option value="stripe">ストライプ（斜線）</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:0;min-width:100px;display:flex;align-items:center;gap:8px;margin-top:20px;">
+                        <input type="checkbox" id="sched-completed" style="width:20px;height:20px;margin:0;">
+                        <label for="sched-completed" style="margin:0;font-weight:bold;white-space:nowrap;">工程完了</label>
+                    </div>
+                </div>
+
+                <div class="form-group" style="display:none;">
+                    <label for="sched-author">登録者（氏名）:</label>
+                    <input type="text" id="sched-author" readonly>
+                </div>
+
+                <div style="display:flex;gap:10px;">
+                    <button type="submit" id="sched-submit-btn" class="btn btn-primary btn-large">工事を登録</button>
+                    <button type="button" id="sched-cancel-btn" class="btn btn-secondary btn-large hidden" style="background-color:#64748b;color:white;">編集をキャンセル</button>
+                </div>
+                <div id="sched-submit-message" class="message hidden">予定を保存しました！</div>
+            </form>
+        </div>
+
+        <!-- 工事候補サジェスト（非表示） -->
+        <div id="project-suggestions" style="display:none;"></div>
+    </main>
+
+    <!-- ======== 工程管理表（ガントチャート）======== -->
+    <main id="gantt-view" class="view">
+        <div class="list-controls no-print" style="margin-bottom:15px;">
+            <div class="filters" style="display:flex;gap:10px;align-items:center;">
+                <label for="gantt-year" style="font-weight:bold;color:var(--text);">対象年度:</label>
+                <select id="gantt-year" style="padding:10px;font-size:1rem;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);">
+                    <option value="2025">2025年度 (R7)</option>
+                    <option value="2026" selected>2026年度 (R8)</option>
+                    <option value="2027">2027年度 (R9)</option>
+                    <option value="2028">2028年度 (R10)</option>
+                </select>
+            </div>
+            <div class="actions">
+                <button id="btn-export-gantt" class="btn btn-secondary btn-small">📊 Excel出力</button>
+                <button id="btn-print-gantt" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
+            </div>
+        </div>
+        <!-- ガントチャートタイトル（印刷用） -->
+        <div id="print-gantt-title" class="only-print" style="font-size:1.2rem;font-weight:bold;margin-bottom:10px;"></div>
+        <div class="gantt-wrapper" style="overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;">
+            <div id="gantt-container"></div>
+        </div>
+    </main>
+
+    <!-- ======== 資格・担当者管理 ======== -->
+    <main id="qualifications-view" class="view no-print">
+        <div class="form-card">
+            <h2>🏅 資格・担当者管理</h2>
+            <div id="qual-summary-area" style="margin-bottom:20px;"></div>
+            <div id="qualifications-summary-container"></div>
+            <h3>担当者と保有資格の登録</h3>
+            <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:15px;">工事予定に登録される担当者の役割と保有資格を設定できます。</p>
+            <form id="member-add-form">
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label for="member-name">氏名 <span style="color:red">*</span></label>
+                        <input type="text" id="member-name" placeholder="例: 山田 太郎" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>役割 <span style="color:red">*</span></label>
+                        <div style="display:flex;flex-direction:column;gap:5px;padding-top:5px;">
+                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="sales" required> 営業担当</label>
+                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="const"> 工務担当</label>
+                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="site"> 工事（現場）担当</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>保有資格（複数選択可）</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;padding-top:5px;">
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="q2b_躯体"> 2級建築施工管理技士（躯体）</label>
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="q2b_仕上"> 2級建築施工管理技士（仕上）</label>
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="q1b"> 1級建築施工管理技士</label>
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="q1c"> 1級土木施工管理技士</label>
+                        <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="exp"> 実務経験</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">担当者を登録</button>
+                <div id="member-add-message" class="message hidden"></div>
+            </form>
+            <div style="margin-top:30px;">
+                <h3>登録済み担当者一覧</h3>
+                <div id="member-list-container">
+                    <table style="width:100%;border-collapse:collapse;">
+                        <tbody id="member-list-tbody"></tbody>
+                    </table>
                 </div>
             </div>
+        </div>
+    </main>
 
-            <div class="print-header only-print">
-                <h2>週次完了レポート（個人別）</h2>
+    <!-- ======== 週の予定と実績 ======== -->
+    <main id="input-view" class="view no-print">
+        <div class="form-card">
+            <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;flex-wrap:wrap;">
+                <h2 style="margin:0;">週の予定と実績</h2>
+                <div class="form-group" style="margin:0;">
+                    <label for="week" style="font-size:0.85rem;">対象週</label>
+                    <select id="week" style="padding:8px;font-size:0.9rem;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></select>
+                </div>
+                <span id="week-display-hint" style="font-size:0.9rem;color:var(--text-muted);"></span>
+                <span id="week-total-hours" style="font-size:0.9rem;font-weight:bold;color:var(--primary);"></span>
             </div>
 
-            <div class="table-container no-print">
-                <table id="reports-table">
-                    <thead>
-                        <tr>
-                            <th>対象期間</th>
-                            <th>担当者</th>
-                            <th>月</th>
-                            <th>火</th>
-                            <th>水</th>
-                            <th>木</th>
-                            <th>金</th>
-                            <th>土</th>
-                            <th>日</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reports-tbody"></tbody>
-                </table>
-            </div>
-            
-            <div id="print-details-container" class="only-print"></div>
+            <!-- ステータスバッジ -->
+            <div id="report-status-badge" class="status-badge" style="margin-bottom:15px;"></div>
 
-            <!-- 【NEW】月間・個人別集計の表示エリア -->
-            <div id="personal-summary-container" class="table-container" style="margin-top: 30px;"></div>
-        </main>
+            <form id="report-form">
+                <div class="form-group" style="display:none;">
+                    <label for="author">担当者名</label>
+                    <input type="text" id="author" readonly>
+                </div>
 
-        <!-- 工事別集計画面 -->
-        <main id="summary-view" class="view">
-            <div class="list-controls no-print">
-                <div class="filters">
-                    <span style="font-weight: bold; margin-right: 8px;">対象月:</span>
-                    <select id="summary-filter-month">
-                        <option value="">月を選択してください</option>
+                <!-- 曜日別入力エリア（JSで動的生成） -->
+                <div id="days-container"></div>
+
+                <!-- 過去の週報をコピー -->
+                <div style="margin-top:15px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+                    <label style="font-size:0.85rem;font-weight:bold;margin-bottom:8px;display:block;">📋 過去の週報からコピー</label>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                        <select id="copy-past-report-select" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:0.9rem;">
+                            <option value="">コピー元の週を選択...</option>
+                        </select>
+                        <button type="button" id="btn-copy-past-report" class="btn btn-secondary btn-small">この週からコピー</button>
+                    </div>
+                </div>
+
+                <!-- アクションボタン（JSで動的に更新） -->
+                <div id="report-action-buttons" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+                    <button type="button" id="btn-save-draft" class="btn btn-secondary btn-large" style="background-color:#ea580c;">📝 予定として一時保存</button>
+                    <button type="submit" class="btn btn-primary btn-large">✅ 実績を確定登録</button>
+                    <button type="button" id="btn-print-weekly" class="btn btn-secondary btn-large no-print" onclick="window.print()">🖨️ 印刷</button>
+                </div>
+                <div id="report-submit-message" class="message hidden"></div>
+            </form>
+        </div>
+    </main>
+
+    <!-- ======== 個人別一覧・レポート ======== -->
+    <main id="list-view" class="view">
+        <div class="list-controls no-print">
+            <div class="filters">
+                <div class="form-group">
+                    <label for="filter-month">月で絞込み</label>
+                    <select id="filter-month">
+                        <option value="">すべての月</option>
                     </select>
                 </div>
-                <div class="actions">
-                    <button id="btn-export-summary" class="btn btn-success">Excel出力</button>
-                    <button id="btn-print-summary" class="btn btn-secondary">A3横 印刷</button>
+                <div class="form-group">
+                    <label for="filter-author">担当者で絞込み</label>
+                    <select id="filter-author">
+                        <option value="">すべての担当者</option>
+                    </select>
                 </div>
             </div>
-
-            <div class="print-header only-print">
-                <h2 id="print-summary-title">工事別 作業時間集計</h2>
+            <div class="actions">
+                <button id="btn-export" class="btn btn-secondary btn-small">📊 Excel出力</button>
+                <button id="btn-export-weekly" class="btn btn-secondary btn-small">📊 週報Excel出力</button>
+                <button id="btn-print" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
             </div>
+        </div>
 
-            <div class="table-container" style="overflow-x: auto;">
-                <table id="summary-table" style="min-width: 1200px; border-collapse: collapse;">
-                    <thead id="summary-thead"></thead>
-                    <tbody id="summary-tbody"></tbody>
-                </table>
-            </div>
-        </main>
-    </div>
+        <!-- 印刷用タイトル -->
+        <div id="print-summary-title" class="only-print" style="font-size:1.2rem;font-weight:bold;margin-bottom:10px;"></div>
 
-    <!-- 作業行のテンプレート -->
-    <template id="task-row-template">
-        <div class="task-row timeline-task-row">
-            <div class="task-row-top">
-                <input type="text" class="task-project" placeholder="工事名" required list="project-suggestions" style="flex: 2;">
-                <input type="text" class="task-detail" placeholder="作業内容" required style="flex: 3;">
-                <button type="button" class="btn btn-danger btn-icon remove-task-btn" title="削除">×</button>
-            </div>
-            
-            <div class="task-row-bottom">
-                <!-- パレット（モード選択） -->
-                <div class="timeline-palette">
-                    <button type="button" class="palette-btn btn-work active" data-mode="1" title="作業時間(黒)で塗る">
-                        <span class="color-dot" style="background:#000;"></span>作業
-                    </button>
-                    <button type="button" class="palette-btn btn-break" data-mode="2" title="休憩時間(赤)で塗る">
-                        <span class="color-dot" style="background:#ef4444;"></span>休憩
-                    </button>
-                    <button type="button" class="palette-btn btn-clear" data-mode="0" title="消しゴム">
-                        🗑️
-                    </button>
+        <!-- 個人サマリー -->
+        <div id="personal-summary-container"></div>
+
+        <!-- レポート一覧テーブル -->
+        <div style="overflow-x:auto;">
+            <table id="reports-table" style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr>
+                        <th>週</th>
+                        <th>担当者</th>
+                        <th>ステータス</th>
+                        <th class="no-print">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="reports-tbody"></tbody>
+            </table>
+        </div>
+
+        <!-- レポート一覧コンテナ -->
+        <div id="report-list-container"></div>
+
+        <!-- 印刷エリア -->
+        <div id="print-area" class="only-print">
+            <div id="print-details-container"></div>
+        </div>
+    </main>
+
+    <!-- ======== 工事別集計 ======== -->
+    <main id="summary-view" class="view">
+        <div class="list-controls no-print">
+            <div class="filters">
+                <div class="form-group">
+                    <label for="summary-filter-month">月で絞込み</label>
+                    <select id="summary-filter-month">
+                        <option value="">すべての月</option>
+                    </select>
                 </div>
-                
-                <!-- タイムラインコンテナ -->
-                <div class="timeline-container-scroll">
-                    <div class="timeline-bar-wrapper">
-                        <!-- 時間ヘッダー (0〜24時) -->
-                        <div class="timeline-hours-header"></div>
-                        <!-- セルグリッド (48セル) -->
-                        <div class="timeline-cells-grid"></div>
+            </div>
+            <div class="actions">
+                <button id="btn-export-summary" class="btn btn-secondary btn-small">📊 Excel出力</button>
+                <button id="btn-print-summary" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
+            </div>
+        </div>
+        <div id="print-gantt-title" style="display:none;"></div>
+        <div style="overflow-x:auto;">
+            <table id="summary-table" style="width:100%;border-collapse:collapse;">
+                <thead id="summary-thead"></thead>
+                <tbody id="summary-tbody"></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- ======== 社員アカウント管理 ======== -->
+    <main id="employee-manage-view" class="view no-print">
+        <div class="form-card">
+            <h2>👥 社員アカウント管理</h2>
+            <div id="employee-quota-info" style="margin-bottom:15px;font-size:0.9rem;color:var(--text-muted);">
+                社員数: <span id="emp-count-badge">読み込み中...</span>
+            </div>
+            <h3>新しい社員を追加</h3>
+            <form id="employee-add-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="emp-name">氏名 <span style="color:red">*</span></label>
+                        <input type="text" id="emp-name" placeholder="例: 田中 花子" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="emp-email">メールアドレス <span style="color:red">*</span></label>
+                        <input type="email" id="emp-email" placeholder="例: hanako@company.com" required>
                     </div>
                 </div>
-                
-                <!-- 合計時間表示 -->
-                <div class="timeline-summary">
-                    <span class="timeline-hours-total">0.0</span>H
-                    <input type="hidden" class="task-hours" value="0.0">
-                    <input type="hidden" class="task-timeline-data" value="">
+                <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">※ 仮パスワードは自動生成され、登録したメールアドレスへ送信されます。初回ログイン時にパスワード変更が必要です。</p>
+                <button type="submit" id="emp-add-btn" class="btn btn-primary">社員を追加</button>
+                <div id="emp-add-message" class="message hidden"></div>
+            </form>
+            <div style="margin-top:30px;">
+                <h3>登録済み社員一覧</h3>
+                <div id="employee-list-container">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr>
+                            <th>氏名</th>
+                            <th>メール</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employee-list-tbody"></tbody>
+                </table>
                 </div>
             </div>
         </div>
-    </template>
+    </main>
+</div>
 
-    <datalist id="project-suggestions"></datalist>
-    
-    <!-- 週間行動予定表（A4縦）の印刷用非表示コンテナ -->
-    <div id="print-weekly-action-container" class="only-print"></div>
+<!-- ======== 週報A4印刷用コンテナ ======== -->
+<div id="print-weekly-action-container" class="only-print"></div>
 
-    <!-- モジュールとしてapp.jsを読み込む（Firebase v10対応のため） -->
-    <script type="module" src="app.js?v=2"></script>
+<!-- ======== 工事編集モーダル ======== -->
+<div id="edit-modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1000;overflow-y:auto;">
+    <div style="background:var(--card-bg);max-width:700px;width:90%;margin:40px auto;padding:30px;border-radius:12px;">
+        <h3 style="margin-bottom:20px;">✏️ 工事情報を編集</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-project">工事名 <span style="color:red">*</span></label>
+                <input type="text" id="edit-project" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-client">元請</label>
+                <input type="text" id="edit-client">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:2;">
+                <label for="edit-address">現場住所</label>
+                <input type="text" id="edit-address">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-start">開始日 <span style="color:red">*</span></label>
+                <input type="date" id="edit-start" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-end">終了日 <span style="color:red">*</span></label>
+                <input type="date" id="edit-end" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-supplier1">仕入（仕入先①）</label>
+                <input type="text" id="edit-supplier1">
+            </div>
+            <div class="form-group">
+                <label for="edit-supplier2">製作工場①（仕入先②）</label>
+                <input type="text" id="edit-supplier2">
+            </div>
+            <div class="form-group">
+                <label for="edit-supplier3">製作工場②（仕入先③）</label>
+                <input type="text" id="edit-supplier3">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-memo-qty">数量（ｔ、㎡）</label>
+                <input type="text" id="edit-memo-qty">
+            </div>
+            <div class="form-group">
+                <label for="edit-sales-rep">営業担当</label>
+                <select id="edit-sales-rep">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-chief-tech">主任技術者</label>
+                <select id="edit-chief-tech">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit-const-rep">工務担当</label>
+                <select id="edit-const-rep">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="edit-subcontractor">管理補助</label>
+                <input type="text" id="edit-subcontractor">
+            </div>
+            <div class="form-group">
+                <label for="edit-site-rep">工事担当</label>
+                <select id="edit-site-rep">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group" style="flex:3;">
+                <label for="edit-notes">作業内容・備考</label>
+                <input type="text" id="edit-notes">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <label for="edit-bar-pattern">バーの模様</label>
+                <select id="edit-bar-pattern">
+                    <option value="solid">塗りつぶし</option>
+                    <option value="stripe">ストライプ</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="edit-bar-color">バーの色</label>
+            <input type="color" id="edit-bar-color" value="#3b82f6">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+            <input type="checkbox" id="edit-completed" style="width:20px;height:20px;">
+            <label for="edit-completed" style="font-weight:bold;">工程完了</label>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" id="edit-save-btn" class="btn btn-primary btn-large">保存する</button>
+            <button type="button" id="edit-cancel-btn" class="btn btn-secondary btn-large">キャンセル</button>
+            <button type="button" id="edit-delete-btn" class="btn btn-large" style="background:#dc2626;color:white;margin-left:auto;">🗑️ 削除する</button>
+        </div>
+        <div id="edit-modal-msg" class="message hidden" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<!-- ======== タスク行テンプレート（週の予定と実績で使用） ======== -->
+<template id="task-row-template">
+    <div class="task-row" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg);">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+            <input type="text" class="task-project" placeholder="工事名・作業名" list="project-list" style="flex:2;min-width:150px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);">
+            <input type="text" class="task-detail" placeholder="詳細・備考" style="flex:3;min-width:150px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);">
+            <input type="number" class="task-hours" placeholder="時間" step="0.5" min="0" max="24" style="width:80px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);text-align:center;" readonly>
+            <span class="timeline-hours-total" style="font-size:0.85rem;font-weight:bold;color:var(--primary);min-width:50px;">0.0H</span>
+            <button type="button" class="btn-remove-task" style="background:#ef4444;color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>
+        </div>
+        <!-- タイムライン入力 -->
+        <div class="timeline-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <div class="timeline-hours-header" style="display:flex;margin-bottom:2px;"></div>
+            <div class="palette-controls" style="display:flex;gap:5px;margin-bottom:5px;">
+                <button type="button" class="palette-btn active" data-mode="1" style="padding:3px 8px;font-size:0.75rem;border:1px solid #3b82f6;border-radius:4px;background:#3b82f6;color:white;cursor:pointer;">🔵 作業</button>
+                <button type="button" class="palette-btn" data-mode="2" style="padding:3px 8px;font-size:0.75rem;border:1px solid #f59e0b;border-radius:4px;background:white;color:#f59e0b;cursor:pointer;">🟡 休憩</button>
+                <button type="button" class="palette-btn" data-mode="0" style="padding:3px 8px;font-size:0.75rem;border:1px solid #9ca3af;border-radius:4px;background:white;color:#9ca3af;cursor:pointer;">⬜ 消去</button>
+            </div>
+            <div class="timeline-cells-grid" style="display:flex;height:28px;min-width:576px;cursor:crosshair;"></div>
+        </div>
+        <input type="hidden" class="task-timeline-data" value="">
+    </div>
+</template>
+
+<!-- ======== 初回ログイン パスワード変更モーダル ======== -->
+<div id="password-change-modal" class="login-wrapper" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,0.7);">
+    <div class="login-card" style="max-width:450px;width:100%;">
+        <h2>🔑 パスワードの初期設定</h2>
+        <p>初回登録時に発行された仮パスワードを変更して、ご自身で新しいパスワードを設定してください。</p>
+        <form id="password-change-form">
+            <div class="form-group" style="margin-bottom:20px;text-align:left;">
+                <label for="new-password" style="display:block;margin-bottom:8px;font-weight:600;">新しいパスワード</label>
+                <input type="password" id="new-password" required minlength="6" placeholder="新しいパスワード（6文字以上）" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
+            </div>
+            <div class="form-group" style="margin-bottom:20px;text-align:left;">
+                <label for="new-password-confirm" style="display:block;margin-bottom:8px;font-weight:600;">新しいパスワード（確認）</label>
+                <input type="password" id="new-password-confirm" required minlength="6" placeholder="もう一度新しいパスワードを入力" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
+            </div>
+            <button type="submit" class="btn btn-primary btn-large" style="width:100%;padding:15px;font-size:1.1rem;">パスワードを変更して利用開始</button>
+            <button type="button" id="btn-password-change-logout" class="btn btn-secondary" style="width:100%;padding:12px;margin-top:10px;">キャンセルしてログアウト</button>
+            <div id="password-change-error" class="message error hidden" style="margin-top:15px;"></div>
+            <div id="password-change-success" class="message success hidden" style="margin-top:15px;"></div>
+        </form>
+    </div>
+</div>
+
+<!-- app.js（Firebase v10 モジュール対応） -->
+<script type="module" src="app.js?v=20260527-01"></script>
 </body>
 </html>
