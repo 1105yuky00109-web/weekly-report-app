@@ -30,7 +30,9 @@ async function resolveUserCompany(email) {
         const qAdmin = query(collection(db, "companies"), where("adminEmails", "array-contains", email));
         const adminSnapshot = await getDocs(qAdmin);
         if (!adminSnapshot.empty) {
-            const companyData = adminSnapshot.docs[0].data();
+            const docSnap = adminSnapshot.docs[0];
+            const companyData = docSnap.data();
+            companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
             companyData.role = 'admin'; // 管理者権限
             return companyData;
         }
@@ -39,7 +41,9 @@ async function resolveUserCompany(email) {
         const qMember = query(collection(db, "companies"), where("memberEmails", "array-contains", email));
         const memberSnapshot = await getDocs(qMember);
         if (!memberSnapshot.empty) {
-            const companyData = memberSnapshot.docs[0].data();
+            const docSnap = memberSnapshot.docs[0];
+            const companyData = docSnap.data();
+            companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
             companyData.role = 'employee'; // 一般社員権限
             return companyData;
         }
@@ -465,9 +469,10 @@ const QUAL_MAP = {
 };
 
 // プリセットカラー（工事担当者ごとに自動設定される色）
+// 視認性が高く、互いに区別しやすい12色
 const PRESET_COLORS = [
-    '#16a34a', // 緑
     '#2563eb', // 青
+    '#16a34a', // 緑
     '#ea580c', // オレンジ
     '#9333ea', // 紫
     '#db2777', // ピンク
@@ -480,18 +485,23 @@ const PRESET_COLORS = [
     '#b45309'  // アンバー
 ];
 
+// 工事担当者ごとの色のキャッシュ
+const siteRepColorCache = {};
+let colorIndexCounter = 0;
+
 // 工事担当者名から一意の色を決定する関数
 function getBarColorForSiteRep(siteRep) {
     if (!siteRep || siteRep.trim() === "" || siteRep === "選択してください") {
         return '#64748b'; // 未指定時はグレー
     }
     const cleanName = siteRep.trim();
-    let hash = 0;
-    for (let i = 0; i < cleanName.length; i++) {
-        hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
+    if (siteRepColorCache[cleanName]) {
+        return siteRepColorCache[cleanName];
     }
-    const index = Math.abs(hash) % PRESET_COLORS.length;
-    return PRESET_COLORS[index];
+    const color = PRESET_COLORS[colorIndexCounter % PRESET_COLORS.length];
+    siteRepColorCache[cleanName] = color;
+    colorIndexCounter++;
+    return color;
 }
 
 // マスタ読み込み
