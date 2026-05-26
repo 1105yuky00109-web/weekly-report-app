@@ -164,11 +164,11 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 /* --- 印刷用スタイル --- */
 @media print {
     /* 印刷用エリア以外のすべてのルート要素を非表示にして、余白やレイアウト崩れを防ぐ */
-    body > *:not(#print-area) {
+    body > *:not(#print-active-area) {
         display: none !important;
     }
     
-    #print-area {
+    #print-active-area {
         display: block !important;
         position: relative !important;
         width: 100%;
