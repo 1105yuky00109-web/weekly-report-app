@@ -854,42 +854,58 @@ const getISOWeekString = (date) => {
     return `${tempDate.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 };
 
-// 2026年全体の週（月曜日の日付基準）を逆順でプルダウンの選択肢として生成する関数
+// 今年と来年の週（月曜日の日付基準）を逆順でプルダウンの選択肢として生成する関数
 const generateWeekOptions = () => {
     const select = document.getElementById('week');
     if (!select) return;
     
     select.innerHTML = '';
     
-    const year = 2026;
-    const start = new Date(year, 0, 1);
-    const dayOfWeek = start.getDay();
-    const firstMonday = new Date(start.getTime() + ((dayOfWeek <= 1 ? 1 - dayOfWeek : 8 - dayOfWeek) * 24 * 60 * 60 * 1000));
+    const today = new Date();
+    const currentWeekStr = getISOWeekString(today);
+    const currentYear = today.getFullYear();
     
     const options = [];
-    let currentMonday = new Date(firstMonday.getTime());
     
-    while (currentMonday.getFullYear() === year) {
-        const weekStr = getISOWeekString(currentMonday);
-        const m = currentMonday.getMonth() + 1;
-        const d = currentMonday.getDate();
+    // 前年・今年・来年の3年分生成
+    for (let year = currentYear - 1; year <= currentYear + 1; year++) {
+        const start = new Date(year, 0, 1);
+        const dayOfWeek = start.getDay();
+        const firstMonday = new Date(start.getTime() + ((dayOfWeek <= 1 ? 1 - dayOfWeek : 8 - dayOfWeek) * 24 * 60 * 60 * 1000));
         
-        const sunday = new Date(currentMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
-        const sm = sunday.getMonth() + 1;
-        const sd = sunday.getDate();
+        let currentMonday = new Date(firstMonday.getTime());
         
-        options.push({
-            value: weekStr,
-            text: `${year}年 ${m}/${d} 〜 ${sm}/${sd} の週`
-        });
-        
-        currentMonday.setDate(currentMonday.getDate() + 7);
+        while (currentMonday.getFullYear() <= year) {
+            const weekStr = getISOWeekString(currentMonday);
+            const m = currentMonday.getMonth() + 1;
+            const d = currentMonday.getDate();
+            const sy = currentMonday.getFullYear();
+            
+            const sunday = new Date(currentMonday.getTime() + 6 * 24 * 60 * 60 * 1000);
+            const sm = sunday.getMonth() + 1;
+            const sd = sunday.getDate();
+            
+            // 重複排除
+            if (!options.find(o => o.value === weekStr)) {
+                options.push({
+                    value: weekStr,
+                    text: `${sy}年 ${m}/${d} 〜 ${sm}/${sd} の週`
+                });
+            }
+            
+            currentMonday.setDate(currentMonday.getDate() + 7);
+        }
     }
     
-    options.reverse().forEach(opt => {
+    // 新しい週が先頭になるよう逆順にして、現在週をselected
+    options.sort((a, b) => b.value.localeCompare(a.value));
+    options.forEach(opt => {
         const el = document.createElement('option');
         el.value = opt.value;
         el.textContent = opt.text;
+        if (opt.value === currentWeekStr) {
+            el.selected = true;
+        }
         select.appendChild(el);
     });
 };
