@@ -205,13 +205,22 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         display: block !important;
     }
     #print-active-area .gantt-grid {
-        grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(366, 24px) !important;
+        /* カレンダー各日の列幅を3pxの固定幅にして、A3横の1ページ内に1年間（365日）が美しく収まるようにする */
+        grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(366, 3px) !important;
         width: max-content !important;
         display: grid !important;
     }
     #print-active-area .gantt-grid > div {
         position: static !important;
         z-index: auto !important;
+    }
+    /* バーの中のテキストが極小の列幅を押し広げて比率を崩すのを完全に防ぐ */
+    #print-active-area .gantt-bar {
+        min-width: 0 !important;
+        color: transparent !important;
+        text-shadow: none !important;
+        overflow: hidden !important;
+        white-space: nowrap !important;
     }
     @page { size: A4 portrait; margin: 8mm 10mm; }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }

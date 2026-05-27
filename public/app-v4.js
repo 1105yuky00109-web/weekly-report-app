@@ -2412,7 +2412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gridEl.style.width = 'max-content';
                 const origCols = gridEl.style.gridTemplateColumns;
                 if (origCols) {
-                    gridEl.style.gridTemplateColumns = origCols.replace(/1fr/g, '24px');
+                    gridEl.style.gridTemplateColumns = origCols.replace(/1fr/g, '3px');
                 }
             }
             
