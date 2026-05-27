@@ -180,6 +180,8 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif;
     }
     @page { size: A4 portrait; margin: 8mm 10mm; }
+    @page A3-landscape { size: A3 landscape; margin: 10mm; }
+    .print-landscape-mode { page: A3-landscape; }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }

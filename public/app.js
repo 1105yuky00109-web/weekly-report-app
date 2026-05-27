@@ -2358,30 +2358,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
-        // 既存のprint-active-areaや動的スタイルを削除
+        // 既存のprint-active-areaを削除
         const existingArea = document.getElementById('print-active-area');
         if (existingArea) existingArea.remove();
-        const existingStyle = document.getElementById('print-dynamic-style');
-        if (existingStyle) existingStyle.remove();
 
         // 印刷コンテンツを取得
         const sourceEl = document.getElementById(contentSourceId);
         if (!sourceEl) { window.print(); return; }
 
-        // 横向き印刷用の@pageスタイルを動的に追加
-        const style = document.createElement('style');
-        style.id = 'print-dynamic-style';
-        if (isLandscape) {
-            style.innerHTML = '@media print { @page { size: A3 landscape !important; margin: 10mm !important; } }';
-        } else {
-            style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 10mm !important; } }';
-        }
-        document.head.appendChild(style);
-
         // #print-active-areaを作成してbodyに追加
         const printArea = document.createElement('div');
         printArea.id = 'print-active-area';
-        printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
+        
+        // 横向き印刷用のクラスを付与
+        if (isLandscape) {
+            printArea.className = 'print-landscape-mode';
+            printArea.style.cssText = 'background:white; padding:15px; width: max-content;';
+        } else {
+            printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
+        }
 
         // タイトルを追加
         if (titleText) {
@@ -2412,15 +2407,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // レイアウトの計算を強制的に即時実行させる (Force Reflow)
         const forceReflow = printArea.offsetHeight;
 
-        // スタイル適用とレンダリングのための十分なウェイトを挟んでから印刷を実行
+        // レンダリングのための少しのウェイトを挟んでから印刷を実行
         setTimeout(() => {
             window.print();
             setTimeout(() => {
                 printArea.remove();
-                const dynStyle = document.getElementById('print-dynamic-style');
-                if (dynStyle) dynStyle.remove();
             }, 1000);
-        }, 350);
+        }, 250);
     };
 
     // A4縦印刷（個人別一覧・レポート）
