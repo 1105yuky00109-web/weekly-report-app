@@ -2398,6 +2398,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // 横向きの場合、テーブルがはみ出ないように幅やフォントサイズを調整し、stickyを解除
         if (isLandscape) {
             clone.style.width = 'max-content'; // 横長グリッドが潰れないようにmax-contentにする
+            
+            // 子要素の gantt-grid のインラインスタイル width: 100% を max-content に上書きして、
+            // 365日分のGridセルが極限まで押し潰されてブラウザが無限計算ループ（フリーズ）するのを防ぐ
+            const gridEl = clone.querySelector('.gantt-grid');
+            if (gridEl) {
+                gridEl.style.width = 'max-content';
+            }
+            
             clone.style.fontSize = '8pt';
             // sticky固定が印刷時に崩れる原因となるため、全セルのpositionをstaticに戻す
             clone.querySelectorAll('th, td, .gantt-cell').forEach(el => {
