@@ -2358,6 +2358,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
+        alert("印刷処理の最新バージョン(v7)が読み込まれました。");
         // 既存のprint-active-areaや動的スタイルを削除
         const existingArea = document.getElementById('print-active-area');
         if (existingArea) existingArea.remove();
