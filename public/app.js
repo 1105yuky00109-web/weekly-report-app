@@ -2401,9 +2401,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 子要素の gantt-grid のインラインスタイル width: 100% を max-content に上書きして、
             // 365日分のGridセルが極限まで押し潰されてブラウザが無限計算ループ（フリーズ）するのを防ぐ
+            // さらに、grid-template-columns の 1fr を固定幅（24px）に書き換えて、無限ループ計算を完全に回避する
             const gridEl = clone.querySelector('.gantt-grid');
             if (gridEl) {
                 gridEl.style.width = 'max-content';
+                const origCols = gridEl.style.gridTemplateColumns;
+                if (origCols) {
+                    gridEl.style.gridTemplateColumns = origCols.replace(/1fr/g, '24px');
+                }
             }
             
             clone.style.fontSize = '8pt';
@@ -2421,6 +2426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const forceReflow = printArea.offsetHeight;
 
         // スタイル適用とレンダリングのための十分なウェイトを挟んでから印刷を実行
+        // 巨大なDOMの描画を確実に完了させて白紙プレビューを防ぐため、遅延を 800ms に延長
         setTimeout(() => {
             window.print();
             
@@ -2431,7 +2437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dynStyle = document.getElementById('print-dynamic-style');
                 if (dynStyle) dynStyle.remove();
             }, 5000);
-        }, 350);
+        }, 800);
     };
 
     // A4縦印刷（個人別一覧・レポート）
