@@ -2409,7 +2409,10 @@ document.addEventListener('DOMContentLoaded', () => {
         printArea.appendChild(clone);
         document.body.appendChild(printArea);
 
-        // スタイル適用とレンダリングのためのウェイトを挟んでから印刷を実行
+        // レイアウトの計算を強制的に即時実行させる (Force Reflow)
+        const forceReflow = printArea.offsetHeight;
+
+        // スタイル適用とレンダリングのための十分なウェイトを挟んでから印刷を実行
         setTimeout(() => {
             window.print();
             setTimeout(() => {
@@ -2417,7 +2420,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dynStyle = document.getElementById('print-dynamic-style');
                 if (dynStyle) dynStyle.remove();
             }, 1000);
-        }, 150);
+        }, 350);
     };
 
     // A4縦印刷（個人別一覧・レポート）
