@@ -2409,18 +2409,19 @@ document.addEventListener('DOMContentLoaded', () => {
         printArea.appendChild(clone);
         document.body.appendChild(printArea);
 
-        // レイアウトの計算を強制的に即時実行させる (Force Reflow)
-        const forceReflow = printArea.offsetHeight;
+        // 印刷ダイアログが閉じたら自動的に印刷用一時エリアを削除するイベントリスナを登録
+        const cleanupPrintArea = () => {
+            printArea.remove();
+            const dynStyle = document.getElementById('print-dynamic-style');
+            if (dynStyle) dynStyle.remove();
+            window.removeEventListener('afterprint', cleanupPrintArea);
+        };
+        window.addEventListener('afterprint', cleanupPrintArea);
 
-        // スタイル適用とレンダリングのための十分なウェイトを挟んでから印刷を実行
+        // レイアウト解決のためのわずかなウェイト（100ms）を挟んでから印刷を実行
         setTimeout(() => {
             window.print();
-            setTimeout(() => {
-                printArea.remove();
-                const dynStyle = document.getElementById('print-dynamic-style');
-                if (dynStyle) dynStyle.remove();
-            }, 1000);
-        }, 350);
+        }, 100);
     };
 
     // A4縦印刷（個人別一覧・レポート）
