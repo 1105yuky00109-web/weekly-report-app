@@ -163,14 +163,17 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 
 /* --- 印刷用スタイル --- */
 @media print {
-    /* 印刷用エリア以外のすべてのルート要素を非表示にして、余白やレイアウト崩れを防ぐ */
-    body > *:not(#print-area) {
+    /* 印刷時に不要なコンテナを個別に非表示にする（body > *:notセレクタによる白紙バグの回避） */
+    #app-container,
+    #login-container,
+    #loading-container,
+    .no-print {
         display: none !important;
     }
     
-    #print-area {
+    #print-active-area {
         display: block !important;
-        position: relative !important;
+        position: static !important;
         width: 100%;
         background: white;
         color: black;
