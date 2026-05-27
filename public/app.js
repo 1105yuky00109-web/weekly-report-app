@@ -2356,11 +2356,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryFilterMonth = document.getElementById('summary-filter-month');
     if(summaryFilterMonth) summaryFilterMonth.addEventListener('change', renderSummaryTable);
 
-    // 印刷ボタン処理（#print-areaを一時的に作成してから印刷）
+    // 印刷ボタン処理（#print-active-areaを一時的に作成または再利用して印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
-        // 既存のprint-active-areaや動的スタイルを削除
-        const existingArea = document.getElementById('print-active-area');
-        if (existingArea) existingArea.remove();
+        // 既存の動的スタイルを削除
         const existingStyle = document.getElementById('print-dynamic-style');
         if (existingStyle) existingStyle.remove();
 
@@ -2378,9 +2376,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.head.appendChild(style);
 
-        // #print-active-areaを作成してbodyに追加
-        const printArea = document.createElement('div');
-        printArea.id = 'print-active-area';
+        // #print-active-areaを取得、存在しなければ作成してbodyに追加
+        // （印刷プレビュー生成中のDOM削除バグによるフリーズや白紙を防ぐため、JSでの削除は行わず常駐させ、通常時はCSSで非表示にする）
+        let printArea = document.getElementById('print-active-area');
+        if (!printArea) {
+            printArea = document.createElement('div');
+            printArea.id = 'print-active-area';
+            document.body.appendChild(printArea);
+        }
+        // 中身を初期化
+        printArea.innerHTML = '';
         printArea.style.cssText = 'background:white; padding:15px; width: 100%;';
 
         // タイトルを追加
@@ -2420,23 +2425,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         printArea.appendChild(clone);
-        document.body.appendChild(printArea);
 
         // レイアウトの計算を強制的に即時実行させる (Force Reflow)
         const forceReflow = printArea.offsetHeight;
 
         // スタイル適用とレンダリングのための十分なウェイトを挟んでから印刷を実行
-        // 巨大なDOMの描画を確実に完了させて白紙プレビューを防ぐため、遅延を 800ms に延長
+        // 巨大なDOMの描画を確実に完了させて白紙プレビューを防ぐため、遅延を 800ms に設定
         setTimeout(() => {
             window.print();
-            
-            // 印刷ダイアログが開いた後、十分に余裕を持って（5秒後）から印刷用一時エリアを削除する
-            // これにより、プレビュー生成中に要素が消去されて白紙になるのを確実に防ぎます
-            setTimeout(() => {
-                printArea.remove();
-                const dynStyle = document.getElementById('print-dynamic-style');
-                if (dynStyle) dynStyle.remove();
-            }, 5000);
+            // 印刷プレビュー表示後のsetTimeout削除処理は廃止（CSSで通常時は非表示にされるため安全）
         }, 800);
     };
 
