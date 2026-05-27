@@ -1919,7 +1919,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${s.client || '-'}
                 </div>
                 <!-- 3. 住所 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 180px; z-index: 15; background: var(--card-bg);" title="住所: ${s.address || '-'}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; border-bottom: 1px solid var(--border); position: sticky; left: 180px; z-index: 15; background: var(--card-bg);" title="住所: ${s.address || '-'}">
                     ${s.address || '-'}
                 </div>
                 <!-- 4. 仕入 -->
