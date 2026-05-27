@@ -168,6 +168,17 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 
 /* --- 印刷用スタイル --- */
 @media print {
+    /* 印刷時は強制的にライトテーマ用の配色変数にリセットし、ダークテーマでの印刷バグを防止する */
+    :root, body, body.dark-theme {
+        --bg-color: #ffffff !important;
+        --card-bg: #ffffff !important;
+        --text-main: #1e293b !important;
+        --text-muted: #64748b !important;
+        --border: #cbd5e1 !important;
+        background-color: #ffffff !important;
+        color: #1e293b !important;
+    }
+
     /* 印刷時に不要なコンテナを個別に非表示にする（body > *:notセレクタによる白紙バグの回避） */
     #app-container,
     #login-container,
@@ -179,10 +190,28 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     #print-active-area {
         display: block !important;
         position: static !important;
-        width: 100%;
-        background: white;
-        color: black;
+        width: max-content !important;
+        background: white !important;
+        color: black !important;
         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif;
+    }
+    
+    /* ガントチャート印刷時のレイアウト崩れ（詳細列の潰れ）防止強制スタイル */
+    #print-active-area #gantt-container,
+    #print-active-area .gantt-container {
+        width: max-content !important;
+        min-width: max-content !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    #print-active-area .gantt-grid {
+        grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(366, 24px) !important;
+        width: max-content !important;
+        display: grid !important;
+    }
+    #print-active-area .gantt-grid > div {
+        position: static !important;
+        z-index: auto !important;
     }
     @page { size: A4 portrait; margin: 8mm 10mm; }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }

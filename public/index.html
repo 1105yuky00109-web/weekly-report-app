@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工事・日報管理システム</title>
-    <link rel="stylesheet" href="style-v4.css?v=20260527-12">
+    <link rel="stylesheet" href="style-v4.css?v=20260527-14">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- ExcelJS for Styled Excel Export -->
@@ -252,7 +252,7 @@
             </div>
             <div class="actions">
                 <button id="btn-export-gantt" class="btn btn-secondary btn-small">📊 Excel出力</button>
-                <button id="btn-print-gantt" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
+                <button id="btn-print-gantt" class="btn btn-secondary btn-small no-print">🖨️ 印刷</button>
             </div>
         </div>
         <!-- ガントチャートタイトル（印刷用） -->
@@ -349,7 +349,7 @@
                 <div id="report-action-buttons" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
                     <button type="button" id="btn-save-draft" class="btn btn-secondary btn-large" style="background-color:#ea580c;">📝 予定として一時保存</button>
                     <button type="submit" class="btn btn-primary btn-large">✅ 実績を確定登録</button>
-                    <button type="button" id="btn-print-weekly" class="btn btn-secondary btn-large no-print" onclick="window.print()">🖨️ 印刷</button>
+                    <button type="button" id="btn-print-weekly" class="btn btn-secondary btn-large no-print">🖨️ 印刷</button>
                 </div>
                 <div id="report-submit-message" class="message hidden"></div>
             </form>
@@ -376,7 +376,7 @@
             <div class="actions">
                 <button id="btn-export" class="btn btn-secondary btn-small">📊 Excel出力</button>
                 <button id="btn-export-weekly" class="btn btn-secondary btn-small">📊 週報Excel出力</button>
-                <button id="btn-print" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
+                <button id="btn-print" class="btn btn-secondary btn-small no-print">🖨️ 印刷</button>
             </div>
         </div>
 
@@ -423,7 +423,7 @@
             </div>
             <div class="actions">
                 <button id="btn-export-summary" class="btn btn-secondary btn-small">📊 Excel出力</button>
-                <button id="btn-print-summary" class="btn btn-secondary btn-small no-print" onclick="window.print()">🖨️ 印刷</button>
+                <button id="btn-print-summary" class="btn btn-secondary btn-small no-print">🖨️ 印刷</button>
             </div>
         </div>
         <div id="print-gantt-title" style="display:none;"></div>
@@ -653,6 +653,6 @@
 </div>
 
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app.js?v=20260527-12"></script>
+<script type="module" src="app.js?v=20260527-14"></script>
 </body>
 </html>
