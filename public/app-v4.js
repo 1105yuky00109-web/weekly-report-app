@@ -1742,6 +1742,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.style.color = isActive ? '#ffffff' : '#16a34a';
                         btn.style.borderColor = '#16a34a';
                     } else if (mode === 4) { // 有休
+                        btn.style.background = isActive ? '#4b5563' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#4b5563';
+                        btn.style.borderColor = '#4b5563';
+                    } else if (mode === 5) { // 現場管理以外の業務
                         btn.style.background = isActive ? '#2563eb' : '#ffffff';
                         btn.style.color = isActive ? '#ffffff' : '#2563eb';
                         btn.style.borderColor = '#2563eb';
