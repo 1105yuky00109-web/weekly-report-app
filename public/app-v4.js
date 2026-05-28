@@ -1014,6 +1014,155 @@ const updateDayLabels = () => {
 
 // --- 初期化ロジック群 ---
 document.addEventListener('DOMContentLoaded', () => {
+    // 未保存変更の追跡変数と検知用ロジック
+    let lastSavedDataString = '';
+    let lastSelectedWeek = '';
+
+    const getUnsavedData = () => {
+        const dailyLogs = {};
+        daysName.forEach(day => {
+            const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+            if (taskList && taskList.getCardData) {
+                dailyLogs[day] = taskList.getCardData();
+            } else {
+                dailyLogs[day] = { morning: {project:'',detail:'',report:''}, afternoon: {project:'',detail:'',report:''}, night: {project:'',detail:'',report:''}, timeline: '', leaveType: '' };
+            }
+        });
+
+        const dailyReports = {};
+        daysName.forEach(day => {
+            const dayCard = document.querySelector(`.task-list[data-day="${day}"]`)?.closest('.day-card');
+            if (dayCard) {
+                const mrVal = dayCard.querySelector('.morning-report')?.value.trim() || '';
+                const arVal = dayCard.querySelector('.afternoon-report')?.value.trim() || '';
+                const nrVal = dayCard.querySelector('.night-report')?.value.trim() || '';
+                const reports = [];
+                if (mrVal) reports.push(`【午前】${mrVal}`);
+                if (arVal) reports.push(`【午後】${arVal}`);
+                if (nrVal) reports.push(`【夜間】${nrVal}`);
+                dailyReports[day] = reports.join('\n');
+            } else {
+                dailyReports[day] = '';
+            }
+        });
+        return { dailyLogs, dailyReports };
+    };
+
+    const checkUnsavedChanges = () => {
+        // 現在のフォームロック状態（上長承認済みの場合は編集できないため、変更チェックしない）
+        const badge = document.getElementById('report-status-badge');
+        const isApproved = badge && badge.classList.contains('status-approved');
+        if (isApproved) return false;
+
+        const currentDataStr = JSON.stringify(getUnsavedData());
+        return lastSavedDataString && currentDataStr !== lastSavedDataString;
+    };
+
+    // 保存忘れ防止のプレミアム確認モーダルの表示
+    const showUnsavedChangesModal = ({ onSaveAndLeave, onLeaveWithoutSaving, onCancel }) => {
+        const existing = document.getElementById('unsaved-changes-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'unsaved-changes-modal';
+        modal.style = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            font-family: inherit;
+        `;
+
+        modal.innerHTML = `
+            <div style="
+                background: var(--bg-card, #ffffff);
+                color: var(--text, #000000);
+                padding: 24px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                max-width: 440px;
+                width: 90%;
+                border: 1px solid var(--border, #e2e8f0);
+                animation: unsavedModalScale 0.2s ease-out;
+            ">
+                <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    ⚠️ 編集中のデータがあります
+                </h3>
+                <p style="margin: 16px 0 24px; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #475569);">
+                    実績（予定）の変更内容が保存されていません。移動する前に現在の内容を保存しますか？
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button id="unsaved-save-btn" style="
+                        padding: 10px 16px;
+                        background: var(--primary, #2563eb);
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 0.9rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: background 0.15s;
+                    ">はい、保存して移動する</button>
+                    
+                    <button id="unsaved-discard-btn" style="
+                        padding: 10px 16px;
+                        background: #f1f5f9;
+                        color: #475569;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 6px;
+                        font-size: 0.9rem;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: background 0.15s;
+                    ">保存せずに移動する</button>
+                    
+                    <button id="unsaved-cancel-btn" style="
+                        padding: 10px 16px;
+                        background: transparent;
+                        color: #64748b;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 0.9rem;
+                        cursor: pointer;
+                    ">キャンセル（編集を続ける）</button>
+                </div>
+            </div>
+            <style>
+                @keyframes unsavedModalScale {
+                    from { transform: scale(0.95); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+                #unsaved-save-btn:hover { background: #1d4ed8 !important; }
+                #unsaved-discard-btn:hover { background: #e2e8f0 !important; }
+                #unsaved-cancel-btn:hover { text-decoration: underline; }
+            </style>
+        `;
+
+        document.body.appendChild(modal);
+
+        const cleanup = () => modal.remove();
+
+        document.getElementById('unsaved-save-btn').onclick = () => {
+            cleanup();
+            onSaveAndLeave();
+        };
+        document.getElementById('unsaved-discard-btn').onclick = () => {
+            cleanup();
+            onLeaveWithoutSaving();
+        };
+        document.getElementById('unsaved-cancel-btn').onclick = () => {
+            cleanup();
+            onCancel();
+        };
+    };
+
     const weekInput = document.getElementById('week');
     const weekDisplayHint = document.getElementById('week-display-hint');
     if (weekInput) {
@@ -1023,10 +1172,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         weekDisplayHint.textContent = weekInput.value ? formatWeekRange(weekInput.value) + ' の報告' : '';
         
-        weekInput.addEventListener('change', () => {
-            weekDisplayHint.textContent = weekInput.value ? formatWeekRange(weekInput.value) + ' の報告' : '';
-            updateDayLabels();
-            loadReportForSelectedWeek();
+        weekInput.addEventListener('change', async () => {
+            const nextWeek = weekInput.value;
+            if (nextWeek === lastSelectedWeek) return;
+
+            if (checkUnsavedChanges()) {
+                // 一旦セレクトボックスの表示を元の値に戻す
+                weekInput.value = lastSelectedWeek;
+                
+                showUnsavedChangesModal({
+                    onSaveAndLeave: async () => {
+                        // 現在のステータスを判定して元の週で保存
+                        const badge = document.getElementById('report-status-badge');
+                        let status = 'plan';
+                        if (badge) {
+                            if (badge.classList.contains('status-approved')) status = 'approved';
+                            else if (badge.classList.contains('status-confirmed')) status = 'confirmed';
+                        }
+                        
+                        await saveReport(status);
+
+                        // 保存完了後に移動先へ遷移
+                        lastSelectedWeek = nextWeek;
+                        weekInput.value = nextWeek;
+                        weekDisplayHint.textContent = nextWeek ? formatWeekRange(nextWeek) + ' の報告' : '';
+                        updateDayLabels();
+                        loadReportForSelectedWeek();
+                    },
+                    onLeaveWithoutSaving: () => {
+                        // 保存せずに遷移
+                        lastSelectedWeek = nextWeek;
+                        weekInput.value = nextWeek;
+                        weekDisplayHint.textContent = nextWeek ? formatWeekRange(nextWeek) + ' の報告' : '';
+                        updateDayLabels();
+                        loadReportForSelectedWeek();
+                    },
+                    onCancel: () => {
+                        // キャンセル（週の値はすでに戻されているので何もしない）
+                    }
+                });
+            } else {
+                lastSelectedWeek = nextWeek;
+                weekDisplayHint.textContent = nextWeek ? formatWeekRange(nextWeek) + ' の報告' : '';
+                updateDayLabels();
+                loadReportForSelectedWeek();
+            }
         });
         
         setTimeout(() => {
@@ -1084,20 +1274,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const views = document.querySelectorAll('.view');
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            views.forEach(v => v.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(btn.dataset.target).classList.add('active');
-            
-            if (btn.dataset.target === 'gantt-view' || btn.dataset.target === 'summary-view') {
-                document.body.classList.add('print-a3-landscape');
-                if (btn.dataset.target === 'gantt-view') loadSchedules();
-                if (btn.dataset.target === 'summary-view') loadReports(true);
+            const currentActiveTab = document.querySelector('.tab-btn.active');
+            const isLeavingInputView = currentActiveTab && currentActiveTab.dataset.target === 'schedule-input-view';
+            const isClickingCurrent = currentActiveTab === btn;
+
+            if (isClickingCurrent) return;
+
+            const executeTabSwitch = () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                views.forEach(v => v.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.target).classList.add('active');
+                
+                if (btn.dataset.target === 'gantt-view' || btn.dataset.target === 'summary-view') {
+                    document.body.classList.add('print-a3-landscape');
+                    if (btn.dataset.target === 'gantt-view') loadSchedules();
+                    if (btn.dataset.target === 'summary-view') loadReports(true);
+                } else {
+                    document.body.classList.remove('print-a3-landscape');
+                    if (btn.dataset.target === 'list-view') loadReports(false);
+                }
+            };
+
+            if (isLeavingInputView && checkUnsavedChanges()) {
+                showUnsavedChangesModal({
+                    onSaveAndLeave: async () => {
+                        const badge = document.getElementById('report-status-badge');
+                        let status = 'plan';
+                        if (badge) {
+                            if (badge.classList.contains('status-approved')) status = 'approved';
+                            else if (badge.classList.contains('status-confirmed')) status = 'confirmed';
+                        }
+                        await saveReport(status);
+                        executeTabSwitch();
+                    },
+                    onLeaveWithoutSaving: () => {
+                        executeTabSwitch();
+                    },
+                    onCancel: () => {
+                        // キャンセル
+                    }
+                });
             } else {
-                document.body.classList.remove('print-a3-landscape');
-                if (btn.dataset.target === 'list-view') loadReports(false);
+                executeTabSwitch();
             }
         });
+    });
+
+    // ブラウザのタブ閉じ・リロード時の警告
+    window.addEventListener('beforeunload', (e) => {
+        if (checkUnsavedChanges()) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
     });
 
     // フォーム制御関数 (一括 disabled化/活性化)
@@ -1353,6 +1582,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
             updateDayReportTextStatus(dayCard);
         });
+
+        // データの読込完了時に保存済みデータのベースラインを記録
+        setTimeout(() => {
+            lastSavedDataString = JSON.stringify(getUnsavedData());
+            if (weekInput) {
+                lastSelectedWeek = weekInput.value;
+            }
+        }, 100);
     };
 
     if (daysContainer) {
