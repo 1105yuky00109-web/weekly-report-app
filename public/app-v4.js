@@ -1172,26 +1172,28 @@ document.addEventListener('DOMContentLoaded', () => {
         setFormLocked(false);
         
         if (existingReport) {
+            console.log('[loadReport] Found report:', existingReport.week, 'dailyLogs keys:', existingReport.dailyLogs ? Object.keys(existingReport.dailyLogs) : 'none');
             daysName.forEach(day => {
                 const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
-                if (taskList) {
-                    const dayLog = existingReport.dailyLogs ? existingReport.dailyLogs[day] : null;
-                    if (dayLog && taskList.setCardData) {
-                        // 新形式（オブジェクト: morning/afternoon/night）
-                        if (dayLog && typeof dayLog === 'object' && !Array.isArray(dayLog)) {
-                            taskList.setCardData(dayLog);
-                        }
+                if (!taskList) return;
+                const dayLog = existingReport.dailyLogs ? existingReport.dailyLogs[day] : null;
+                console.log(`[loadReport] ${day}:`, typeof dayLog, Array.isArray(dayLog) ? 'array' : 'object', dayLog);
+                
+                if (dayLog) {
+                    if (Array.isArray(dayLog)) {
                         // 旧形式（配列: [{project, detail, hours, timeline}]）
-                        else if (Array.isArray(dayLog)) {
-                            dayLog.forEach(t => {
-                                if (taskList.addTaskRow) taskList.addTaskRow(t.project, t.detail, t.hours, t.timeline || '');
-                            });
-                        }
+                        dayLog.forEach(t => {
+                            if (taskList.addTaskRow) taskList.addTaskRow(t.project || '', t.detail || '', t.hours || '', t.timeline || '');
+                        });
+                    } else if (typeof dayLog === 'object') {
+                        // 新形式（オブジェクト: {morning, afternoon, night, timeline, leaveType}）
+                        if (taskList.setCardData) taskList.setCardData(dayLog);
                     }
-                    const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
-                    if (reportText) {
-                        reportText.value = (existingReport.dailyReports && existingReport.dailyReports[day]) ? existingReport.dailyReports[day] : '';
-                    }
+                }
+                
+                const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
+                if (reportText) {
+                    reportText.value = (existingReport.dailyReports && existingReport.dailyReports[day]) ? existingReport.dailyReports[day] : '';
                 }
             });
             
@@ -1612,16 +1614,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // コピー実行
             daysName.forEach(day => {
                 const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
-                if (taskList && taskList.clearAll && taskList.addTaskRow) {
-                    taskList.clearAll();
-                    const tasks = sourceReport.dailyLogs[day] || [];
-                    tasks.forEach(t => {
-                        taskList.addTaskRow(t.project, t.detail, t.hours, t.timeline || '');
-                    });
-                    const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
-                    if (reportText) {
-                        reportText.value = (sourceReport.dailyReports && sourceReport.dailyReports[day]) ? sourceReport.dailyReports[day] : '';
+                if (!taskList || !taskList.clearAll) return;
+                taskList.clearAll();
+                const dayLog = sourceReport.dailyLogs[day];
+                if (dayLog) {
+                    if (Array.isArray(dayLog)) {
+                        dayLog.forEach(t => {
+                            if (taskList.addTaskRow) taskList.addTaskRow(t.project || '', t.detail || '', t.hours || '', t.timeline || '');
+                        });
+                    } else if (typeof dayLog === 'object' && taskList.setCardData) {
+                        taskList.setCardData(dayLog);
                     }
+                }
+                const reportText = taskList.closest('.day-card').querySelector('.day-report-text');
+                if (reportText) {
+                    reportText.value = (sourceReport.dailyReports && sourceReport.dailyReports[day]) ? sourceReport.dailyReports[day] : '';
                 }
             });
 
