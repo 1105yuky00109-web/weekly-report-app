@@ -2219,8 +2219,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const finalSuggestions = [
             ...mySorted,
-            ...branchSuggestions,
             ...otherSorted,
+            '支店',
             '有休'
         ];
         
@@ -2836,13 +2836,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const timeStr = timeIntervals.join('<br>') || (task.hours > 0 ? `${parseFloat(task.hours).toFixed(1)}H` : '-');
                     
                     let detailContent = task.detail || '';
-                    if (tIdx === tasks.length - 1 && reportText) {
-                        detailContent += `
-                            <div style="font-size: 8pt; color: #475569; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; font-style: italic;">
-                                📝 日次報告: ${reportText}
-                            </div>
-                        `;
-                    }
                     
                     html += `
                         <tr>
@@ -2900,6 +2893,13 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             `;
             
+            if (reportText) {
+                html += `
+                <div class="print-report-row" style="border-top: 1px solid #000; padding: 5px 8px; font-size: 8.5pt; text-align: left; background: #fff; white-space: pre-wrap;">
+                    <strong>📝 日次報告:</strong> ${reportText}
+                </div>
+                `;
+            }
             html += `</div>`; // .print-day-block
         });
         
