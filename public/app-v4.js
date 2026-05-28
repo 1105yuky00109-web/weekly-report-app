@@ -1451,19 +1451,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.addEventListener('click', () => {
                     const leaveType = btn.dataset.leave;
                     leaveTypeInput.value = leaveType;
-                    const sections = dayCard.querySelectorAll('.time-section');
-                    const timelineSection = dayCard.querySelector('.timeline-section');
+                    // 入力欄だけを対象にする（ラベルやヘッダーはそのまま）
+                    const allInputs = dayCard.querySelectorAll('.section-project, .section-detail, .day-report-text');
+                    const timelinePalette = dayCard.querySelector('.timeline-palette');
                     if (leaveType) {
-                        sections.forEach(s => { s.style.opacity = '0.3'; s.style.pointerEvents = 'none'; });
-                        if (timelineSection) { timelineSection.style.opacity = '0.3'; timelineSection.style.pointerEvents = 'none'; }
+                        allInputs.forEach(el => { el.disabled = true; el.style.opacity = '0.4'; });
+                        cellsGrid.style.opacity = '0.3'; cellsGrid.style.pointerEvents = 'none';
+                        if (timelinePalette) { timelinePalette.style.opacity = '0.3'; timelinePalette.style.pointerEvents = 'none'; }
                         stateArray.fill(0);
                         cellElements.forEach(c => c.dataset.state = 0);
                         calculateTotal();
                         btn.classList.add('active');
                         dayCard.querySelectorAll('.leave-quick-btn').forEach(b => { if (b !== btn) b.classList.remove('active'); });
                     } else {
-                        sections.forEach(s => { s.style.opacity = '1'; s.style.pointerEvents = 'auto'; });
-                        if (timelineSection) { timelineSection.style.opacity = '1'; timelineSection.style.pointerEvents = 'auto'; }
+                        allInputs.forEach(el => { el.disabled = false; el.style.opacity = '1'; });
+                        cellsGrid.style.opacity = '1'; cellsGrid.style.pointerEvents = 'auto';
+                        if (timelinePalette) { timelinePalette.style.opacity = '1'; timelinePalette.style.pointerEvents = 'auto'; }
                         dayCard.querySelectorAll('.leave-quick-btn').forEach(b => b.classList.remove('active'));
                     }
                 });
@@ -2062,7 +2065,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         select.innerHTML = '<option value="">過去の日報からコピーして作成...</option>';
         myReports.forEach((r, idx) => {
-            select.innerHTML += `<option value="${idx}">${r.week} (${formatWeekRange(r.week)})</option>`;
+            select.innerHTML += `<option value="${idx}">${formatWeekRange(r.week)}</option>`;
         });
         select.dataset.reportsJson = JSON.stringify(myReports);
     };
