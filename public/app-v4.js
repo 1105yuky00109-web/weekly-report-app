@@ -461,11 +461,11 @@ const ROLE_MAP = {
 
 // 資格マッピング
 const QUAL_MAP = {
-    '2nd_const_body': '2級建築施工管理技士（躯体）',
-    '2nd_const_finish': '2級建築施工管理技士（仕上）',
-    '1st_const': '1級建築施工管理技士',
-    '1st_civil': '1級土木施工管理技士',
-    'practical': '実務経験'
+    'q2b_躯体': '2級建築施工管理技士（躯体）',
+    'q2b_仕上': '2級建築施工管理技士（仕上）',
+    'q1b': '1級建築施工管理技士',
+    'q1c': '1級土木施工管理技士',
+    'exp': '実務経験'
 };
 
 // プリセットカラー（工事担当者ごとに自動設定される色）
@@ -511,7 +511,22 @@ async function loadMembers() {
         const companyId = currentCompany.companyId;
         const q = query(collection(db, "companies", companyId, "members"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
-        allMembers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        allMembers = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            if (data.qualifications) {
+                data.qualifications = data.qualifications.map(q => {
+                    const aliasMap = {
+                        '2nd_const_body': 'q2b_躯体',
+                        '2nd_const_finish': 'q2b_仕上',
+                        '1st_const': 'q1b',
+                        '1st_civil': 'q1c',
+                        'practical': 'exp'
+                    };
+                    return aliasMap[q] || q;
+                });
+            }
+            return { id: doc.id, ...data };
+        });
         
         // 各種UIの更新
         updateQualificationsSummary();

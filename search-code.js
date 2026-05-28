@@ -10,7 +10,7 @@ if (!fs.existsSync(codePath)) {
 const content = fs.readFileSync(codePath, 'utf8');
 const lines = content.split('\n');
 
-const queries = ['const firebaseConfig', 'firebaseConfig'];
+const queries = ['loadMembers'];
 
 queries.forEach(query => {
     console.log(`=== Matches for "${query}" ===`);
