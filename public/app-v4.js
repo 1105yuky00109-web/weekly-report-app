@@ -3184,11 +3184,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             let daySiteTotal = 0;
-            if (tlStr && tlStr.length === 48) {
-                daySiteTotal = tlStr.split('').filter(s => s === '1').length * 0.5;
-            }
             tasks.forEach(task => {
                 dayTotal += parseFloat(task.hours || 0);
+                const isLeave = ['有給', '有休', '欠勤', '休日'].includes(task.project);
+                if (!isLeave && task.timeline) {
+                    daySiteTotal += task.timeline.split('').filter(s => s === '1').length * 0.5;
+                }
             });
             
             html += `
