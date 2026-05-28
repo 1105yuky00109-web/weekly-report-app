@@ -2791,17 +2791,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         const auth = r.author || '不明';
                         
                         let hrs = 0;
-                        if (summaryDisplayMode === 'site') {
-                            // 現場従事時間（黒：現場管理のみ）
-                            if (t.timeline) {
+                        if (t.timeline) {
+                            if (summaryDisplayMode === 'site') {
+                                // 現場従事時間（黒：現場管理のみ）
                                 hrs = t.timeline.split('').filter(s => s === '1').length * 0.5;
                             } else {
-                                // タイムラインのない過去データ等のフォールバック
-                                hrs = 0;
+                                // 合計時間（作業・移動・現場管理以外の業務）
+                                hrs = t.timeline.split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
                             }
                         } else {
-                            // 合計時間（作業全体）
-                            hrs = parseFloat(t.hours || 0);
+                            // タイムラインが存在しない過去データ等のフォールバック
+                            if (summaryDisplayMode === 'site') {
+                                hrs = 0;
+                            } else {
+                                hrs = parseFloat(t.hours || 0);
+                            }
                         }
                         
                         if (hrs === 0) return;
@@ -2870,27 +2874,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateSummaryModeButtons = () => {
         if (!btnSummaryModeTotal || !btnSummaryModeSite) return;
         if (summaryDisplayMode === 'total') {
-            btnSummaryModeTotal.className = 'btn btn-small active';
-            btnSummaryModeTotal.style.background = '';
-            btnSummaryModeTotal.style.color = '';
-            btnSummaryModeTotal.style.border = '';
+            btnSummaryModeTotal.style.background = '#ffffff';
+            btnSummaryModeTotal.style.color = '#0f172a';
+            btnSummaryModeTotal.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             
-            btnSummaryModeSite.className = 'btn btn-small';
-            btnSummaryModeSite.style.background = '#fff';
-            btnSummaryModeSite.style.color = 'var(--text-muted)';
-            btnSummaryModeSite.style.border = '1px solid var(--border)';
+            btnSummaryModeSite.style.background = 'transparent';
+            btnSummaryModeSite.style.color = '#64748b';
+            btnSummaryModeSite.style.boxShadow = 'none';
         } else {
-            btnSummaryModeSite.className = 'btn btn-small active';
-            btnSummaryModeSite.style.background = '';
-            btnSummaryModeSite.style.color = '';
-            btnSummaryModeSite.style.border = '';
+            btnSummaryModeSite.style.background = '#ffffff';
+            btnSummaryModeSite.style.color = '#0f172a';
+            btnSummaryModeSite.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
             
-            btnSummaryModeTotal.className = 'btn btn-small';
-            btnSummaryModeTotal.style.background = '#fff';
-            btnSummaryModeTotal.style.color = 'var(--text-muted)';
-            btnSummaryModeTotal.style.border = '1px solid var(--border)';
+            btnSummaryModeTotal.style.background = 'transparent';
+            btnSummaryModeTotal.style.color = '#64748b';
+            btnSummaryModeTotal.style.boxShadow = 'none';
         }
     };
+
+    // 初期化時のスタイル適用
+    updateSummaryModeButtons();
 
     if (btnSummaryModeTotal) {
         btnSummaryModeTotal.addEventListener('click', () => {

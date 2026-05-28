@@ -415,23 +415,25 @@
     <!-- ======== 工事別集計 ======== -->
     <main id="summary-view" class="view">
         <div class="list-controls no-print">
-            <div class="filters">
-                <div class="form-group">
+            <div class="filters" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+                <div class="form-group" style="margin-bottom:0;">
                     <label for="summary-filter-month">月で絞込み</label>
                     <select id="summary-filter-month">
                         <option value="">すべての月</option>
                     </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="display:block; margin-bottom:5px;">表示モード</label>
+                    <div class="summary-mode-selector" style="display:flex; gap:5px; background:var(--bg-muted, #e2e8f0); padding:4px; border-radius:8px; width:fit-content;">
+                        <button type="button" id="btn-summary-mode-total" class="summary-mode-btn" style="padding:6px 16px; border:none; border-radius:6px; font-weight:bold; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">工事別集計 (合計)</button>
+                        <button type="button" id="btn-summary-mode-site" class="summary-mode-btn" style="padding:6px 16px; border:none; border-radius:6px; font-weight:bold; font-size:0.85rem; cursor:pointer; transition:all 0.2s;">工事別集計 (現場従事時間)</button>
+                    </div>
                 </div>
             </div>
             <div class="actions">
                 <button id="btn-export-summary" class="btn btn-secondary btn-small">📊 Excel出力</button>
                 <button id="btn-print-summary" class="btn btn-secondary btn-small no-print">🖨️ 印刷</button>
             </div>
-        </div>
-        <!-- 表示モード選択用スイッチ -->
-        <div class="summary-mode-selector no-print" style="display:flex; gap:10px; margin-bottom:15px; margin-top:5px; padding:0 5px;">
-            <button type="button" id="btn-summary-mode-total" class="btn btn-small active" style="font-weight:bold; border-radius:20px; padding:6px 18px; cursor:pointer; transition:all 0.2s;">工事別集計 (合計)</button>
-            <button type="button" id="btn-summary-mode-site" class="btn btn-small" style="font-weight:bold; border-radius:20px; padding:6px 18px; cursor:pointer; transition:all 0.2s; background:#fff; color:var(--text-muted); border:1px solid var(--border);">工事別集計 (現場従事時間)</button>
         </div>
         <div id="print-gantt-title" style="display:none;"></div>
         <div style="overflow-x:hidden;">
@@ -628,6 +630,6 @@
 </div>
 
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app-v4.js?v=20260528-08"></script>
+<script type="module" src="app-v4.js?v=20260528-09"></script>
 </body>
 </html>
