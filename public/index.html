@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工事・日報管理システム</title>
-    <link rel="stylesheet" href="style-v4.css?v=20260527-16">
+    <link rel="stylesheet" href="style-v4.css?v=20260527-44">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <!-- ExcelJS for Styled Excel Export -->
@@ -93,7 +93,7 @@
             <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
             <button class="tab-btn tab-weekly" data-target="list-view">個人別一覧・レポート</button>
             <button class="tab-btn tab-weekly" data-target="summary-view">工事別集計</button>
-            <button id="tab-employee-manage" class="tab-btn" data-target="employee-manage-view" style="display:none;background:#7c3aed;color:white;">👥 社員管理</button>
+            <button id="tab-employee-manage" class="tab-btn" data-target="employee-manage-view" style="display:none;background:#7c3aed;color:white;margin-left:auto;">👥 社員管理</button>
         </nav>
     </header>
 
@@ -312,14 +312,17 @@
     <!-- ======== 週の予定と実績 ======== -->
     <main id="input-view" class="view no-print">
         <div class="form-card">
-            <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;flex-wrap:wrap;">
-                <h2 style="margin:0;">週の予定と実績</h2>
-                <div class="form-group" style="margin:0;">
-                    <label for="week" style="font-size:0.85rem;">対象週</label>
-                    <select id="week" style="padding:8px;font-size:0.9rem;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></select>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:15px;width:100%;">
+                <div style="display:flex;align-items:center;gap:15px;flex-wrap:wrap;">
+                    <h2 style="margin:0;">週の予定と実績</h2>
+                    <div class="form-group" style="margin:0;">
+                        <label for="week" style="font-size:0.85rem;">対象週</label>
+                        <select id="week" style="padding:8px;font-size:0.9rem;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></select>
+                    </div>
+                    <span id="week-display-hint" style="font-size:0.9rem;color:var(--text-muted);"></span>
+                    <span id="week-total-hours" style="font-size:0.9rem;font-weight:bold;color:var(--primary);"></span>
                 </div>
-                <span id="week-display-hint" style="font-size:0.9rem;color:var(--text-muted);"></span>
-                <span id="week-total-hours" style="font-size:0.9rem;font-weight:bold;color:var(--primary);"></span>
+                <button type="button" id="btn-print-weekly-top" class="btn btn-secondary no-print" style="padding:8px 16px;font-size:0.9rem;font-weight:bold;">🖨️ 印刷</button>
             </div>
 
             <!-- ステータスバッジ -->
@@ -331,11 +334,8 @@
                     <input type="text" id="author" readonly>
                 </div>
 
-                <!-- 曜日別入力エリア（JSで動的生成） -->
-                <div id="days-container"></div>
-
-                <!-- 過去の週報をコピー -->
-                <div style="margin-top:15px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+                <!-- 過去の週報をコピー (一番上に移動) -->
+                <div style="margin-bottom:15px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
                     <label style="font-size:0.85rem;font-weight:bold;margin-bottom:8px;display:block;">📋 過去の週報からコピー</label>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                         <select id="copy-past-report-select" style="padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:0.9rem;">
@@ -344,6 +344,9 @@
                         <button type="button" id="btn-copy-past-report" class="btn btn-secondary btn-small">この週からコピー</button>
                     </div>
                 </div>
+
+                <!-- 曜日別入力エリア（JSで動的生成） -->
+                <div id="days-container"></div>
 
                 <!-- アクションボタン（JSで動的に更新） -->
                 <div id="report-action-buttons" style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
@@ -427,7 +430,7 @@
             </div>
         </div>
         <div id="print-gantt-title" style="display:none;"></div>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:hidden;">
             <table id="summary-table" style="width:100%;border-collapse:collapse;">
                 <thead id="summary-thead"></thead>
                 <tbody id="summary-tbody"></tbody>
@@ -594,39 +597,7 @@
 
 <!-- ======== タスク行テンプレート（週の予定と実績で使用） ======== -->
 <template id="task-row-template">
-    <div class="task-row timeline-task-row">
-        <!-- 上段: 工事名・詳細・時間・削除ボタン -->
-        <div class="task-row-top" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
-            <input type="text" class="task-project" placeholder="工事名・作業名（有給/欠勤/休日）" list="project-list"
-                style="flex:2;min-width:140px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:0.9rem;">
-            <input type="text" class="task-detail" placeholder="詳細・備考"
-                style="flex:3;min-width:140px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);font-size:0.9rem;">
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-                <input type="number" class="task-hours" placeholder="0.0" step="0.5" min="0" max="24"
-                    style="width:65px;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);text-align:center;font-size:0.9rem;" readonly>
-                <span style="font-size:0.8rem;color:var(--text-muted);">H</span>
-                <span class="timeline-hours-total" style="font-size:0.85rem;font-weight:bold;color:var(--primary);min-width:38px;">0.0H</span>
-            </div>
-            <button type="button" class="remove-task-btn"
-                style="background:#ef4444;color:white;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:1rem;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;">×</button>
-        </div>
-        <!-- 下段: タイムライン入力バー -->
-        <div class="task-row-bottom">
-            <div class="timeline-palette" style="display:flex;gap:5px;margin-bottom:4px;">
-                <button type="button" class="palette-btn active" data-mode="1"
-                    style="padding:3px 10px;font-size:0.78rem;border:1px solid #3b82f6;border-radius:4px;background:#3b82f6;color:white;cursor:pointer;">🔵 作業</button>
-                <button type="button" class="palette-btn" data-mode="2"
-                    style="padding:3px 10px;font-size:0.78rem;border:1px solid #f59e0b;border-radius:4px;background:white;color:#f59e0b;cursor:pointer;">🟡 休憩</button>
-                <button type="button" class="palette-btn" data-mode="0"
-                    style="padding:3px 10px;font-size:0.78rem;border:1px solid #9ca3af;border-radius:4px;background:white;color:#9ca3af;cursor:pointer;">⬜ 消去</button>
-            </div>
-            <div class="timeline-container-scroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-                <div class="timeline-hours-header" style="display:flex;min-width:576px;margin-bottom:1px;"></div>
-                <div class="timeline-cells-grid" style="display:flex;height:28px;min-width:576px;cursor:crosshair;border:1px solid #e2e8f0;border-radius:4px;overflow:hidden;"></div>
-            </div>
-        </div>
-        <input type="hidden" class="task-timeline-data" value="">
-    </div>
+    <!-- このテンプレートは使用しません。JSで直接DOMを生成します -->
 </template>
 
 
@@ -653,6 +624,6 @@
 </div>
 
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app.js?v=20260527-16"></script>
+<script type="module" src="app-v4.js?v=20260528-01"></script>
 </body>
 </html>

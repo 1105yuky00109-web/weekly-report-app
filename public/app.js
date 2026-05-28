@@ -2464,234 +2464,251 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 週間行動予定表（A4縦）の印刷処理
     const printWeeklyReport = () => {
-        const weekInput = document.getElementById('week');
-        const authorInput = document.getElementById('author');
-        if (!weekInput || !authorInput) return;
-        
-        const weekVal = weekInput.value;
-        const weekText = weekInput.options[weekInput.selectedIndex]?.text || '';
-        const authorVal = authorInput.value;
-        
-        // 承認状態の取得（画面のステータスバッジから判定）
-        const badge = document.getElementById('report-status-badge');
-        const isApproved = badge && badge.classList.contains('status-approved');
-        
-        // 承認日付の取得
-        const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
-        let approvedDateStr = '';
-        if (isApproved && existingReport && existingReport.approvedAt) {
-            const appDate = new Date(existingReport.approvedAt);
-            approvedDateStr = `${appDate.getMonth() + 1}/${appDate.getDate()}`;
-        } else if (isApproved) {
-            const now = new Date();
-            approvedDateStr = `${now.getMonth() + 1}/${now.getDate()}`;
-        }
-        
-        // 画面の入力内容を収集
-        const daysData = {};
-        daysName.forEach(day => {
-            const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
-            const rows = dayCard.querySelectorAll('.task-row');
-            const tasks = [];
-            rows.forEach(row => {
-                const project = row.querySelector('.task-project').value.trim();
-                const detail = row.querySelector('.task-detail').value.trim();
-                const hours = parseFloat(row.querySelector('.task-hours').value || 0);
-                const timeline = row.querySelector('.task-timeline-data').value;
-                if (project || detail || hours || timeline) {
-                    tasks.push({ project, detail, hours, timeline });
-                }
-            });
-            const reportText = dayCard.querySelector('.day-report-text').value.trim();
-            daysData[day] = { tasks, reportText };
-        });
-        
-        const dates = getDaysOfWeek(weekVal);
-        const formatPrintDate = (dateObj, dayName) => {
-            if (!dateObj) return `${dayName}曜日`;
-            return `${dateObj.getMonth() + 1}月${dateObj.getDate()}日<br>(${dayName})`;
-        };
-        
-        let html = `<div class="weekly-print-wrapper">`;
-        
-        // ヘッダー（A4印刷フォーマット）
-        html += `
-        <div class="weekly-print-header">
-            <div style="width: 200px; display: flex; flex-direction: column; gap: 4px;">
-                <span style="font-size: 8.5pt; font-weight: bold; border: 1px solid #000; padding: 2px 6px; width: fit-content;">WF申請</span>
-            </div>
-            <div class="weekly-print-title">週間行動予定表（工事管理課）</div>
-            <div>
-                <table class="approval-table">
-                    <thead>
-                        <tr>
-                            <th>部長</th>
-                            <th>上長</th>
-                            <th>担当者</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td></td>
-                            <td>
-                                ${isApproved ? `<div class="stamp-approved">済<br><span>${approvedDateStr}</span></div>` : ''}
-                            </td>
-                            <td style="font-weight: bold; font-size: 9pt; writing-mode: vertical-rl; text-align: center; padding: 5px 0; letter-spacing: 2px;">
-                                ${authorVal.substring(0, 6)}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        `;
-        
-        // サブヘッダー（対象週と凡例）
-        html += `
-        <div class="weekly-print-subheader">
-            <div style="font-size: 9pt;">対象週: ${weekText} (${formatWeekRange(weekVal)})</div>
-            <div class="legend-box">
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #000;"></span>
-                    <span>作業</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color" style="background: #ef4444;"></span>
-                    <span>休憩</span>
-                </div>
-            </div>
-        </div>
-        `;
-        
-        // 各曜日のデータ出力
-        daysName.forEach((day, idx) => {
-            const dayObj = daysData[day];
-            const tasks = dayObj.tasks;
-            const reportText = dayObj.reportText;
-            const dateObj = dates ? dates[idx] : null;
+        try {
+            const weekInput = document.getElementById('week');
+            const authorInput = document.getElementById('author');
+            if (!weekInput || !authorInput) return;
             
-            html += `<div class="print-day-block">`;
+            const weekVal = weekInput.value;
+            const weekText = weekInput.options[weekInput.selectedIndex]?.text || '';
+            const authorVal = authorInput.value;
             
-            // テーブル
-            html += `
-            <table class="print-day-table">
-                <thead>
-                    <tr>
-                        <th class="col-date">日時</th>
-                        <th class="col-project">訪問先</th>
-                        <th class="col-time">時間</th>
-                        <th class="col-direct">直行直帰</th>
-                        <th class="col-detail">記録</th>
-                    </tr>
-                </thead>
-                <tbody>
-            `;
+            const badge = document.getElementById('report-status-badge');
+            const isApproved = badge && badge.classList.contains('status-approved');
             
-            if (tasks.length === 0) {
-                html += `
-                    <tr>
-                        <td class="col-date">${formatPrintDate(dateObj, day)}</td>
-                        <td class="col-project">-</td>
-                        <td class="col-time">-</td>
-                        <td class="col-direct"></td>
-                        <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt;">${reportText || ''}</td>
-                    </tr>
-                `;
-            } else {
-                tasks.forEach((task, tIdx) => {
-                    const timeIntervals = getTimelineIntervals(task.timeline);
-                    const timeStr = timeIntervals.join('<br>') || (task.hours > 0 ? `${parseFloat(task.hours).toFixed(1)}H` : '-');
-                    
-                    let detailContent = task.detail || '';
-                    if (tIdx === tasks.length - 1 && reportText) {
-                        detailContent += `
-                            <div style="font-size: 8pt; color: #475569; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; font-style: italic;">
-                                📝 日次報告: ${reportText}
-                            </div>
-                        `;
-                    }
-                    
-                    html += `
-                        <tr>
-                            ${tIdx === 0 ? `<td class="col-date" rowspan="${tasks.length}">${formatPrintDate(dateObj, day)}</td>` : ''}
-                            <td class="col-project" style="text-align: left; font-weight: bold;">${task.project || ''}</td>
-                            <td class="col-time" style="font-size: 8pt;">${timeStr}</td>
-                            <td class="col-direct"></td>
-                            <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt;">${detailContent}</td>
-                        </tr>
-                    `;
-                });
+            const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
+            let approvedDateStr = '';
+            if (isApproved && existingReport && existingReport.approvedAt) {
+                const appDate = new Date(existingReport.approvedAt);
+                approvedDateStr = (appDate.getMonth() + 1) + '/' + appDate.getDate();
+            } else if (isApproved) {
+                const now = new Date();
+                approvedDateStr = (now.getMonth() + 1) + '/' + now.getDate();
             }
             
-            html += `
-                </tbody>
-            </table>
-            `;
+            // 画面の入力内容を収集
+            const daysData = {};
+            daysName.forEach(day => {
+                const dayCard = document.querySelector('.task-list[data-day="' + day + '"]').closest('.day-card');
+                const rows = dayCard.querySelectorAll('.task-row');
+                const tasks = [];
+                rows.forEach(row => {
+                    const project = row.querySelector('.task-project').value.trim();
+                    const detail = row.querySelector('.task-detail').value.trim();
+                    const hours = parseFloat(row.querySelector('.task-hours').value || 0);
+                    const timeline = row.querySelector('.task-timeline-data').value;
+                    if (project || detail || hours || timeline) {
+                        tasks.push({ project, detail, hours, timeline });
+                    }
+                });
+                const reportText = dayCard.querySelector('.day-report-text').value.trim();
+                daysData[day] = { tasks, reportText };
+            });
             
-            // マージタイムライン
-            let mergedTimeline = Array(48).fill(0);
-            let dayTotal = 0;
-            tasks.forEach(task => {
-                dayTotal += parseFloat(task.hours || 0);
-                if (task.timeline && task.timeline.length === 48) {
-                    for (let i = 0; i < 48; i++) {
-                        const val = parseInt(task.timeline[i]);
-                        if (val === 1) {
-                            mergedTimeline[i] = 1;
-                        } else if (val === 2 && mergedTimeline[i] !== 1) {
-                            mergedTimeline[i] = 2;
+            const dates = getDaysOfWeek(weekVal);
+            const formatPrintDate = (dateObj, dayName) => {
+                if (!dateObj) return dayName + '曜日';
+                return (dateObj.getMonth() + 1) + '月' + dateObj.getDate() + '日<br>(' + dayName + ')';
+            };
+            
+            let html = '<div class="weekly-print-wrapper">';
+            
+            // ヘッダー
+            html += '<div class="weekly-print-header">';
+            html += '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;">';
+            html += '<h1 class="weekly-print-title">週間行動予定表（工事管理課）</h1>';
+            html += '</div>';
+            html += '<div style="flex: 0 0 auto;">';
+            html += '<table class="approval-table"><thead><tr><th>部長</th><th>上長</th><th>担当者</th></tr></thead>';
+            html += '<tbody><tr><td></td><td>';
+            if (isApproved) {
+                html += '<div class="stamp-approved">済<br><span>' + approvedDateStr + '</span></div>';
+            }
+            html += '</td>';
+            html += '<td class="author-cell">' + authorVal + '</td>';
+            html += '</tr></tbody></table></div></div>';
+            
+            // サブヘッダー
+            html += '<div class="weekly-print-subheader">';
+            html += '<div>WF申請</div>';
+            html += '<div class="legend-box">';
+            html += '<div class="legend-item"><span class="legend-color" style="background:#ef4444;"></span><span>→休憩</span></div>';
+            html += '<div class="legend-item"><span class="legend-color" style="background:#16a34a;"></span><span>→移動</span></div>';
+            html += '</div></div>';
+
+            // カラムヘッダー（1回だけ）
+            html += '<table class="print-master-table"><thead><tr>';
+            html += '<th class="col-date">日時</th><th class="col-project">訪問先</th>';
+            html += '<th class="col-time">時間</th><th class="col-direct">直行直帰</th>';
+            html += '<th class="col-detail">記録</th>';
+            html += '</tr></thead></table>';
+            
+            // 各曜日
+            daysName.forEach((day, idx) => {
+                const dayObj = daysData[day];
+                const tasks = dayObj.tasks;
+                const reportText = dayObj.reportText;
+                const dateObj = dates ? dates[idx] : null;
+
+                // マージタイムライン
+                let mergedTimeline = Array(48).fill(0);
+                let dayTotal = 0;
+                const projectSet = new Set();
+                tasks.forEach(task => {
+                    dayTotal += parseFloat(task.hours || 0);
+                    if (task.project) projectSet.add(task.project);
+                    if (task.timeline && task.timeline.length === 48) {
+                        for (let i = 0; i < 48; i++) {
+                            const val = parseInt(task.timeline[i]);
+                            if (val === 1) mergedTimeline[i] = 1;
+                            else if (val === 2 && mergedTimeline[i] !== 1) mergedTimeline[i] = 2;
+                            else if (val === 3 && mergedTimeline[i] === 0) mergedTimeline[i] = 3;
+                            else if (val === 4 && mergedTimeline[i] === 0) mergedTimeline[i] = 4;
                         }
                     }
+                });
+
+                html += '<div class="print-day-block">';
+                html += '<table class="print-day-table"><tbody>';
+    
+                if (tasks.length === 0) {
+                    html += '<tr>';
+                    html += '<td class="col-date">' + formatPrintDate(dateObj, day) + '</td>';
+                    html += '<td class="col-project">-</td>';
+                    html += '<td class="col-time">-</td>';
+                    html += '<td class="col-direct"></td>';
+                    html += '<td class="col-detail">' + (reportText || '') + '</td>';
+                    html += '</tr>';
+                } else {
+                    tasks.forEach((task, tIdx) => {
+                        const timeIntervals = getTimelineIntervals(task.timeline);
+                        const timeStr = timeIntervals.join('<br>') || (task.hours > 0 ? parseFloat(task.hours).toFixed(1) + 'H' : '-');
+                        let detailContent = task.detail || '';
+                        if (tIdx === tasks.length - 1 && reportText) {
+                            detailContent += '<div style="font-size:7pt;color:#475569;margin-top:2px;border-top:1px dashed #94a3b8;padding-top:2px;">📝 ' + reportText + '</div>';
+                        }
+                        html += '<tr>';
+                        if (tIdx === 0) html += '<td class="col-date" rowspan="' + tasks.length + '">' + formatPrintDate(dateObj, day) + '</td>';
+                        html += '<td class="col-project">' + (task.project || '') + '</td>';
+                        html += '<td class="col-time">' + timeStr + '</td>';
+                        if (tIdx === 0) html += '<td class="col-direct" rowspan="' + tasks.length + '"></td>';
+                        html += '<td class="col-detail">' + detailContent + '</td>';
+                        html += '</tr>';
+                    });
                 }
+                html += '</tbody></table>';
+
+                // 訪問先サマリー行（緑背景）
+                const places = [...projectSet].join('、') || '-';
+                html += '<div class="print-visit-row">';
+                html += '<div class="pv-label">訪問先</div>';
+                html += '<div class="pv-empty"></div><div class="pv-empty"></div>';
+                html += '<div class="pv-place">' + places + '</div>';
+                html += '<div class="pv-empty-w"></div>';
+                html += '</div>';
+    
+                // タイムライン行（7〜19時 + 早朝h/残業h/計）
+                const earlyH = mergedTimeline.slice(0, 4).filter(s => s === 1 || s === 3).length * 0.5;
+                const overH = mergedTimeline.slice(30, 48).filter(s => s === 1 || s === 3).length * 0.5;
+                const totalH = mergedTimeline.filter(s => s === 1 || s === 3).length * 0.5;
+
+                html += '<div class="print-timeline-row">';
+                html += '<div class="tl-label">時間</div>';
+                html += '<div class="tl-early-val">' + earlyH.toFixed(0) + '</div>';
+                html += '<div class="tl-early-lbl">早朝h</div>';
+                html += '<div class="tl-hours">';
+                html += '<div class="tl-header">';
+                for (let h = 7; h <= 20; h++) html += '<div class="tl-hcell">' + (h <= 19 ? h : '') + '</div>';
+                html += '</div>';
+                html += '<div class="tl-grid">';
+                for (let i = 4; i < 30; i++) html += '<div class="tl-cell" data-state="' + mergedTimeline[i] + '"></div>';
+                html += '</div></div>';
+                html += '<div class="tl-over-lbl">残業h</div>';
+                html += '<div class="tl-over-val">' + overH.toFixed(0) + '</div>';
+                html += '<div class="tl-total-lbl">計</div>';
+                html += '<div class="tl-total-val">' + totalH.toFixed(0) + '</div>';
+                html += '</div>';
+    
+                html += '</div>'; // .print-day-block
             });
             
-            html += `
-            <div class="print-timeline-row">
-                <div class="print-timeline-label">時間</div>
-                <div class="print-timeline-hours">
-                    <div class="print-timeline-header-cells">
-            `;
-            for (let h = 0; h < 24; h++) {
-                html += `<div class="print-timeline-hour-cell">${h}</div>`;
-            }
-            html += `
-                    </div>
-                    <div class="print-timeline-grid-cells">
-            `;
-            for (let i = 0; i < 48; i++) {
-                const state = mergedTimeline[i];
-                html += `<div class="print-timeline-cell" data-state="${state}"></div>`;
-            }
-            html += `
-                    </div>
-                </div>
-                <div class="print-timeline-total">計 ${dayTotal.toFixed(1)}H</div>
-            </div>
-            `;
+            html += '</div>'; // .weekly-print-wrapper
             
-            html += `</div>`; // .print-day-block
-        });
-        
-        html += `</div>`; // .weekly-print-wrapper
-        
-        // 印刷用コンテナへの挿入
-        const printContainer = document.getElementById('print-weekly-action-container');
-        if (printContainer) {
-            printContainer.innerHTML = html;
+            // 印刷専用ウィンドウ（現在のページのDOMに一切干渉しない→フリーズ防止）
+            var printWin = window.open('', '_blank', 'width=' + screen.width + ',height=' + screen.height + ',left=0,top=0');
+            if (!printWin) {
+                alert('ポップアップがブロックされました。ブラウザの設定でこのサイトのポップアップを許可してください。');
+                return;
+            }
+
+            var printCSS = [
+                '@page { size: A4 portrait; margin: 6mm 10mm; }',
+                '* { box-sizing: border-box; margin: 0; padding: 0; }',
+                'body { font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif; margin: 0; padding: 0; background: #fff; color: #000; font-size: 8pt; }',
+                '.weekly-print-wrapper { width: 100%; }',
+                '.weekly-print-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 2px; }',
+                '.weekly-print-title { font-size: 14pt; font-weight: bold; text-align: center; letter-spacing: 2px; margin: 0; padding-bottom: 2px; white-space: nowrap; }',
+                '.weekly-print-subheader { display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; margin-bottom: 2px; font-weight: bold; }',
+                '.legend-box { display: flex; gap: 8px; align-items: center; font-size: 7pt; }',
+                '.legend-item { display: flex; align-items: center; gap: 2px; }',
+                '.legend-color { width: 12px; height: 10px; border: 1px solid #000; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.approval-table { border-collapse: collapse; }',
+                '.approval-table th { font-size: 7pt; padding: 1px 4px; border: 1px solid #000; background: #f1f5f9; text-align: center; width: 46px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.approval-table td { border: 1px solid #000; width: 46px; height: 46px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
+                '.author-cell { background: #FFD700 !important; font-weight: bold; font-size: 14pt; text-align: center; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.stamp-approved { font-size: 9pt; font-weight: bold; color: #dc2626; border: 2px solid #dc2626; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; }',
+                '.stamp-approved span { font-size: 5.5pt; }',
+                '.print-master-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }',
+                '.print-master-table th { border: 1px solid #16a34a; padding: 2px 4px; font-size: 7.5pt; font-weight: bold; text-align: center; background: #f0fdf4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.print-day-block { border-left: 1px solid #16a34a; border-right: 1px solid #16a34a; border-bottom: 2px solid #16a34a; margin-bottom: 0; page-break-inside: avoid; }',
+                '.print-day-table { width: 100%; border-collapse: collapse; }',
+                '.print-day-table td { border: 1px solid #ccc; padding: 2px 4px; font-size: 7.5pt; vertical-align: middle; min-height: 18px; }',
+                '.col-date { width: 10%; text-align: center; font-weight: bold; font-size: 8pt; border-right: 1px solid #16a34a !important; }',
+                '.col-project { width: 12%; font-size: 7.5pt; text-align: left; font-weight: bold; }',
+                '.col-time { width: 8%; text-align: center; font-size: 7.5pt; }',
+                '.col-direct { width: 8%; text-align: center; }',
+                '.col-detail { width: 62%; font-size: 7.5pt; text-align: left; white-space: pre-wrap; }',
+                '.print-visit-row { display: flex; align-items: stretch; border-top: 2px solid #16a34a; background: #f0fdf4; height: 18px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.pv-label { width: 10%; font-size: 7pt; font-weight: bold; text-align: center; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; }',
+                '.pv-empty { width: 10%; border-right: 1px solid #16a34a; }',
+                '.pv-place { flex: 1; font-size: 7.5pt; font-weight: bold; display: flex; align-items: center; padding-left: 4px; border-right: 1px solid #16a34a; }',
+                '.pv-empty-w { width: 20%; }',
+                '.print-timeline-row { display: flex; align-items: stretch; border-top: 1px solid #16a34a; background: #fff; height: 26px; }',
+                '.tl-label { width: 5%; font-size: 7pt; text-align: center; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; background: #f0fdf4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.tl-early-val { width: 4%; font-size: 7pt; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; background: #fefce8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.tl-early-lbl { width: 5%; font-size: 5.5pt; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; }',
+                '.tl-hours { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #16a34a; }',
+                '.tl-header { display: flex; justify-content: space-between; font-size: 6pt; height: 10px; line-height: 10px; border-bottom: 1px solid #16a34a; padding: 0 2px; }',
+                '.tl-hcell { width: 0; overflow: visible; display: flex; justify-content: center; font-size: 6pt; white-space: nowrap; font-weight: bold; }',
+                '.tl-grid { display: flex; flex: 1; padding: 0; }',
+                '.tl-cell { flex: 1; border-right: 1px solid #e5e7eb; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.tl-cell:nth-child(2n) { border-right: 1px solid #16a34a; }',
+                '.tl-cell:last-child { border-right: none; }',
+                '.tl-cell[data-state="0"] { background: #fff; }',
+                '.tl-cell[data-state="1"] { background: #000; }',
+                '.tl-cell[data-state="2"] { background: #ef4444; }',
+                '.tl-cell[data-state="3"] { background: #16a34a; }',
+                '.tl-cell[data-state="4"] { background: #2563eb; }',
+                '.tl-over-lbl { width: 5%; font-size: 5.5pt; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; }',
+                '.tl-over-val { width: 4%; font-size: 7pt; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; background: #fefce8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+                '.tl-total-lbl { width: 4%; font-size: 7pt; font-weight: bold; border-right: 1px solid #16a34a; display: flex; align-items: center; justify-content: center; }',
+                '.tl-total-val { width: 5%; font-size: 8pt; font-weight: bold; display: flex; align-items: center; justify-content: center; background: #fefce8; -webkit-print-color-adjust: exact; print-color-adjust: exact; }'
+            ].join('\n');
+
+            var fullDoc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>週間行動予定表</title><style>' + printCSS + '</style></head><body>' + html + '</body></html>';
+
+            printWin.document.write(fullDoc);
+            printWin.document.close();
+
+            printWin.onload = function() { printWin.focus(); printWin.print(); };
+            printWin.onafterprint = function() { printWin.close(); };
+            setTimeout(function() {
+                try { if (!printWin.closed) { printWin.focus(); printWin.print(); } } catch(e) {}
+            }, 500);
+        } catch (error) {
+            console.error("Print Error:", error);
+            alert("印刷プレビューエラーが発生しました:\n" + error.message);
         }
-        
-        // 印刷の実行
-        const style = document.createElement('style');
-        style.id = 'print-dynamic-style';
-        style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 8mm 10mm !important; } }';
-        document.head.appendChild(style);
-        
-        window.print();
-        
-        setTimeout(() => {
-            const dynStyle = document.getElementById('print-dynamic-style');
-            if (dynStyle) dynStyle.remove();
-        }, 1000);
     };
 
     const btnPrintWeekly = document.getElementById('btn-print-weekly');

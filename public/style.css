@@ -222,65 +222,56 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         overflow: hidden !important;
         white-space: nowrap !important;
     }
-    @page { size: A4 portrait; margin: 8mm 10mm; }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }
     .print-task-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
     .print-task-table th, .print-task-table td { border: 1px solid #000; padding: 6px; font-size: 9pt; }
     .print-task-table th { background-color: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-gantt-title { font-size: 1.2rem; font-weight: bold; padding: 10px 0; margin-bottom: 15px; border-bottom: 2px solid #000; }
-    .gantt-grid { border-top: 2px solid #000; border-left: 2px solid #000; }
-    .gantt-cell, .gantt-bar-bg-cell { border-right: 1px solid #000; border-bottom: 1px solid #000; }
-    .gantt-header-cell, .gantt-proj-cell, .gantt-author-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .gantt-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-    /* 週間行動予定表（A4縦）用の特別スタイル */
     .weekly-print-wrapper {
         width: 100%;
         box-sizing: border-box;
     }
     .weekly-print-header {
-        position: relative;
-        height: 65px;
-        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
         width: 100%;
+        margin-bottom: 4px;
+        height: 58px;
+        box-sizing: border-box;
     }
     .weekly-print-title {
-        position: absolute;
-        top: 10px;
-        width: 100%;
-        font-size: 15pt;
+        font-size: 13pt;
         font-weight: bold;
         text-align: center;
         letter-spacing: 2px;
         text-decoration: underline;
-        text-underline-offset: 4px;
+        text-underline-offset: 3px;
         margin: 0;
+        padding-bottom: 2px;
         white-space: nowrap;
-        z-index: 1;
     }
     .approval-table {
         border-collapse: collapse;
-        margin-left: 20px;
     }
     .approval-table th {
-        font-size: 7.5pt;
-        padding: 2px 6px;
+        font-size: 6.5pt;
+        padding: 1px 3px;
         border: 1px solid #000;
         background: #f1f5f9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         text-align: center;
-        width: 50px;
+        width: 42px;
     }
     .approval-table td {
         border: 1px solid #000;
-        width: 50px;
-        height: 50px;
+        width: 42px;
+        height: 44px;
         text-align: center;
         vertical-align: middle;
-        font-size: 8pt;
+        font-size: 7.5pt;
         position: relative;
         padding: 0;
     }
@@ -288,34 +279,32 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 8.5pt;
-        margin-bottom: 4px;
+        font-size: 7.8pt;
+        margin-bottom: 3px;
         font-weight: bold;
     }
     .legend-box {
         display: flex;
-        gap: 15px;
+        gap: 10px;
         align-items: center;
     }
     .legend-item {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
     }
     .legend-color {
-        width: 14px;
-        height: 14px;
+        width: 12px;
+        height: 12px;
         border: 1px solid #000;
         display: inline-block;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     .print-day-block {
-        border: 2px solid #000;
-        margin-bottom: 8px;
+        border: 1px solid #000;
+        margin-bottom: 7px;
         page-break-inside: avoid;
-        display: flex;
-        flex-direction: column;
     }
     .print-day-table {
         width: 100%;
@@ -323,10 +312,10 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     }
     .print-day-table th, .print-day-table td {
         border: 1px solid #000;
-        padding: 4px 6px;
+        padding: 3px 5px;
         font-size: 8.5pt;
         vertical-align: middle;
-        height: 24px;
+        height: 25px;
     }
     .print-day-table th {
         background: #f1f5f9 !important;
@@ -337,9 +326,9 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     }
     .col-date { width: 12%; text-align: center; font-weight: bold; }
     .col-project { width: 22%; }
-    .col-time { width: 15%; text-align: center; }
-    .col-direct { width: 8%; text-align: center; }
-    .col-detail { width: 43%; }
+    .col-time { width: 12%; text-align: center; }
+    .col-direct { width: 12%; text-align: center; }
+    .col-detail { width: 42%; }
 
     .print-timeline-row {
         display: flex;
@@ -373,17 +362,24 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         box-sizing: border-box;
     }
     .print-timeline-header-cells {
-        display: grid;
-        grid-template-columns: repeat(24, 1fr);
-        font-size: 6.5pt;
-        text-align: center;
-        height: 12px;
-        line-height: 12px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 5.5pt;
+        height: 10px;
+        line-height: 10px;
         border-bottom: 1px solid #000;
         box-sizing: border-box;
+        padding-left: 4px;
+        padding-right: 4px;
     }
     .print-timeline-hour-cell {
-        border-right: 1px solid #ccc;
+        width: 0;
+        overflow: visible;
+        display: flex;
+        justify-content: center;
+        font-size: 5.5pt;
+        white-space: nowrap;
+        border-right: none;
     }
     .print-timeline-hour-cell:last-child {
         border-right: none;

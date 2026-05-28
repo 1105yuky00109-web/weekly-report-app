@@ -1,4 +1,4 @@
-const firebaseConfig = {
+﻿const firebaseConfig = {
     apiKey: "AIzaSyBero5buqjW670UPObtf4QiVX-rkhhFfPs",
     authDomain: "weekly-report-93e5f.firebaseapp.com",
     projectId: "weekly-report-93e5f",
@@ -1304,26 +1304,164 @@ document.addEventListener('DOMContentLoaded', () => {
             const dayCard = document.createElement('div');
             dayCard.className = 'day-card';
             const copyBtnHtml = day !== '月' ? `<button type="button" class="btn btn-secondary btn-small btn-copy-prev" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; font-weight: bold;">前日からコピー</button>` : '';
+            // dayCard の基本HTML（午前・午後・夜間 + タイムライン + レポート）
             dayCard.innerHTML = `
-                <div class="day-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="day-header" style="display:flex;justify-content:space-between;align-items:center;">
                     <span class="day-label">${day}曜日</span>
-                    <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="display:flex;gap:10px;align-items:center;">
                         ${copyBtnHtml}
-                        <span class="total-hours" style="font-size: 0.85rem; font-weight: normal;">計 0.0H</span>
+                        <span class="total-hours" style="font-size:0.85rem;font-weight:normal;">計 0.0H</span>
                     </div>
                 </div>
                 <div class="day-body">
-                    <div class="task-list" data-day="${day}"></div>
-                    <button type="button" class="btn btn-add-task">＋ 工事・作業を追加</button>
-                    <div class="day-report-field" style="margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 10px;">
-                        <label style="font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; display: block; color: var(--text-muted);">📝 日次レポート・備考</label>
-                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 0.9rem; background: var(--bg); color: var(--text); resize: vertical;"></textarea>
+                    <!-- 休み クイックボタン -->
+                    <div class="leave-quick-btns">
+                        <span style="font-size:0.8rem;color:var(--text-muted);align-self:center;">休み：</span>
+                        <button type="button" class="leave-quick-btn" data-leave="有給">休日</button>
+                        <button type="button" class="leave-quick-btn" data-leave="休日">休日</button>
+                        <button type="button" class="leave-quick-btn leave-clear-btn" data-leave="">解除</button>
+                    </div>
+                    <div class="task-list" data-day="${day}" style="display:none;"></div>
+                    <!-- 午前セクション -->
+                    <div class="time-section morning">
+                        <div class="time-section-header">🌅 午前</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="text" class="section-project morning-project" placeholder="工事・作業名" list="project-list"
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                            <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                        </div>
+                    </div>
+                    <!-- 午後セクション -->
+                    <div class="time-section afternoon">
+                        <div class="time-section-header">🌤 午後</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="text" class="section-project afternoon-project" placeholder="工事・作業名" list="project-list"
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                            <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                        </div>
+                    </div>
+                    <!-- 夜間セクション -->
+                    <div class="time-section night">
+                        <div class="time-section-header">🌙 夜間</div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <input type="text" class="section-project night-project" placeholder="工事・作業名" list="project-list"
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                            <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                        </div>
+                    </div>
+                    <!-- タイムライン -->
+                    <div class="timeline-section" style="margin-top:8px;">
+                        <div class="timeline-palette" style="display:flex;gap:4px;margin-bottom:4px;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="palette-btn active" data-mode="1" style="padding:2px 10px;border:2px solid #000;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#000;color:#fff;">■ 作業</button>
+                            <button type="button" class="palette-btn" data-mode="2" style="padding:2px 10px;border:2px solid #ef4444;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#ef4444;">● 休憩</button>
+                            <button type="button" class="palette-btn" data-mode="3" style="padding:2px 10px;border:2px solid #16a34a;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#16a34a;">▲ 移動</button>
+                            <button type="button" class="palette-btn" data-mode="4" style="padding:2px 10px;border:2px solid #2563eb;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#2563eb;">◆ 有休</button>
+                            <button type="button" class="palette-btn" data-mode="0" style="padding:2px 10px;border:2px solid #94a3b8;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#64748b;">× 消去</button>
+                            <span class="timeline-hours-total-display" style="margin-left:auto;font-weight:bold;color:var(--primary);font-size:0.9rem;">作業計 0.0H</span>
+                        </div>
+                        <div class="timeline-hours-header" style="display:grid;grid-template-columns:repeat(24,1fr);font-size:0.65rem;color:var(--text-muted);padding:0 1px;"></div>
+                        <div class="timeline-cells-grid" style="display:grid;grid-template-columns:repeat(48,1fr);gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden;height:28px;cursor:crosshair;touch-action:none;"></div>
+                    </div>
+                    <input type="hidden" class="day-timeline-data" value="">
+                    <input type="hidden" class="day-leave-type" value="">
+                    <div class="day-report-field" style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;">
+                        <label style="font-size:0.85rem;font-weight:bold;margin-bottom:5px;display:block;color:var(--text-muted);">📝 日次レポート・備考</label>
+                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text);resize:vertical;"></textarea>
                     </div>
                 </div>
             `;
             daysContainer.appendChild(dayCard);
             const taskList = dayCard.querySelector('.task-list');
             
+            // タイムライン初期化
+            let stateArray = Array(48).fill(0);
+            const timelineData = dayCard.querySelector('.day-timeline-data');
+            const leaveTypeInput = dayCard.querySelector('.day-leave-type');
+            const totalDisplay = dayCard.querySelector('.timeline-hours-total-display');
+            const headerContainer = dayCard.querySelector('.timeline-hours-header');
+            const cellsGrid = dayCard.querySelector('.timeline-cells-grid');
+            const cellElements = [];
+            
+            // ヘッダーラベル（5〜翌4時 = 24時間）
+            const TIMELINE_START_HOUR = 5;
+            for (let h = 0; h < 24; h++) {
+                const lbl = document.createElement('div');
+                lbl.style.textAlign = 'center';
+                lbl.textContent = (TIMELINE_START_HOUR + h) % 24;
+                headerContainer.appendChild(lbl);
+            }
+            
+            // タイムラインセル
+            for (let i = 0; i < 48; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'timeline-cell';
+                cell.dataset.index = i;
+                cell.dataset.state = 0;
+                const hour = (TIMELINE_START_HOUR + Math.floor(i / 2)) % 24;
+                const min = (i % 2 === 0) ? '00' : '30';
+                cell.title = `${hour}:${min}`;
+                cellsGrid.appendChild(cell);
+                cellElements.push(cell);
+            }
+            
+            const calculateTotal = () => {
+                const workCount = stateArray.filter(s => s === 1 || s === 3).length;
+                const totalHours = workCount * 0.5;
+                totalDisplay.textContent = `作業計 ${totalHours.toFixed(1)}H`;
+                dayCard.querySelector('.total-hours').textContent = `計 ${totalHours.toFixed(1)}H`;
+                timelineData.value = stateArray.join('');
+                calculateWeekTotal();
+            };
+            
+            let currentMode = 1;
+            const paletteBtns = dayCard.querySelectorAll('.palette-btn');
+            paletteBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    paletteBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentMode = parseInt(btn.dataset.mode);
+                });
+            });
+            
+            let isDrawing = false;
+            const updateCellState = (index) => {
+                if (index < 0 || index >= 48) return;
+                stateArray[index] = currentMode;
+                cellElements[index].dataset.state = currentMode;
+                calculateTotal();
+            };
+            cellsGrid.addEventListener('mousedown', (e) => { const cell = e.target.closest('.timeline-cell'); if (cell) { isDrawing = true; updateCellState(parseInt(cell.dataset.index)); } });
+            cellsGrid.addEventListener('mousemove', (e) => { if (!isDrawing) return; const cell = e.target.closest('.timeline-cell'); if (cell) updateCellState(parseInt(cell.dataset.index)); });
+            window.addEventListener('mouseup', () => { isDrawing = false; });
+            cellsGrid.addEventListener('touchstart', (e) => { const touch = e.touches[0]; const t = document.elementFromPoint(touch.clientX, touch.clientY); const cell = t?.closest('.timeline-cell'); if (cell && cell.parentNode === cellsGrid) { isDrawing = true; updateCellState(parseInt(cell.dataset.index)); e.preventDefault(); } }, { passive: false });
+            cellsGrid.addEventListener('touchmove', (e) => { if (!isDrawing) return; const touch = e.touches[0]; const t = document.elementFromPoint(touch.clientX, touch.clientY); const cell = t?.closest('.timeline-cell'); if (cell && cell.parentNode === cellsGrid) { updateCellState(parseInt(cell.dataset.index)); } e.preventDefault(); }, { passive: false });
+            cellsGrid.addEventListener('touchend', () => { isDrawing = false; });
+            
+            // 休みボタン
+            dayCard.querySelectorAll('.leave-quick-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const leaveType = btn.dataset.leave;
+                    leaveTypeInput.value = leaveType;
+                    const sections = dayCard.querySelectorAll('.time-section');
+                    const timelineSection = dayCard.querySelector('.timeline-section');
+                    if (leaveType) {
+                        sections.forEach(s => { s.style.display = 'none'; });
+                        if (timelineSection) timelineSection.style.display = 'none';
+                        stateArray.fill(0);
+                        cellElements.forEach(c => c.dataset.state = 0);
+                        calculateTotal();
+                    } else {
+                        sections.forEach(s => { s.style.display = ''; });
+                        if (timelineSection) timelineSection.style.display = '';
+                    }
+                });
+            });
+            
+            // 前日からコピー
             const copyPrevBtn = dayCard.querySelector('.btn-copy-prev');
             if (copyPrevBtn) {
                 copyPrevBtn.addEventListener('click', () => {
@@ -1331,251 +1469,111 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (prevDayIdx < 0) return;
                     const prevDay = daysName[prevDayIdx];
                     const prevTaskList = document.querySelector(`.task-list[data-day="${prevDay}"]`);
-                    if (!prevTaskList) return;
-                    
-                    const prevRows = prevTaskList.querySelectorAll('.task-row');
-                    if (prevRows.length === 0) {
+                    if (!prevTaskList || !prevTaskList.getCardData) return;
+                    const prevData = prevTaskList.getCardData();
+                    if (!prevData.morning?.project && !prevData.afternoon?.project && !prevData.night?.project) {
                         alert('前日の作業データがありません。');
                         return;
                     }
-                    
-                    const currentRows = taskList.querySelectorAll('.task-row');
-                    if (currentRows.length > 0) {
-                        const hasInput = Array.from(taskList.querySelectorAll('.task-project, .task-detail'))
-                            .some(input => input.value.trim() !== '');
-                        if (hasInput && !confirm('前日の内容をコピーしますか？（現在入力されている内容は消去されます）')) {
-                            return;
-                        }
-                    }
-                    
-                    taskList.clearAll();
-                    prevRows.forEach(row => {
-                        const proj = row.querySelector('.task-project').value;
-                        const detail = row.querySelector('.task-detail').value;
-                        const hours = row.querySelector('.task-hours').value;
-                        const timeline = row.querySelector('.task-timeline-data').value;
-                        taskList.addTaskRow(proj, detail, hours, timeline);
-                    });
+                    if (!confirm('前日の内容をコピーしますか？')) return;
+                    taskList.setCardData(prevData);
                 });
             }
             
-            const calculateTotal = () => {
-                let total = 0;
-                taskList.querySelectorAll('.task-hours').forEach(sel => {
-                    const val = parseFloat(sel.value);
-                    if (!isNaN(val)) total += val;
-                });
-                dayCard.querySelector('.total-hours').textContent = `計 ${total.toFixed(1)}H`;
-                calculateWeekTotal();
+            // getCardData: この日のデータをオブジェクトで取得
+            taskList.getCardData = () => {
+                return {
+                    morning: {
+                        project: dayCard.querySelector('.morning-project')?.value.trim() || '',
+                        detail: dayCard.querySelector('.morning-detail')?.value.trim() || ''
+                    },
+                    afternoon: {
+                        project: dayCard.querySelector('.afternoon-project')?.value.trim() || '',
+                        detail: dayCard.querySelector('.afternoon-detail')?.value.trim() || ''
+                    },
+                    night: {
+                        project: dayCard.querySelector('.night-project')?.value.trim() || '',
+                        detail: dayCard.querySelector('.night-detail')?.value.trim() || ''
+                    },
+                    timeline: timelineData.value,
+                    leaveType: leaveTypeInput.value
+                };
             };
-
-            const addTaskRow = (projVal = '', detailVal = '', hoursVal = '', timelineVal = '') => {
-                const clone = taskRowTemplate.content.cloneNode(true);
-                const row = clone.querySelector('.task-row');
-                
-                const projInput = row.querySelector('.task-project');
-                const detailInput = row.querySelector('.task-detail');
-                const hoursInput = row.querySelector('.task-hours');
-                const timelineInput = row.querySelector('.task-timeline-data');
-                const hoursTotalSpan = row.querySelector('.timeline-hours-total');
-                
-                if (projVal) projInput.value = projVal;
-                if (detailVal) detailInput.value = detailVal;
-                
-                let stateArray = Array(48).fill(0); // 0:なし, 1:作業, 2:休憩
+            
+            // setCardData: データを反映
+            taskList.setCardData = (data) => {
+                if (!data) return;
+                const mp = dayCard.querySelector('.morning-project');
+                const md = dayCard.querySelector('.morning-detail');
+                const ap = dayCard.querySelector('.afternoon-project');
+                const ad = dayCard.querySelector('.afternoon-detail');
+                const np = dayCard.querySelector('.night-project');
+                const nd = dayCard.querySelector('.night-detail');
+                if (mp) mp.value = data.morning?.project || '';
+                if (md) md.value = data.morning?.detail || '';
+                if (ap) ap.value = data.afternoon?.project || '';
+                if (ad) ad.value = data.afternoon?.detail || '';
+                if (np) np.value = data.night?.project || '';
+                if (nd) nd.value = data.night?.detail || '';
+                if (data.timeline && data.timeline.length === 48) {
+                    stateArray = data.timeline.split('').map(Number);
+                    cellElements.forEach((cell, i) => { cell.dataset.state = stateArray[i]; });
+                    timelineData.value = data.timeline;
+                }
+                if (data.leaveType) {
+                    leaveTypeInput.value = data.leaveType;
+                }
+                calculateTotal();
+            };
+            
+            // 旧addTaskRow互換（旧データ読み込み用）
+            taskList.addTaskRow = (projVal, detailVal, hoursVal, timelineVal) => {
+                // 旧形式のデータを午前セクションに入力
+                const mp = dayCard.querySelector('.morning-project');
+                const md = dayCard.querySelector('.morning-detail');
+                if (mp && !mp.value) mp.value = projVal || '';
+                else {
+                    const ap = dayCard.querySelector('.afternoon-project');
+                    if (ap && !ap.value) ap.value = projVal || '';
+                    else {
+                        const np = dayCard.querySelector('.night-project');
+                        if (np && !np.value) np.value = projVal || '';
+                    }
+                }
+                if (md && !md.value) md.value = detailVal || '';
+                else {
+                    const ad = dayCard.querySelector('.afternoon-detail');
+                    if (ad && !ad.value) ad.value = detailVal || '';
+                    else {
+                        const nd = dayCard.querySelector('.night-detail');
+                        if (nd && !nd.value) nd.value = detailVal || '';
+                    }
+                }
                 if (timelineVal && timelineVal.length === 48) {
-                    stateArray = timelineVal.split('').map(Number);
-                } else if (hoursVal) {
-                    const hours = parseFloat(hoursVal);
-                    if (!isNaN(hours)) {
-                        const slotCount = Math.round(hours * 2);
-                        const startSlot = 16; // 8:00
-                        for (let i = 0; i < slotCount; i++) {
-                            if (startSlot + i < 48) {
-                                stateArray[startSlot + i] = 1;
-                            }
+                    for (let i = 0; i < 48; i++) {
+                        const v = parseInt(timelineVal[i]);
+                        if (v > 0 && stateArray[i] === 0) {
+                            stateArray[i] = v;
+                            cellElements[i].dataset.state = v;
                         }
                     }
+                    timelineData.value = stateArray.join('');
                 }
-                
-                const headerContainer = row.querySelector('.timeline-hours-header');
-                for (let h = 0; h < 24; h++) {
-                    const lbl = document.createElement('div');
-                    lbl.className = 'timeline-hour-label';
-                    lbl.textContent = h;
-                    headerContainer.appendChild(lbl);
-                }
-                
-                const cellsGrid = row.querySelector('.timeline-cells-grid');
-                const cellElements = [];
-                for (let i = 0; i < 48; i++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'timeline-cell';
-                    cell.dataset.index = i;
-                    cell.dataset.state = stateArray[i];
-                    
-                    const hour = Math.floor(i / 2);
-                    const min = (i % 2 === 0) ? '00' : '30';
-                    const nextHour = Math.floor((i + 1) / 2);
-                    const nextMin = ((i + 1) % 2 === 0) ? '00' : '30';
-                    cell.title = `${String(hour).padStart(2, '0')}:${min}〜${String(nextHour).padStart(2, '0')}:${nextMin}`;
-                    
-                    cellsGrid.appendChild(cell);
-                    cellElements.push(cell);
-                }
-                
-                let currentMode = 1;
-                const paletteBtns = row.querySelectorAll('.palette-btn');
-                paletteBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        paletteBtns.forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
-                        currentMode = parseInt(btn.dataset.mode);
-                    });
-                });
-                
-                let isDrawing = false;
-                
-                const updateCellState = (index) => {
-                    if (index < 0 || index >= 48) return;
-                    stateArray[index] = currentMode;
-                    cellElements[index].dataset.state = currentMode;
-                    
-                    const workCount = stateArray.filter(s => s === 1).length;
-                    const totalHours = workCount * 0.5;
-                    hoursTotalSpan.textContent = totalHours.toFixed(1);
-                    hoursInput.value = totalHours.toFixed(1);
-                    timelineInput.value = stateArray.join('');
-                    
-                    calculateTotal();
-                };
-
-                cellsGrid.addEventListener('mousedown', (e) => {
-                    const cell = e.target.closest('.timeline-cell');
-                    if (cell) {
-                        isDrawing = true;
-                        const idx = parseInt(cell.dataset.index);
-                        updateCellState(idx);
-                    }
-                });
-                
-                cellsGrid.addEventListener('mousemove', (e) => {
-                    if (!isDrawing) return;
-                    const cell = e.target.closest('.timeline-cell');
-                    if (cell) {
-                        const idx = parseInt(cell.dataset.index);
-                        updateCellState(idx);
-                    }
-                });
-                
-                const stopDrawing = () => { isDrawing = false; };
-                window.addEventListener('mouseup', stopDrawing);
-                
-                cellsGrid.addEventListener('touchstart', (e) => {
-                    const touch = e.touches[0];
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const cell = target ? target.closest('.timeline-cell') : null;
-                    if (cell && cell.parentNode === cellsGrid) {
-                        isDrawing = true;
-                        const idx = parseInt(cell.dataset.index);
-                        updateCellState(idx);
-                        e.preventDefault();
-                    }
-                }, { passive: false });
-                
-                cellsGrid.addEventListener('touchmove', (e) => {
-                    if (!isDrawing) return;
-                    const touch = e.touches[0];
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const cell = target ? target.closest('.timeline-cell') : null;
-                    if (cell && cell.parentNode === cellsGrid) {
-                        const idx = parseInt(cell.dataset.index);
-                        updateCellState(idx);
-                    }
-                    e.preventDefault();
-                }, { passive: false });
-                
-                cellsGrid.addEventListener('touchend', stopDrawing);
-                
-                const initialWorkCount = stateArray.filter(s => s === 1).length;
-                const initialHours = initialWorkCount * 0.5;
-                hoursTotalSpan.textContent = initialHours.toFixed(1);
-                hoursInput.value = initialHours.toFixed(1);
-                timelineInput.value = stateArray.join('');
-                
-                // 有給・欠勤・休日時の入力制御ロジック
-                const checkProjectStatus = () => {
-                    const val = projInput.value.trim();
-                    const isLeave = ['有給', '欠勤', '休日'].includes(val);
-                    
-                    if (isLeave) {
-                        row.classList.add('leave-row');
-                        detailInput.value = '';
-                        detailInput.disabled = true;
-                        detailInput.removeAttribute('required');
-                        
-                        const timelineScroll = row.querySelector('.timeline-container-scroll');
-                        const timelinePalette = row.querySelector('.timeline-palette');
-                        if (timelineScroll) {
-                            timelineScroll.style.pointerEvents = 'none';
-                            timelineScroll.style.opacity = '0.5';
-                        }
-                        if (timelinePalette) {
-                            timelinePalette.style.pointerEvents = 'none';
-                            timelinePalette.style.opacity = '0.5';
-                        }
-                        
-                        stateArray.fill(0);
-                        cellElements.forEach(cell => cell.dataset.state = 0);
-                        hoursTotalSpan.textContent = '0.0';
-                        hoursInput.value = '0.0';
-                        timelineInput.value = stateArray.join('');
-                    } else {
-                        row.classList.remove('leave-row');
-                        if (detailInput.disabled) {
-                            detailInput.value = '';
-                            detailInput.disabled = false;
-                            detailInput.setAttribute('required', 'required');
-                        }
-                        const timelineScroll = row.querySelector('.timeline-container-scroll');
-                        const timelinePalette = row.querySelector('.timeline-palette');
-                        if (timelineScroll) {
-                            timelineScroll.style.pointerEvents = 'auto';
-                            timelineScroll.style.opacity = '1';
-                        }
-                        if (timelinePalette) {
-                            timelinePalette.style.pointerEvents = 'auto';
-                            timelinePalette.style.opacity = '1';
-                        }
-                    }
-                    calculateTotal();
-                };
-                
-                projInput.addEventListener('input', checkProjectStatus);
-                projInput.addEventListener('change', checkProjectStatus);
-                
-                if (projVal) {
-                    checkProjectStatus();
-                }
-
-                row.querySelector('.remove-task-btn').addEventListener('click', () => {
-                    window.removeEventListener('mouseup', stopDrawing);
-                    row.remove();
-                    calculateTotal();
-                });
-                
-                taskList.appendChild(row);
                 calculateTotal();
             };
-
-            taskList.addTaskRow = addTaskRow;
             taskList.clearAll = () => {
-                taskList.innerHTML = '';
+                dayCard.querySelector('.morning-project').value = '';
+                dayCard.querySelector('.morning-detail').value = '';
+                dayCard.querySelector('.afternoon-project').value = '';
+                dayCard.querySelector('.afternoon-detail').value = '';
+                dayCard.querySelector('.night-project').value = '';
+                dayCard.querySelector('.night-detail').value = '';
+                stateArray.fill(0);
+                cellElements.forEach(c => c.dataset.state = 0);
+                timelineData.value = '';
+                leaveTypeInput.value = '';
                 calculateTotal();
             };
-
-            dayCard.querySelector('.btn-add-task').addEventListener('click', () => addTaskRow());
         });
     }
 
@@ -2674,24 +2672,65 @@ document.addEventListener('DOMContentLoaded', () => {
         
         html += `</div>`; // .weekly-print-wrapper
         
-        // 印刷用コンテナへの挿入
-        const printContainer = document.getElementById('print-weekly-action-container');
-        if (printContainer) {
-            printContainer.innerHTML = html;
+        // 印刷専用ウィンドウ（現在のページのDOMに一切干渉しない→フリーズ防止）
+        var printWin = window.open('', '_blank', 'width=' + screen.width + ',height=' + screen.height + ',left=0,top=0');
+        if (!printWin) {
+            alert('ポップアップがブロックされました。ブラウザの設定でこのサイトのポップアップを許可してください。');
+            return;
         }
-        
-        // 印刷の実行
-        const style = document.createElement('style');
-        style.id = 'print-dynamic-style';
-        style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 8mm 10mm !important; } }';
-        document.head.appendChild(style);
-        
-        window.print();
-        
-        setTimeout(() => {
-            const dynStyle = document.getElementById('print-dynamic-style');
-            if (dynStyle) dynStyle.remove();
-        }, 1000);
+
+        var printCSS = [
+            '@page { size: A4 portrait; margin: 6mm 10mm; }',
+            '* { box-sizing: border-box; margin: 0; padding: 0; }',
+            'body { font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif; margin: 0; padding: 0; background: #fff; color: #000; font-size: 8pt; }',
+            '.weekly-print-wrapper { width: 100%; }',
+            '.weekly-print-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 4px; height: 58px; }',
+            '.weekly-print-title { font-size: 13pt; font-weight: bold; text-align: center; letter-spacing: 2px; text-decoration: underline; text-underline-offset: 3px; margin: 0; padding-bottom: 2px; white-space: nowrap; }',
+            '.weekly-print-subheader { display: flex; justify-content: space-between; align-items: center; font-size: 7.8pt; margin-bottom: 3px; font-weight: bold; }',
+            '.legend-box { display: flex; gap: 10px; align-items: center; }',
+            '.legend-item { display: flex; align-items: center; gap: 3px; }',
+            '.legend-color { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.approval-table { border-collapse: collapse; }',
+            '.approval-table th { font-size: 6.5pt; padding: 1px 3px; border: 1px solid #000; background: #f1f5f9; text-align: center; width: 42px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.approval-table td { border: 1px solid #000; width: 42px; height: 44px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
+            '.stamp-approved { font-size: 9pt; font-weight: bold; color: #dc2626; border: 2px solid #dc2626; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; }',
+            '.stamp-approved span { font-size: 5.5pt; }',
+            '.print-day-block { border: 1px solid #000; margin-bottom: 7px; page-break-inside: avoid; }',
+            '.print-day-table { width: 100%; border-collapse: collapse; }',
+            '.print-day-table th, .print-day-table td { border: 1px solid #000; padding: 3px 5px; font-size: 8.5pt; vertical-align: middle; height: 25px; }',
+            '.print-day-table th { background: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.col-date { width: 12%; text-align: center; font-weight: bold; }',
+            '.col-project { width: 22%; }',
+            '.col-time { width: 12%; text-align: center; }',
+            '.col-direct { width: 12%; text-align: center; vertical-align: middle; }',
+            '.col-detail { width: 42%; }',
+            '.print-timeline-row { display: flex; align-items: stretch; border-top: 1px solid #000; background: #fff; height: 27px; }',
+            '.print-timeline-label { width: 12%; font-size: 7.2pt; text-align: center; font-weight: bold; border-right: 1px solid #000; display: flex; align-items: center; justify-content: center; background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.print-timeline-hours { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #000; }',
+            '.print-timeline-header-cells { display: flex; justify-content: space-between; font-size: 5.5pt; height: 10px; line-height: 10px; border-bottom: 1px solid #000; padding: 0 4px; }',
+            '.print-timeline-hour-cell { width: 0; overflow: visible; display: flex; justify-content: center; font-size: 5.5pt; white-space: nowrap; }',
+            '.print-timeline-grid-cells { display: flex; height: 15px; padding: 0 4px; }',
+            '.print-timeline-cell { flex: 1; border-right: 1px dashed #ccc; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.print-timeline-cell:nth-child(2n) { border-right: 1px solid #000; }',
+            '.print-timeline-cell:last-child { border-right: none; }',
+            '.print-timeline-cell[data-state="0"] { background: #fff; }',
+            '.print-timeline-cell[data-state="1"] { background: #000; }',
+            '.print-timeline-cell[data-state="2"] { background: #ef4444; }',
+            '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
+            '.print-timeline-cell[data-state="4"] { background: #2563eb; }',
+            '.print-timeline-total { width: 10%; font-size: 7.5pt; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; }'
+        ].join('\n');
+
+        var fullDoc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>週間行動予定表</title><style>' + printCSS + '</style></head><body>' + html + '</body></html>';
+
+        printWin.document.write(fullDoc);
+        printWin.document.close();
+
+        printWin.onload = function() { printWin.focus(); printWin.print(); };
+        printWin.onafterprint = function() { printWin.close(); };
+        setTimeout(function() {
+            try { if (!printWin.closed) { printWin.focus(); printWin.print(); } } catch(e) {}
+        }, 500);
     };
 
     const btnPrintWeekly = document.getElementById('btn-print-weekly');
@@ -3803,3 +3842,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
