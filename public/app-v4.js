@@ -2753,16 +2753,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 1. カレンダーヘッダーの生成
         let headHtml = `<tr>
-            <th style="min-width: 150px; background: #f1f5f9; position: sticky; left: 0; z-index: 10;">工事名</th>
-            <th style="min-width: 100px; background: #f1f5f9; position: sticky; left: 150px; z-index: 10;">担当者</th>`;
+            <th style="min-width: 120px; max-width: 120px; font-size: 0.8rem; background: #f1f5f9; position: sticky; left: 0; z-index: 10; padding: 6px 4px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">工事名</th>
+            <th style="min-width: 80px; max-width: 80px; font-size: 0.8rem; background: #f1f5f9; position: sticky; left: 120px; z-index: 10; padding: 6px 4px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">担当者</th>`;
         
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(year, month - 1, d);
             const dayOfWeekStr = ['日','月','火','水','木','金','土'][dateObj.getDay()];
             const isWeekend = (dateObj.getDay() === 0 || dateObj.getDay() === 6) ? 'color:red;' : '';
-            headHtml += `<th style="min-width: 35px; text-align: center; font-size: 0.8rem; ${isWeekend}">${d}<br>${dayOfWeekStr}</th>`;
+            headHtml += `<th style="min-width: 20px; max-width: 24px; text-align: center; font-size: 0.7rem; padding: 4px 1px; ${isWeekend}">${d}<br>${dayOfWeekStr}</th>`;
         }
-        headHtml += `<th style="min-width: 80px; text-align: right; background: #f1f5f9;">合計</th></tr>`;
+        headHtml += `<th style="min-width: 50px; text-align: right; background: #f1f5f9; font-size: 0.8rem; padding: 6px 4px;">合計</th></tr>`;
         thead.innerHTML = headHtml;
 
         // 2. データ集計
@@ -2841,17 +2841,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = projectMap[proj][auth];
                 bodyHtml += `<tr>`;
                 
-                bodyHtml += `<td style="font-weight: bold; background: #fff; position: sticky; left: 0; z-index: 5; border-right: 1px solid var(--border);">${proj}</td>`;
-                bodyHtml += `<td style="background: #fff; position: sticky; left: 150px; z-index: 5; border-right: 1px solid var(--border);">${auth}</td>`;
+                bodyHtml += `<td style="font-weight: bold; background: #fff; position: sticky; left: 0; z-index: 5; border-right: 1px solid var(--border); font-size: 0.8rem; padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; max-width: 120px;">${proj}</td>`;
+                bodyHtml += `<td style="background: #fff; position: sticky; left: 120px; z-index: 5; border-right: 1px solid var(--border); font-size: 0.8rem; padding: 6px 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; max-width: 80px;">${auth}</td>`;
                 
                 for (let d = 1; d <= daysInMonth; d++) {
                     const hrs = data.days[d];
                     const displayHrs = hrs ? hrs.toFixed(1) : '';
                     const style = hrs ? 'background-color: #f0fdf4; font-weight: bold; text-align: center;' : 'text-align: center; color: #cbd5e1;';
-                    bodyHtml += `<td style="${style}">${hrs ? displayHrs : '-'}</td>`;
+                    bodyHtml += `<td style="font-size: 0.72rem; padding: 4px 1px; ${style}">${hrs ? displayHrs : ''}</td>`;
                 }
                 
-                bodyHtml += `<td style="text-align: right; font-weight: bold; color: var(--primary); background: #f8fafc;">${data.total.toFixed(1)}H</td>`;
+                bodyHtml += `<td style="text-align: right; font-weight: bold; color: var(--primary); background: #f8fafc; font-size: 0.8rem; padding: 6px 4px;">${data.total.toFixed(1)}H</td>`;
                 bodyHtml += `</tr>`;
             });
         });
