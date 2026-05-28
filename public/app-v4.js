@@ -1379,7 +1379,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section morning">
                         <div class="time-section-header">🌅 午前</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project morning-project" placeholder="支店・現場名" list="project-list"
+                            <input type="text" class="section-project morning-project" placeholder="支店・現場名" list="project-suggestions"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -1389,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section afternoon">
                         <div class="time-section-header">🌤 午後</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project afternoon-project" placeholder="支店・現場名" list="project-list"
+                            <input type="text" class="section-project afternoon-project" placeholder="支店・現場名" list="project-suggestions"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -1399,7 +1399,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section night">
                         <div class="time-section-header">🌙 夜間</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project night-project" placeholder="支店・現場名" list="project-list"
+                            <input type="text" class="section-project night-project" placeholder="支店・現場名" list="project-suggestions"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">

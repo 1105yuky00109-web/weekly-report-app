@@ -10,7 +10,7 @@ if (!fs.existsSync(codePath)) {
 const content = fs.readFileSync(codePath, 'utf8');
 const lines = content.split('\n');
 
-const queries = ['loadMembers'];
+const queries = ['days-container', 'day-card', 'morning-project', 'datalist'];
 
 queries.forEach(query => {
     console.log(`=== Matches for "${query}" ===`);
