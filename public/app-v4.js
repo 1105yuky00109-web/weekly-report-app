@@ -1407,6 +1407,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
                     </div>
+                    <input type="hidden" class="day-timeline-data" value="">
+                    <input type="hidden" class="day-leave-type" value="">
+                    <!-- 日次レポート・備考（タイムラインの上に移動） -->
+                    <div class="day-report-field" style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;margin-bottom:12px;">
+                        <label style="font-size:0.85rem;font-weight:bold;margin-bottom:5px;display:block;color:var(--text-muted);">📝 日次レポート・備考</label>
+                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:#ffffff;color:#000000;resize:vertical;"></textarea>
+                    </div>
                     <!-- タイムライン -->
                     <div class="timeline-section" style="margin-top:8px;">
                         <div class="timeline-palette" style="display:flex;gap:4px;margin-bottom:4px;align-items:center;flex-wrap:wrap;">
@@ -1419,12 +1426,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="timeline-hours-header" style="display:grid;grid-template-columns:repeat(24,1fr);font-size:0.65rem;color:var(--text-muted);padding:0 1px;"></div>
                         <div class="timeline-cells-grid" style="display:grid;grid-template-columns:repeat(48,1fr);gap:0;border:1px solid var(--border);border-radius:4px;overflow:hidden;height:28px;cursor:crosshair;touch-action:none;"></div>
-                    </div>
-                    <input type="hidden" class="day-timeline-data" value="">
-                    <input type="hidden" class="day-leave-type" value="">
-                    <div class="day-report-field" style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;">
-                        <label style="font-size:0.85rem;font-weight:bold;margin-bottom:5px;display:block;color:var(--text-muted);">📝 日次レポート・備考</label>
-                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:#ffffff;color:#000000;resize:vertical;"></textarea>
                     </div>
                 </div>
             `;
