@@ -1409,13 +1409,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const calculateWeekTotal = () => {
         let weekTotal = 0;
-        document.querySelectorAll('.total-hours').forEach(span => {
-            const h = parseFloat(span.textContent.replace('計 ', '').replace('H', ''));
-            if (!isNaN(h)) weekTotal += h;
+        let weekSiteTotal = 0;
+        document.querySelectorAll('.day-timeline-data').forEach(input => {
+            const tl = input.value || '';
+            if (tl.length === 48) {
+                const workCount = tl.split('').filter(s => s === '1' || s === '3' || s === '5').length;
+                const siteCount = tl.split('').filter(s => s === '1').length;
+                weekTotal += workCount * 0.5;
+                weekSiteTotal += siteCount * 0.5;
+            }
         });
         const weekTotalSpan = document.getElementById('week-total-hours');
         if (weekTotalSpan) {
-            weekTotalSpan.textContent = `合計: ${weekTotal.toFixed(1)}H`;
+            weekTotalSpan.textContent = `週合計: ${weekTotal.toFixed(1)}H (現場従事: ${weekSiteTotal.toFixed(1)}H)`;
         }
     };
 
@@ -1715,8 +1721,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const calculateTotal = () => {
                 const workCount = stateArray.filter(s => s === 1 || s === 3 || s === 5).length;
                 const totalHours = workCount * 0.5;
-                totalDisplay.textContent = `作業計 ${totalHours.toFixed(1)}H`;
-                dayCard.querySelector('.total-hours').textContent = `計 ${totalHours.toFixed(1)}H`;
+                const siteCount = stateArray.filter(s => s === 1).length;
+                const siteHours = siteCount * 0.5;
+                totalDisplay.textContent = `作業計 ${totalHours.toFixed(1)}H (現場従事 ${siteHours.toFixed(1)}H)`;
+                dayCard.querySelector('.total-hours').textContent = `計 ${totalHours.toFixed(1)}H (現場従事 ${siteHours.toFixed(1)}H)`;
                 timelineData.value = stateArray.join('');
                 calculateWeekTotal();
             };
@@ -3175,6 +3183,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            let daySiteTotal = 0;
+            if (tlStr && tlStr.length === 48) {
+                daySiteTotal = tlStr.split('').filter(s => s === '1').length * 0.5;
+            }
             tasks.forEach(task => {
                 dayTotal += parseFloat(task.hours || 0);
             });
@@ -3200,7 +3212,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
                     </div>
                 </div>
-                <div class="print-timeline-total">計 ${dayTotal.toFixed(1)}H</div>
+                <div class="print-timeline-total">計 ${dayTotal.toFixed(1)}H<br>(現場従事 ${daySiteTotal.toFixed(1)}H)</div>
             </div>
             `;
             
@@ -3256,7 +3268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
             '.print-timeline-cell[data-state="4"] { background: #94a3b8; }',
             '.print-timeline-cell[data-state="5"] { background: #2563eb; }',
-            '.print-timeline-total { width: 10%; font-size: 7.5pt; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; }'
+            '.print-timeline-total { width: 15%; font-size: 7.2pt; text-align: center; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }'
         ].join('\n');
 
         var fullDoc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>週間行動予定表</title><style>' + printCSS + '</style></head><body>' + html + '</body></html>';
