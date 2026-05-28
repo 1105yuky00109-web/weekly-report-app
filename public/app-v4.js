@@ -2670,12 +2670,20 @@ document.addEventListener('DOMContentLoaded', () => {
             <div style="font-size: 9pt;">対象週: ${weekText} (${formatWeekRange(weekVal)})</div>
             <div class="legend-box">
                 <div class="legend-item">
-                    <span class="legend-color" style="background: #000;"></span>
+                    <span class="legend-color" style="background: #000000;"></span>
                     <span>作業</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #ef4444;"></span>
                     <span>休憩</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #16a34a;"></span>
+                    <span>移動</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #2563eb;"></span>
+                    <span>有休</span>
                 </div>
             </div>
         </div>
