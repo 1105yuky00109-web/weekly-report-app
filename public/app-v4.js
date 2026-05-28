@@ -3176,21 +3176,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // マージタイムライン
             let mergedTimeline = Array(48).fill(0);
             let dayTotal = 0;
+            let daySiteTotal = 0;
             const tlStr = dayObj.timeline || '';
             if (tlStr && tlStr.length === 48) {
                 for (let i = 0; i < 48; i++) {
                     mergedTimeline[i] = parseInt(tlStr[i]) || 0;
                 }
+                dayTotal = tlStr.split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                daySiteTotal = tlStr.split('').filter(s => s === '1').length * 0.5;
             }
-            
-            let daySiteTotal = 0;
-            tasks.forEach(task => {
-                dayTotal += parseFloat(task.hours || 0);
-                const isLeave = ['有給', '有休', '欠勤', '休日'].includes(task.project);
-                if (!isLeave && task.timeline) {
-                    daySiteTotal += task.timeline.split('').filter(s => s === '1').length * 0.5;
-                }
-            });
             
             html += `
             <div class="print-timeline-row">
