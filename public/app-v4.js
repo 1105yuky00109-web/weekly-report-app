@@ -2155,12 +2155,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const mySuggestions = new Set();
         const otherSuggestions = new Set();
         
-        // 支店候補の追加
-        const branchSuggestions = ['本社', '東京支店', '埼玉支店', '千葉支店', '神奈川支店'];
+        // 支店候補の追加（単一の「支店」のみを残す）
+        const branchSuggestions = ['支店'];
+        
+        // サジェストから除外する工事名・項目の判定関数
+        const isExcludedProject = (proj) => {
+            if (!proj) return true;
+            const normalized = proj.trim();
+            // 有給・有休、欠勤・休日・休み、本社、支店
+            if (['有給', '有休', '欠勤', '休日', '休み', '本社', '支店'].includes(normalized)) {
+                return true;
+            }
+            // 個別支店名（例：東京支店）も除外する
+            if (normalized.endsWith('支店')) {
+                return true;
+            }
+            return false;
+        };
         
         // スケジュール（工事情報）から取得
         allSchedules.forEach(s => { 
-            if (s.project) {
+            if (s.project && !isExcludedProject(s.project)) {
                 otherSuggestions.add(s.project); 
             }
         });
@@ -2175,7 +2190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (Array.isArray(dayLog)) {
                         // 旧形式（配列）
                         dayLog.forEach(t => { 
-                            if (t.project && !['有給', '有休', '欠勤', '休日'].includes(t.project)) {
+                            if (t.project && !isExcludedProject(t.project)) {
                                 targetSet.add(t.project); 
                             }
                         });
@@ -2183,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 新形式（オブジェクト）
                         ['morning', 'afternoon', 'night'].forEach(sec => {
                             const proj = dayLog[sec]?.project;
-                            if (proj && !['有給', '有休', '欠勤', '休日'].includes(proj)) {
+                            if (proj && !isExcludedProject(proj)) {
                                 targetSet.add(proj);
                             }
                         });
@@ -2194,17 +2209,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // ソートして連結
         // 1. 本人が入力した過去の工事名
-        // 2. 支店名および「有休」「休日」の項目
+        // 2. 支店名「支店」の項目
         // 3. その他（他人が入力した工事、スケジュール工事等）
+        // 4. 「有休」（一番最後）
         const mySorted = Array.from(mySuggestions).sort();
         const otherSorted = Array.from(otherSuggestions).sort().filter(p => !mySuggestions.has(p) && !branchSuggestions.includes(p));
         
         const finalSuggestions = [
             ...mySorted,
             ...branchSuggestions,
-            '有休',
-            '休日',
-            ...otherSorted
+            ...otherSorted,
+            '有休'
         ];
         
         const datalist = document.getElementById('project-suggestions');
