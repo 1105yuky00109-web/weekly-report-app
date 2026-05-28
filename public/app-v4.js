@@ -899,7 +899,7 @@ const getTimelineIntervals = (timelineStr) => {
     
     return intervals.map(interval => {
         const formatTime = (idx) => {
-            const h = Math.floor(idx / 2);
+            const h = (Math.floor(idx / 2) + 5) % 24; // 5:00起点
             const m = (idx % 2 === 0) ? '00' : '30';
             return `${String(h).padStart(2, '0')}:${m}`;
         };
@@ -967,6 +967,8 @@ const generateWeekOptions = () => {
         el.textContent = opt.text;
         if (opt.value === currentWeekStr) {
             el.selected = true;
+            el.style.color = '#ef4444';      // 現在週を赤字
+            el.style.fontWeight = 'bold';    // 太字
         }
         select.appendChild(el);
     });
@@ -2677,15 +2679,54 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!dayCard) return;
             const cardData = taskList.getCardData ? taskList.getCardData() : {};
             const tasks = [];
+            
+            const fullTimeline = cardData.timeline || '0'.repeat(48);
+            
+            // 午前(morning): 5:00〜12:00 (インデックス 0〜13)
+            // 午後(afternoon): 12:00〜18:00 (インデックス 14〜25)
+            // 夜間(night): 18:00〜翌5:00 (インデックス 26〜47)
+            const periodTimeline = (period) => {
+                let start = 0;
+                let end = 48;
+                if (period === 'morning') {
+                    start = 0;
+                    end = 14;
+                } else if (period === 'afternoon') {
+                    start = 14;
+                    end = 26;
+                } else if (period === 'night') {
+                    start = 26;
+                    end = 48;
+                }
+                const prefix = '0'.repeat(start);
+                const body = fullTimeline.substring(start, end);
+                const suffix = '0'.repeat(48 - end);
+                return prefix + body + suffix;
+            };
+            
+            const hasLeave = !!cardData.leaveType;
+
             ['morning', 'afternoon', 'night'].forEach(period => {
                 const proj = cardData[period]?.project || '';
                 const det = cardData[period]?.detail || '';
-                if (proj || det) tasks.push({ project: proj, detail: det, hours: 0, timeline: cardData.timeline || '' });
+                if (proj || det) {
+                    const taskTimeline = periodTimeline(period);
+                    // 各時間帯ごとの作業・移動コマから作業時間を計算
+                    const periodWorkHours = taskTimeline.split('').filter(s => s === '1' || s === '3').length * 0.5;
+                    tasks.push({ 
+                        project: proj, 
+                        detail: det, 
+                        hours: periodWorkHours, 
+                        timeline: taskTimeline 
+                    });
+                }
             });
-            if (cardData.leaveType) tasks.push({ project: cardData.leaveType, detail: '', hours: 0, timeline: '' });
+            
+            if (hasLeave) {
+                tasks.push({ project: cardData.leaveType, detail: '', hours: 0, timeline: '' });
+            }
+            
             const tl = cardData.timeline || '';
-            const workHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
-            if (tasks.length > 0 && !cardData.leaveType) tasks[0].hours = workHours;
             const reportText = dayCard.querySelector('.day-report-text')?.value.trim() || '';
             daysData[day] = { tasks, reportText, timeline: tl };
         });
@@ -2840,8 +2881,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="print-timeline-hours">
                     <div class="print-timeline-header-cells">
             `;
-            for (let h = 0; h < 24; h++) {
-                html += `<div class="print-timeline-hour-cell">${h}</div>`;
+            for (let h = 5; h < 29; h++) {
+                const displayHour = h % 24;
+                html += `<div class="print-timeline-hour-cell">${displayHour}</div>`;
             }
             html += `
                     </div>
