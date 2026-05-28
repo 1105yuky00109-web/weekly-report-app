@@ -793,6 +793,43 @@ btnLogout.addEventListener('click', () => {
     signOut(auth).catch(err => console.error(err));
 });
 
+// 日別タスクデータを新旧形式問わず配列に正規化するヘルパー関数
+const normalizeDailyTasks = (dayLog) => {
+    if (!dayLog) return [];
+    if (Array.isArray(dayLog)) {
+        return dayLog;
+    }
+    if (typeof dayLog === 'object') {
+        const ts = [];
+        ['morning', 'afternoon', 'night'].forEach(period => {
+            const sec = dayLog[period];
+            if (sec && (sec.project || sec.detail)) {
+                ts.push({
+                    project: sec.project,
+                    detail: sec.detail,
+                    hours: 0,
+                    timeline: dayLog.timeline || ''
+                });
+            }
+        });
+        if (ts.length > 0) {
+            const tl = dayLog.timeline || '';
+            const totalWorkHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
+            ts[0].hours = totalWorkHours;
+        }
+        if (dayLog.leaveType) {
+            ts.push({
+                project: dayLog.leaveType,
+                detail: '',
+                hours: 0,
+                timeline: ''
+            });
+        }
+        return ts;
+    }
+    return [];
+};
+
 // ユーティリティ関数
 const getDaysOfWeek = (weekStr) => {
     if (!weekStr) return null;
@@ -2123,7 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (Array.isArray(dayLog)) {
                         // 旧形式（配列）
                         dayLog.forEach(t => { 
-                            if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
+                            if (t.project && !['有給', '有休', '欠勤', '休日'].includes(t.project)) {
                                 targetSet.add(t.project); 
                             }
                         });
@@ -2131,7 +2168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 新形式（オブジェクト）
                         ['morning', 'afternoon', 'night'].forEach(sec => {
                             const proj = dayLog[sec]?.project;
-                            if (proj && !['有給', '欠勤', '休日'].includes(proj)) {
+                            if (proj && !['有給', '有休', '欠勤', '休日'].includes(proj)) {
                                 targetSet.add(proj);
                             }
                         });
@@ -2142,7 +2179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // ソートして連結
         // 1. 本人が入力した過去の工事名
-        // 2. 支店名のデフォルト候補
+        // 2. 支店名および「有休」「休日」の項目
         // 3. その他（他人が入力した工事、スケジュール工事等）
         const mySorted = Array.from(mySuggestions).sort();
         const otherSorted = Array.from(otherSuggestions).sort().filter(p => !mySuggestions.has(p) && !branchSuggestions.includes(p));
@@ -2150,10 +2187,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const finalSuggestions = [
             ...mySorted,
             ...branchSuggestions,
-            ...otherSorted,
-            '有給',
-            '欠勤',
-            '休日'
+            '有休',
+            '休日',
+            ...otherSorted
         ];
         
         const datalist = document.getElementById('project-suggestions');
@@ -2262,9 +2298,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!authorProjectHours[r.author]) authorProjectHours[r.author] = {};
             const days = ['月','火','水','木','金','土','日'];
             days.forEach(day => {
-                const ts = r.dailyLogs ? r.dailyLogs[day] : [];
-                if (ts) ts.forEach(t => {
-                    if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
+                const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
+                ts.forEach(t => {
+                    if (t.project && !['有給', '有休', '欠勤', '休日'].includes(t.project)) {
                         authorProjectHours[r.author][t.project] = (authorProjectHours[r.author][t.project] || 0) + parseFloat(t.hours || 0);
                     }
                 });
@@ -2273,7 +2309,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const dates = getDaysOfWeek(r.week);
             const getDayLabel = (idx, name) => dates ? `${formatDate(dates[idx])}<br>(${name})` : name;
             const renderCell = (day) => {
-                const tasksHtml = (r.dailyLogs && r.dailyLogs[day]) ? r.dailyLogs[day].map(t => `<div class="day-summary-cell"><strong>${t.project}</strong>${t.detail} (${parseFloat(t.hours||0).toFixed(1)}H)</div>`).join('') : '';
+                const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
+                const tasksHtml = ts.map(t => `<div class="day-summary-cell"><strong>${t.project}</strong>${t.detail} (${parseFloat(t.hours||0).toFixed(1)}H)</div>`).join('');
                 const reportHtml = (r.dailyReports && r.dailyReports[day]) ? `<div class="day-report-summary-cell" style="font-size:0.8rem; color:#0284c7; margin-top:5px; border-top:1px dotted var(--border); padding-top:3px; white-space:pre-wrap; font-style:italic; text-align: left;">📝 ${r.dailyReports[day]}</div>` : '';
                 return (tasksHtml || reportHtml) ? (tasksHtml + reportHtml) : '-';
             };
@@ -2293,8 +2330,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let printTasksHtml = '';
             daysName.forEach((day, idx) => {
-                // ts が undefined になる場合に備えてフォールバック
-                const ts = (r.dailyLogs && Array.isArray(r.dailyLogs[day])) ? r.dailyLogs[day] : [];
+                const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
                 const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
                 
                 if (ts.length > 0) {
@@ -2408,11 +2444,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // 選択された月と一致するかチェック
                 if (dYear === year && dMonth === month) {
-                    const ts = r.dailyLogs ? r.dailyLogs[day] : [];
-                    if (ts) ts.forEach(t => {
+                    const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
+                    ts.forEach(t => {
                         if (!t.project || !t.hours) return;
                         const proj = t.project;
-                        if (['有給', '欠勤', '休日'].includes(proj)) return;
+                        if (['有給', '有休', '欠勤', '休日'].includes(proj)) return;
                         const auth = r.author || '不明';
                         const hrs = parseFloat(t.hours || 0);
                         
@@ -2621,7 +2657,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const workHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
             if (tasks.length > 0 && !cardData.leaveType) tasks[0].hours = workHours;
             const reportText = dayCard.querySelector('.day-report-text')?.value.trim() || '';
-            daysData[day] = { tasks, reportText };
+            daysData[day] = { tasks, reportText, timeline: tl };
         });
         
         const dates = getDaysOfWeek(weekVal);
@@ -2757,18 +2793,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // マージタイムライン
             let mergedTimeline = Array(48).fill(0);
             let dayTotal = 0;
+            const tlStr = dayObj.timeline || '';
+            if (tlStr && tlStr.length === 48) {
+                for (let i = 0; i < 48; i++) {
+                    mergedTimeline[i] = parseInt(tlStr[i]) || 0;
+                }
+            }
+            
             tasks.forEach(task => {
                 dayTotal += parseFloat(task.hours || 0);
-                if (task.timeline && task.timeline.length === 48) {
-                    for (let i = 0; i < 48; i++) {
-                        const val = parseInt(task.timeline[i]);
-                        if (val === 1) {
-                            mergedTimeline[i] = 1;
-                        } else if (val === 2 && mergedTimeline[i] !== 1) {
-                            mergedTimeline[i] = 2;
-                        }
-                    }
-                }
             });
             
             html += `
@@ -3441,7 +3474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             filtered.forEach(r => {
                 const days = ['月','火','水','木','金','土','日'];
                 days.forEach(day => {
-                    const tasks = (r.dailyLogs && r.dailyLogs[day]) ? r.dailyLogs[day] : [];
+                    const tasks = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
                     const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
                     
                     if (tasks.length > 0) {
@@ -3456,7 +3489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 "日次レポート・備考": dailyRep
                             });
                             
-                            if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
+                            if (t.project && !['有給', '有休', '欠勤', '休日'].includes(t.project)) {
                                 if (!authorProjectHours[r.author]) authorProjectHours[r.author] = {};
                                 authorProjectHours[r.author][t.project] = (authorProjectHours[r.author][t.project] || 0) + parseFloat(t.hours || 0);
                             }
