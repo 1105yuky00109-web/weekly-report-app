@@ -1669,7 +1669,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button type="button" class="palette-btn" data-mode="5" style="padding:2px 10px;border:2px solid #2563eb;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#2563eb;">▼ 現場管理以外の業務</button>
                             <button type="button" class="palette-btn" data-mode="2" style="padding:2px 10px;border:2px solid #ef4444;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#ef4444;">● 休憩</button>
                             <button type="button" class="palette-btn" data-mode="3" style="padding:2px 10px;border:2px solid #16a34a;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#16a34a;">▲ 移動</button>
-                            <button type="button" class="palette-btn" data-mode="4" style="padding:2px 10px;border:2px solid #4b5563;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#4b5563;">◆ 有休</button>
+                            <button type="button" class="palette-btn" data-mode="4" style="padding:2px 10px;border:2px solid #94a3b8;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#94a3b8;">◆ 有休</button>
                             <button type="button" class="palette-btn" data-mode="0" style="padding:2px 10px;border:2px solid #94a3b8;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#64748b;">× 消去</button>
                             <span class="timeline-hours-total-display" style="margin-left:auto;font-weight:bold;color:var(--primary);font-size:0.9rem;">作業計 0.0H</span>
                         </div>
@@ -1742,9 +1742,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.style.color = isActive ? '#ffffff' : '#16a34a';
                         btn.style.borderColor = '#16a34a';
                     } else if (mode === 4) { // 有休
-                        btn.style.background = isActive ? '#4b5563' : '#ffffff';
-                        btn.style.color = isActive ? '#ffffff' : '#4b5563';
-                        btn.style.borderColor = '#4b5563';
+                        btn.style.background = isActive ? '#94a3b8' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#94a3b8';
+                        btn.style.borderColor = '#94a3b8';
                     } else if (mode === 5) { // 現場管理以外の業務
                         btn.style.background = isActive ? '#2563eb' : '#ffffff';
                         btn.style.color = isActive ? '#ffffff' : '#2563eb';
@@ -3094,7 +3094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>移動</span>
                 </div>
                 <div class="legend-item">
-                    <span class="legend-color" style="background: #4b5563;"></span>
+                    <span class="legend-color" style="background: #94a3b8;"></span>
                     <span>有休</span>
                 </div>
             </div>
@@ -3254,7 +3254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '.print-timeline-cell[data-state="1"] { background: #000; }',
             '.print-timeline-cell[data-state="2"] { background: #ef4444; }',
             '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
-            '.print-timeline-cell[data-state="4"] { background: #4b5563; }',
+            '.print-timeline-cell[data-state="4"] { background: #94a3b8; }',
             '.print-timeline-cell[data-state="5"] { background: #2563eb; }',
             '.print-timeline-total { width: 10%; font-size: 7.5pt; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; }'
         ].join('\n');

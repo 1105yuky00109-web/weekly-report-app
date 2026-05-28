@@ -404,7 +404,7 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     .print-timeline-cell[data-state="1"] { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .print-timeline-cell[data-state="2"] { background: #ef4444 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .print-timeline-cell[data-state="3"] { background: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .print-timeline-cell[data-state="4"] { background: #4b5563 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-timeline-cell[data-state="4"] { background: #94a3b8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .print-timeline-cell[data-state="5"] { background: #2563eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     
     .print-timeline-total {
@@ -724,7 +724,7 @@ body.dark-theme #summary-table td[style*="background: rgb(248, 250, 252)"] {
 .timeline-cell[data-state="1"] { background: #000000 !important; } /* 作業 */
 .timeline-cell[data-state="2"] { background: #ef4444 !important; } /* 休憩 */
 .timeline-cell[data-state="3"] { background: #16a34a !important; } /* 移動 */
-.timeline-cell[data-state="4"] { background: #4b5563 !important; } /* 有休 */
+.timeline-cell[data-state="4"] { background: #94a3b8 !important; } /* 有休 */
 .timeline-cell[data-state="5"] { background: #2563eb !important; } /* 現場管理以外の業務 */
 
 .timeline-summary {
@@ -922,7 +922,7 @@ body.dark-theme .status-badge.status-approved {
 .timeline-cell[data-state="1"] { background: #000000 !important; } /* 作業 */
 .timeline-cell[data-state="2"] { background: #ef4444 !important; } /* 休憩 */
 .timeline-cell[data-state="3"] { background: #16a34a !important; } /* 移動 */
-.timeline-cell[data-state="4"] { background: #4b5563 !important; } /* 有休 */
+.timeline-cell[data-state="4"] { background: #94a3b8 !important; } /* 有休 */
 .timeline-cell[data-state="5"] { background: #2563eb !important; } /* 現場管理以外の業務 */
 
 .timeline-summary {
