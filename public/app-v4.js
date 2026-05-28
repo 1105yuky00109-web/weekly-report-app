@@ -2593,8 +2593,14 @@ document.addEventListener('DOMContentLoaded', () => {
             months.forEach(m => summaryFilterMonth.innerHTML += `<option value="${m}">${m.replace('-', '年')}月</option>`);
             if (cur) {
                 summaryFilterMonth.value = cur;
-            } else if (months.length > 0) {
-                summaryFilterMonth.value = months[0];
+            } else {
+                const now = new Date();
+                const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                if (months.includes(currentMonthStr)) {
+                    summaryFilterMonth.value = currentMonthStr;
+                } else if (months.length > 0) {
+                    summaryFilterMonth.value = months[0];
+                }
             }
         }
 
