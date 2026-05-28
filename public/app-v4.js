@@ -1386,6 +1386,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
+                        <div style="margin-top:6px; width:100%;">
+                            <input type="text" class="section-report morning-report" placeholder="午前の詳細レポート・備考（印刷時に青文字で表示されます）"
+                                style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
+                        </div>
                     </div>
                     <!-- 午後セクション -->
                     <div class="time-section afternoon">
@@ -1395,6 +1399,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
+                        </div>
+                        <div style="margin-top:6px; width:100%;">
+                            <input type="text" class="section-report afternoon-report" placeholder="午後の詳細レポート・備考（印刷時に青文字で表示されます）"
+                                style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
                     </div>
                     <!-- 夜間セクション -->
@@ -1406,13 +1414,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
+                        <div style="margin-top:6px; width:100%;">
+                            <input type="text" class="section-report night-report" placeholder="夜間の詳細レポート・備考（印刷時に青文字で表示されます）"
+                                style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
+                        </div>
                     </div>
                     <input type="hidden" class="day-timeline-data" value="">
                     <input type="hidden" class="day-leave-type" value="">
-                    <!-- 日次レポート・備考（タイムラインの上に移動） -->
-                    <div class="day-report-field" style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;margin-bottom:12px;">
-                        <label style="font-size:0.85rem;font-weight:bold;margin-bottom:5px;display:block;color:var(--text-muted);">📝 日次レポート・備考</label>
-                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:#ffffff;color:#000000;resize:vertical;"></textarea>
+                    <!-- 互換性のための非表示の全体レポートエリア -->
+                    <div class="day-report-field" style="display:none;">
+                        <textarea class="day-report-text"></textarea>
                     </div>
                     <!-- タイムライン -->
                     <div class="timeline-section" style="margin-top:8px;">
@@ -1584,15 +1595,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return {
                     morning: {
                         project: dayCard.querySelector('.morning-project')?.value.trim() || '',
-                        detail: dayCard.querySelector('.morning-detail')?.value.trim() || ''
+                        detail: dayCard.querySelector('.morning-detail')?.value.trim() || '',
+                        report: dayCard.querySelector('.morning-report')?.value.trim() || ''
                     },
                     afternoon: {
                         project: dayCard.querySelector('.afternoon-project')?.value.trim() || '',
-                        detail: dayCard.querySelector('.afternoon-detail')?.value.trim() || ''
+                        detail: dayCard.querySelector('.afternoon-detail')?.value.trim() || '',
+                        report: dayCard.querySelector('.afternoon-report')?.value.trim() || ''
                     },
                     night: {
                         project: dayCard.querySelector('.night-project')?.value.trim() || '',
-                        detail: dayCard.querySelector('.night-detail')?.value.trim() || ''
+                        detail: dayCard.querySelector('.night-detail')?.value.trim() || '',
+                        report: dayCard.querySelector('.night-report')?.value.trim() || ''
                     },
                     timeline: timelineData.value,
                     leaveType: leaveTypeInput.value
@@ -1604,16 +1618,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!data) return;
                 const mp = dayCard.querySelector('.morning-project');
                 const md = dayCard.querySelector('.morning-detail');
+                const mr = dayCard.querySelector('.morning-report');
                 const ap = dayCard.querySelector('.afternoon-project');
                 const ad = dayCard.querySelector('.afternoon-detail');
+                const ar = dayCard.querySelector('.afternoon-report');
                 const np = dayCard.querySelector('.night-project');
                 const nd = dayCard.querySelector('.night-detail');
+                const nr = dayCard.querySelector('.night-report');
+                
                 if (mp) mp.value = data.morning?.project || '';
                 if (md) md.value = data.morning?.detail || '';
+                if (mr) mr.value = data.morning?.report || '';
+                
                 if (ap) ap.value = data.afternoon?.project || '';
                 if (ad) ad.value = data.afternoon?.detail || '';
+                if (ar) ar.value = data.afternoon?.report || '';
+                
                 if (np) np.value = data.night?.project || '';
                 if (nd) nd.value = data.night?.detail || '';
+                if (nr) nr.value = data.night?.report || '';
+                
+                // 過去データの互換性のための救済ロジック
+                // もし新しい午前・午後・夜間のレポートがすべて空で、かつ非表示の textarea (過去の全体レポート) に値がある場合、
+                // それを「午前レポート」に移行して表示させます。
+                const oldReportVal = dayCard.querySelector('.day-report-text')?.value || '';
+                if (oldReportVal && !data.morning?.report && !data.afternoon?.report && !data.night?.report) {
+                    if (mr) mr.value = oldReportVal;
+                }
+
                 if (data.timeline && data.timeline.length === 48) {
                     stateArray = data.timeline.split('').map(Number);
                     cellElements.forEach((cell, i) => { cell.dataset.state = stateArray[i]; });
@@ -1623,7 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const leaveType = data.leaveType || '';
                 leaveTypeInput.value = leaveType;
                 
-                const allInputs = dayCard.querySelectorAll('.section-project, .section-detail, .day-report-text');
+                const allInputs = dayCard.querySelectorAll('.section-project, .section-detail, .section-report, .day-report-text');
                 const timelinePalette = dayCard.querySelector('.timeline-palette');
                 
                 // 休日ボタンの状態を更新
@@ -1863,10 +1895,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dailyReports = {};
         daysName.forEach(day => {
-            const textVal = document.querySelector(`.task-list[data-day="${day}"]`)
-                .closest('.day-card')
-                .querySelector('.day-report-text').value.trim();
-            dailyReports[day] = textVal;
+            const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
+            if (dayCard) {
+                const mrVal = dayCard.querySelector('.morning-report')?.value.trim() || '';
+                const arVal = dayCard.querySelector('.afternoon-report')?.value.trim() || '';
+                const nrVal = dayCard.querySelector('.night-report')?.value.trim() || '';
+                
+                // 従来の dailyReports にも午前・午後・夜間のレポートを改行区切りで結合して保存する（後方互換性のため）
+                const reports = [];
+                if (mrVal) reports.push(`【午前】${mrVal}`);
+                if (arVal) reports.push(`【午後】${arVal}`);
+                if (nrVal) reports.push(`【夜間】${nrVal}`);
+                
+                const combined = reports.join('\n');
+                dailyReports[day] = combined;
+                
+                // 非表示の textarea にも反映しておく
+                const hiddenText = dayCard.querySelector('.day-report-text');
+                if (hiddenText) hiddenText.value = combined;
+            } else {
+                dailyReports[day] = '';
+            }
         });
 
         const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
@@ -2710,13 +2759,15 @@ document.addEventListener('DOMContentLoaded', () => {
             ['morning', 'afternoon', 'night'].forEach(period => {
                 const proj = cardData[period]?.project || '';
                 const det = cardData[period]?.detail || '';
-                if (proj || det) {
+                const rep = cardData[period]?.report || '';
+                if (proj || det || rep) {
                     const taskTimeline = periodTimeline(period);
                     // 各時間帯ごとの作業・移動コマから作業時間を計算
                     const periodWorkHours = taskTimeline.split('').filter(s => s === '1' || s === '3').length * 0.5;
                     tasks.push({ 
                         project: proj, 
                         detail: det, 
+                        report: rep,
                         hours: periodWorkHours, 
                         timeline: taskTimeline 
                     });
@@ -2724,11 +2775,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if (hasLeave) {
-                tasks.push({ project: cardData.leaveType, detail: '', hours: 0, timeline: '' });
+                tasks.push({ project: cardData.leaveType, detail: '', report: '', hours: 0, timeline: '' });
             }
             
             const tl = cardData.timeline || '';
-            const reportText = dayCard.querySelector('.day-report-text')?.value.trim() || '';
+            const mr = dayCard.querySelector('.morning-report')?.value.trim() || '';
+            const ar = dayCard.querySelector('.afternoon-report')?.value.trim() || '';
+            const nr = dayCard.querySelector('.night-report')?.value.trim() || '';
+            const reports = [];
+            if (mr) reports.push(`【午前】${mr}`);
+            if (ar) reports.push(`【午後】${ar}`);
+            if (nr) reports.push(`【夜間】${nr}`);
+            const reportText = reports.join('\n');
             daysData[day] = { tasks, reportText, timeline: tl };
         });
         
@@ -2828,7 +2886,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="col-project">-</td>
                         <td class="col-time">-</td>
                         <td class="col-direct"></td>
-                        <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt;">${reportText || ''}</td>
+                        <td class="col-detail" style="text-align: left; white-space: pre-wrap; font-size: 8.5pt; color: #2563eb;">${reportText || ''}</td>
                     </tr>
                 `;
             } else {
@@ -2838,12 +2896,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     let detailContent = task.detail || '';
                     
-                    // 有休や休日などの休暇タスクでなく、かつレポートが存在する場合に適用
+                    // 有休や休日などの休暇タスクでなく、かつその時間帯のレポートが存在する場合に適用
                     const isLeaveTask = ['有給', '有休', '欠勤', '休日'].includes(task.project);
-                    if (!isLeaveTask && reportText) {
+                    if (!isLeaveTask && task.report) {
                         detailContent += `
                             <div style="font-size: 8pt; color: #2563eb; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; white-space: pre-wrap;">
-                                ${reportText}
+                                ${task.report}
                             </div>
                         `;
                     }
