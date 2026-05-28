@@ -1071,8 +1071,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 el.style.pointerEvents = 'none';
                 el.style.opacity = '0.5';
             } else {
-                const row = el.closest('.task-row');
-                if (row && row.classList.contains('leave-row')) {
+                const isInLeaveCard = el.closest('.day-card')?.querySelector('.leave-type-input')?.value;
+                if (isInLeaveCard) {
                     el.style.pointerEvents = 'none';
                     el.style.opacity = '0.5';
                 } else {
@@ -1098,14 +1098,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const reportTextarea = dayCard.querySelector('.day-report-text');
         if (!reportTextarea) return;
         
-        const projInputs = dayCard.querySelectorAll('.task-project');
-        let hasLeave = false;
-        projInputs.forEach(input => {
-            const val = input.value.trim();
-            if (['有給', '欠勤', '休日'].includes(val)) {
-                hasLeave = true;
-            }
-        });
+        const leaveInput = dayCard.querySelector('.leave-type-input');
+        let hasLeave = leaveInput && leaveInput.value ? true : false;
         
         const badge = document.getElementById('report-status-badge');
         const isLocked = badge && badge.classList.contains('status-approved');
@@ -2501,19 +2495,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // 画面の入力内容を収集
         const daysData = {};
         daysName.forEach(day => {
-            const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
-            const rows = dayCard.querySelectorAll('.task-row');
+            const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+            const dayCard = taskList ? taskList.closest('.day-card') : null;
+            if (!dayCard) return;
+            const cardData = taskList.getCardData ? taskList.getCardData() : {};
             const tasks = [];
-            rows.forEach(row => {
-                const project = row.querySelector('.task-project').value.trim();
-                const detail = row.querySelector('.task-detail').value.trim();
-                const hours = parseFloat(row.querySelector('.task-hours').value || 0);
-                const timeline = row.querySelector('.task-timeline-data').value;
-                if (project || detail || hours || timeline) {
-                    tasks.push({ project, detail, hours, timeline });
-                }
+            ['morning', 'afternoon', 'night'].forEach(period => {
+                const proj = cardData[period]?.project || '';
+                const det = cardData[period]?.detail || '';
+                if (proj || det) tasks.push({ project: proj, detail: det, hours: 0, timeline: cardData.timeline || '' });
             });
-            const reportText = dayCard.querySelector('.day-report-text').value.trim();
+            if (cardData.leaveType) tasks.push({ project: cardData.leaveType, detail: '', hours: 0, timeline: '' });
+            const tl = cardData.timeline || '';
+            const workHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
+            if (tasks.length > 0 && !cardData.leaveType) tasks[0].hours = workHours;
+            const reportText = dayCard.querySelector('.day-report-text')?.value.trim() || '';
             daysData[day] = { tasks, reportText };
         });
         
@@ -2773,20 +2769,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // 常に画面の最新のDOMデータから収集してエクスポートする
             const daysData = {};
             daysName.forEach(day => {
-                const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
-                const rows = dayCard.querySelectorAll('.task-row');
+                const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                const dayCard = taskList ? taskList.closest('.day-card') : null;
+                if (!dayCard) return;
+                const cardData = taskList.getCardData ? taskList.getCardData() : {};
                 const tasks = [];
-                rows.forEach(row => {
-                    const project = row.querySelector('.task-project').value.trim();
-                    const detail = row.querySelector('.task-detail').value.trim();
-                    const hours = parseFloat(row.querySelector('.task-hours').value || 0);
-                    const timeline = row.querySelector('.task-timeline-data').value;
-                    // 工事名(project)が入力されているタスク行のみを有効なデータとしてエクスポートする
-                    if (project) {
-                        tasks.push({ project, detail, hours, timeline });
-                    }
+                ['morning', 'afternoon', 'night'].forEach(period => {
+                    const proj = cardData[period]?.project || '';
+                    const det = cardData[period]?.detail || '';
+                    if (proj || det) tasks.push({ project: proj, detail: det, hours: 0, timeline: cardData.timeline || '' });
                 });
-                const reportText = dayCard.querySelector('.day-report-text').value.trim();
+                if (cardData.leaveType) tasks.push({ project: cardData.leaveType, detail: '', hours: 0, timeline: '' });
+                const tl = cardData.timeline || '';
+                const workHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
+                if (tasks.length > 0 && !cardData.leaveType) tasks[0].hours = workHours;
+                const reportText = dayCard.querySelector('.day-report-text')?.value.trim() || '';
                 daysData[day] = { tasks, reportText };
             });
             
