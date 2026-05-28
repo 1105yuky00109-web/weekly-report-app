@@ -2747,7 +2747,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const daysInMonth = new Date(year, month, 0).getDate();
         
         if (printTitle) {
-            printTitle.textContent = `${year}年${month}月 工事別作業時間集計`;
+            const modeText = summaryDisplayMode === 'site' ? '現場従事時間集計' : '作業時間集計';
+            printTitle.textContent = `${year}年${month}月 工事別${modeText}`;
         }
 
         // 1. カレンダーヘッダーの生成
@@ -2788,7 +2789,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         const proj = t.project;
                         if (['有給', '有休', '欠勤', '休日'].includes(proj)) return;
                         const auth = r.author || '不明';
-                        const hrs = parseFloat(t.hours || 0);
+                        
+                        let hrs = 0;
+                        if (summaryDisplayMode === 'site') {
+                            // 現場従事時間（黒：現場管理のみ）
+                            if (t.timeline) {
+                                hrs = t.timeline.split('').filter(s => s === '1').length * 0.5;
+                            } else {
+                                // タイムラインのない過去データ等のフォールバック
+                                hrs = 0;
+                            }
+                        } else {
+                            // 合計時間（作業全体）
+                            hrs = parseFloat(t.hours || 0);
+                        }
+                        
+                        if (hrs === 0) return;
                         
                         if (!projectMap[proj]) projectMap[proj] = {};
                         if (!projectMap[proj][auth]) {
@@ -2845,6 +2861,53 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     const summaryFilterMonth = document.getElementById('summary-filter-month');
     if(summaryFilterMonth) summaryFilterMonth.addEventListener('change', renderSummaryTable);
+
+    // 工事別集計の表示モード切り替えロジック
+    let summaryDisplayMode = 'total'; // 'total' (合計) または 'site' (現場従事時間)
+    const btnSummaryModeTotal = document.getElementById('btn-summary-mode-total');
+    const btnSummaryModeSite = document.getElementById('btn-summary-mode-site');
+
+    const updateSummaryModeButtons = () => {
+        if (!btnSummaryModeTotal || !btnSummaryModeSite) return;
+        if (summaryDisplayMode === 'total') {
+            btnSummaryModeTotal.className = 'btn btn-small active';
+            btnSummaryModeTotal.style.background = '';
+            btnSummaryModeTotal.style.color = '';
+            btnSummaryModeTotal.style.border = '';
+            
+            btnSummaryModeSite.className = 'btn btn-small';
+            btnSummaryModeSite.style.background = '#fff';
+            btnSummaryModeSite.style.color = 'var(--text-muted)';
+            btnSummaryModeSite.style.border = '1px solid var(--border)';
+        } else {
+            btnSummaryModeSite.className = 'btn btn-small active';
+            btnSummaryModeSite.style.background = '';
+            btnSummaryModeSite.style.color = '';
+            btnSummaryModeSite.style.border = '';
+            
+            btnSummaryModeTotal.className = 'btn btn-small';
+            btnSummaryModeTotal.style.background = '#fff';
+            btnSummaryModeTotal.style.color = 'var(--text-muted)';
+            btnSummaryModeTotal.style.border = '1px solid var(--border)';
+        }
+    };
+
+    if (btnSummaryModeTotal) {
+        btnSummaryModeTotal.addEventListener('click', () => {
+            if (summaryDisplayMode === 'total') return;
+            summaryDisplayMode = 'total';
+            updateSummaryModeButtons();
+            renderSummaryTable();
+        });
+    }
+    if (btnSummaryModeSite) {
+        btnSummaryModeSite.addEventListener('click', () => {
+            if (summaryDisplayMode === 'site') return;
+            summaryDisplayMode = 'site';
+            updateSummaryModeButtons();
+            renderSummaryTable();
+        });
+    }
 
     // 印刷ボタン処理（#print-active-areaを一時的に作成または再利用して印刷）
     const doPrint = (contentSourceId, titleText, isLandscape = false) => {
