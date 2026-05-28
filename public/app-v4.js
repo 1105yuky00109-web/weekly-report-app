@@ -1328,9 +1328,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="time-section-header">🌅 午前</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                             <input type="text" class="section-project morning-project" placeholder="工事・作業名" list="project-list"
-                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
-                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
                     </div>
                     <!-- 午後セクション -->
@@ -1338,9 +1338,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="time-section-header">🌤 午後</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                             <input type="text" class="section-project afternoon-project" placeholder="工事・作業名" list="project-list"
-                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
-                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
                     </div>
                     <!-- 夜間セクション -->
@@ -1348,9 +1348,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="time-section-header">🌙 夜間</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                             <input type="text" class="section-project night-project" placeholder="工事・作業名" list="project-list"
-                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
-                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:var(--bg);color:var(--text);">
+                                style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                         </div>
                     </div>
                     <!-- タイムライン -->
@@ -1370,7 +1370,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="hidden" class="day-leave-type" value="">
                     <div class="day-report-field" style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;">
                         <label style="font-size:0.85rem;font-weight:bold;margin-bottom:5px;display:block;color:var(--text-muted);">📝 日次レポート・備考</label>
-                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:var(--bg);color:var(--text);resize:vertical;"></textarea>
+                        <textarea class="day-report-text" rows="2" placeholder="今日の作業報告や特記事項を記入してください" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:8px;font-size:0.9rem;background:#ffffff;color:#000000;resize:vertical;"></textarea>
                     </div>
                 </div>
             `;
@@ -1419,14 +1419,51 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let currentMode = 1;
             const paletteBtns = dayCard.querySelectorAll('.palette-btn');
+            
+            const updatePaletteStyles = () => {
+                paletteBtns.forEach(btn => {
+                    const mode = parseInt(btn.dataset.mode);
+                    const isActive = mode === currentMode;
+                    
+                    if (mode === 1) { // 作業
+                        btn.style.background = isActive ? '#000000' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#000000';
+                        btn.style.borderColor = '#000000';
+                    } else if (mode === 2) { // 休憩
+                        btn.style.background = isActive ? '#ef4444' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#ef4444';
+                        btn.style.borderColor = '#ef4444';
+                    } else if (mode === 3) { // 移動
+                        btn.style.background = isActive ? '#16a34a' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#16a34a';
+                        btn.style.borderColor = '#16a34a';
+                    } else if (mode === 4) { // 有休
+                        btn.style.background = isActive ? '#2563eb' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#2563eb';
+                        btn.style.borderColor = '#2563eb';
+                    } else if (mode === 0) { // 消去
+                        btn.style.background = isActive ? '#64748b' : '#ffffff';
+                        btn.style.color = isActive ? '#ffffff' : '#64748b';
+                        btn.style.borderColor = '#94a3b8';
+                    }
+                    
+                    if (isActive) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            };
+
             paletteBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    paletteBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
                     currentMode = parseInt(btn.dataset.mode);
+                    updatePaletteStyles();
                 });
             });
+            
+            updatePaletteStyles();
             
             let isDrawing = false;
             const updateCellState = (index) => {
@@ -1527,9 +1564,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     cellElements.forEach((cell, i) => { cell.dataset.state = stateArray[i]; });
                     timelineData.value = data.timeline;
                 }
-                if (data.leaveType) {
-                    leaveTypeInput.value = data.leaveType;
+                
+                const leaveType = data.leaveType || '';
+                leaveTypeInput.value = leaveType;
+                
+                const allInputs = dayCard.querySelectorAll('.section-project, .section-detail, .day-report-text');
+                const timelinePalette = dayCard.querySelector('.timeline-palette');
+                
+                // 休日ボタンの状態を更新
+                dayCard.querySelectorAll('.leave-quick-btn').forEach(b => {
+                    if (leaveType && b.dataset.leave === leaveType) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
+                    }
+                });
+
+                if (leaveType) {
+                    allInputs.forEach(el => { el.disabled = true; el.style.opacity = '0.4'; });
+                    cellsGrid.style.opacity = '0.3'; cellsGrid.style.pointerEvents = 'none';
+                    if (timelinePalette) { timelinePalette.style.opacity = '0.3'; timelinePalette.style.pointerEvents = 'none'; }
+                } else {
+                    allInputs.forEach(el => { el.disabled = false; el.style.opacity = '1'; });
+                    cellsGrid.style.opacity = '1'; cellsGrid.style.pointerEvents = 'auto';
+                    if (timelinePalette) { timelinePalette.style.opacity = '1'; timelinePalette.style.pointerEvents = 'auto'; }
                 }
+                
                 calculateTotal();
             };
             
@@ -1969,21 +2029,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<div class="gantt-bar-bg-cell ${isSat} ${isSun} ${boundaryClass}" style="grid-row: ${rowIndex}; grid-column: ${idx + 11};"></div>`;
             });
 
-            // 工程バーの計算
-            const startLimit = new Date(startStr);
-            const endLimit = new Date(endStr);
-            const sStart = new Date(s.start);
-            const sEnd = new Date(s.end);
+            // 工程バーの計算（文字列比較で安全に行い、日付のズレを防ぐ）
+            const normalizeDateStr = (str) => {
+                if (!str) return '';
+                return str.replace(/\//g, '-');
+            };
+            const sStartStr = normalizeDateStr(s.start);
+            const sEndStr = normalizeDateStr(s.end);
+            
+            const drawStartStr = sStartStr < startStr ? startStr : (sStartStr > endStr ? endStr : sStartStr);
+            const drawEndStr = sEndStr > endStr ? endStr : (sEndStr < startStr ? startStr : sEndStr);
 
-            // 表示期間内に収めるようにクリップ
-            const drawStart = sStart < startLimit ? startLimit : sStart;
-            const drawEnd = sEnd > endLimit ? endLimit : sEnd;
+            const formatDateLocal = (date) => {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
 
-            const drawStartStr = drawStart.toISOString().split('T')[0];
-            const drawEndStr = drawEnd.toISOString().split('T')[0];
-
-            const startIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawStartStr);
-            const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
+            const startIdx = dateList.findIndex(d => formatDateLocal(d) === drawStartStr);
+            const endIdx = dateList.findIndex(d => formatDateLocal(d) === drawEndStr);
 
             if (startIdx !== -1 && endIdx !== -1) {
                 const gridStart = startIdx + 11;
@@ -2742,7 +2807,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 500);
     };
 
-    const btnPrintWeekly = document.getElementById('btn-print-weekly');
+    const btnPrintWeekly = document.getElementById('btn-print-weekly-top');
     if (btnPrintWeekly) {
         btnPrintWeekly.addEventListener('click', printWeeklyReport);
     }
