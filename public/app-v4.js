@@ -1327,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section morning">
                         <div class="time-section-header">🌅 午前</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project morning-project" placeholder="工事・作業名" list="project-list"
+                            <input type="text" class="section-project morning-project" placeholder="支店・現場名" list="project-list"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -1337,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section afternoon">
                         <div class="time-section-header">🌤 午後</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project afternoon-project" placeholder="工事・作業名" list="project-list"
+                            <input type="text" class="section-project afternoon-project" placeholder="支店・現場名" list="project-list"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -1347,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section night">
                         <div class="time-section-header">🌙 夜間</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project night-project" placeholder="工事・作業名" list="project-list"
+                            <input type="text" class="section-project night-project" placeholder="支店・現場名" list="project-list"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -2094,25 +2094,71 @@ document.addEventListener('DOMContentLoaded', () => {
     ganttYearSelect.addEventListener('change', renderGanttChart);
 
     // 工事名サジェスト（Datalist）の更新
+    // 工事名（支店・現場名）サジェスト（Datalist）の更新
     const updateProjectSuggestions = () => {
-        const suggestions = new Set();
-        suggestions.add('有給');
-        suggestions.add('欠勤');
-        suggestions.add('休日');
-        allSchedules.forEach(s => { if (s.project) suggestions.add(s.project); });
+        if (!currentUser) return;
+        
+        const myName = currentUser.displayName || currentUser.email.split('@')[0];
+        
+        const mySuggestions = new Set();
+        const otherSuggestions = new Set();
+        
+        // 支店候補の追加
+        const branchSuggestions = ['本社', '東京支店', '埼玉支店', '千葉支店', '神奈川支店'];
+        
+        // スケジュール（工事情報）から取得
+        allSchedules.forEach(s => { 
+            if (s.project) {
+                otherSuggestions.add(s.project); 
+            }
+        });
+        
+        // 過去の日報データから取得 (新旧形式に対応)
         allReports.forEach(r => {
             if (r.dailyLogs) {
-                Object.values(r.dailyLogs).forEach(tasks => {
-                    if (Array.isArray(tasks)) {
-                        tasks.forEach(t => { if (t.project) suggestions.add(t.project); });
+                const isMe = r.author === myName;
+                const targetSet = isMe ? mySuggestions : otherSuggestions;
+                
+                Object.values(r.dailyLogs).forEach(dayLog => {
+                    if (Array.isArray(dayLog)) {
+                        // 旧形式（配列）
+                        dayLog.forEach(t => { 
+                            if (t.project && !['有給', '欠勤', '休日'].includes(t.project)) {
+                                targetSet.add(t.project); 
+                            }
+                        });
+                    } else if (dayLog && typeof dayLog === 'object') {
+                        // 新形式（オブジェクト）
+                        ['morning', 'afternoon', 'night'].forEach(sec => {
+                            const proj = dayLog[sec]?.project;
+                            if (proj && !['有給', '欠勤', '休日'].includes(proj)) {
+                                targetSet.add(proj);
+                            }
+                        });
                     }
                 });
             }
         });
+        
+        // ソートして連結
+        // 1. 本人が入力した過去の工事名
+        // 2. 支店名のデフォルト候補
+        // 3. その他（他人が入力した工事、スケジュール工事等）
+        const mySorted = Array.from(mySuggestions).sort();
+        const otherSorted = Array.from(otherSuggestions).sort().filter(p => !mySuggestions.has(p) && !branchSuggestions.includes(p));
+        
+        const finalSuggestions = [
+            ...mySorted,
+            ...branchSuggestions,
+            ...otherSorted,
+            '有給',
+            '欠勤',
+            '休日'
+        ];
+        
         const datalist = document.getElementById('project-suggestions');
         if (datalist) {
-            datalist.innerHTML = Array.from(suggestions)
-                .sort()
+            datalist.innerHTML = finalSuggestions
                 .map(p => `<option value="${p}">`)
                 .join('');
         }
