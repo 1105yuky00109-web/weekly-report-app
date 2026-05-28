@@ -1665,10 +1665,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <!-- タイムライン -->
                     <div class="timeline-section" style="margin-top:8px;">
                         <div class="timeline-palette" style="display:flex;gap:4px;margin-bottom:4px;align-items:center;flex-wrap:wrap;">
-                            <button type="button" class="palette-btn active" data-mode="1" style="padding:2px 10px;border:2px solid #000;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#000;color:#fff;">■ 作業</button>
+                            <button type="button" class="palette-btn active" data-mode="1" style="padding:2px 10px;border:2px solid #000;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#000;color:#fff;">■ 現場管理</button>
+                            <button type="button" class="palette-btn" data-mode="5" style="padding:2px 10px;border:2px solid #2563eb;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#2563eb;">▼ 現場管理以外の業務</button>
                             <button type="button" class="palette-btn" data-mode="2" style="padding:2px 10px;border:2px solid #ef4444;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#ef4444;">● 休憩</button>
                             <button type="button" class="palette-btn" data-mode="3" style="padding:2px 10px;border:2px solid #16a34a;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#16a34a;">▲ 移動</button>
-                            <button type="button" class="palette-btn" data-mode="4" style="padding:2px 10px;border:2px solid #2563eb;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#2563eb;">◆ 有休</button>
+                            <button type="button" class="palette-btn" data-mode="4" style="padding:2px 10px;border:2px solid #4b5563;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#4b5563;">◆ 有休</button>
                             <button type="button" class="palette-btn" data-mode="0" style="padding:2px 10px;border:2px solid #94a3b8;border-radius:4px;font-size:0.8rem;font-weight:bold;cursor:pointer;background:#fff;color:#64748b;">× 消去</button>
                             <span class="timeline-hours-total-display" style="margin-left:auto;font-weight:bold;color:var(--primary);font-size:0.9rem;">作業計 0.0H</span>
                         </div>
@@ -1712,7 +1713,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const calculateTotal = () => {
-                const workCount = stateArray.filter(s => s === 1 || s === 3).length;
+                const workCount = stateArray.filter(s => s === 1 || s === 3 || s === 5).length;
                 const totalHours = workCount * 0.5;
                 totalDisplay.textContent = `作業計 ${totalHours.toFixed(1)}H`;
                 dayCard.querySelector('.total-hours').textContent = `計 ${totalHours.toFixed(1)}H`;
@@ -2104,7 +2105,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const proj = cardData[t]?.project || '';
                     if (proj && !['有給', '欠勤', '休日'].includes(proj)) {
                         const timeline = cardData.timeline || '';
-                        const workCount = timeline ? timeline.split('').filter(s => s === '1' || s === '3').length : 0;
+                        const workCount = timeline ? timeline.split('').filter(s => s === '1' || s === '3' || s === '5').length : 0;
                         if (workCount === 0) {
                             hasZeroHoursError = true;
                             errorDay = day;
@@ -3000,7 +3001,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (proj || det || rep) {
                     const taskTimeline = periodTimeline(period);
                     // 各時間帯ごとの作業・移動コマから作業時間を計算
-                    const periodWorkHours = taskTimeline.split('').filter(s => s === '1' || s === '3').length * 0.5;
+                    const periodWorkHours = taskTimeline.split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
                     tasks.push({ 
                         project: proj, 
                         detail: det, 
@@ -3074,7 +3075,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="legend-box">
                 <div class="legend-item">
                     <span class="legend-color" style="background: #000000;"></span>
-                    <span>作業</span>
+                    <span>現場管理</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background: #2563eb;"></span>
+                    <span>現場管理以外の業務</span>
                 </div>
                 <div class="legend-item">
                     <span class="legend-color" style="background: #ef4444;"></span>
@@ -3085,7 +3090,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span>移動</span>
                 </div>
                 <div class="legend-item">
-                    <span class="legend-color" style="background: #2563eb;"></span>
+                    <span class="legend-color" style="background: #4b5563;"></span>
                     <span>有休</span>
                 </div>
             </div>
@@ -3245,7 +3250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             '.print-timeline-cell[data-state="1"] { background: #000; }',
             '.print-timeline-cell[data-state="2"] { background: #ef4444; }',
             '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
-            '.print-timeline-cell[data-state="4"] { background: #2563eb; }',
+            '.print-timeline-cell[data-state="4"] { background: #4b5563; }',
+            '.print-timeline-cell[data-state="5"] { background: #2563eb; }',
             '.print-timeline-total { width: 10%; font-size: 7.5pt; text-align: center; font-weight: bold; display: flex; align-items: center; justify-content: center; }'
         ].join('\n');
 
