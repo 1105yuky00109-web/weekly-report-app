@@ -2837,6 +2837,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     let detailContent = task.detail || '';
                     
+                    // 有休や休日などの休暇タスクでなく、かつレポートが存在する場合に適用
+                    const isLeaveTask = ['有給', '有休', '欠勤', '休日'].includes(task.project);
+                    if (!isLeaveTask && reportText) {
+                        detailContent += `
+                            <div style="font-size: 8pt; color: #2563eb; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; white-space: pre-wrap;">
+                                ${reportText}
+                            </div>
+                        `;
+                    }
+                    
                     html += `
                         <tr>
                             ${tIdx === 0 ? `<td class="col-date" rowspan="${tasks.length}">${formatPrintDate(dateObj, day)}</td>` : ''}
@@ -2893,13 +2903,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             `;
             
-            if (reportText) {
-                html += `
-                <div class="print-report-row" style="border-top: 1px solid #000; padding: 5px 8px; font-size: 8.5pt; text-align: left; background: #fff; white-space: pre-wrap;">
-                    <strong>📝 日次報告:</strong> ${reportText}
-                </div>
-                `;
-            }
             html += `</div>`; // .print-day-block
         });
         
