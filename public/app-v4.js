@@ -2899,11 +2899,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 有休や休日などの休暇タスクでなく、かつその時間帯のレポートが存在する場合に適用
                     const isLeaveTask = ['有給', '有休', '欠勤', '休日'].includes(task.project);
                     if (!isLeaveTask && task.report) {
-                        detailContent += `
-                            <div style="font-size: 8pt; color: #2563eb; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; white-space: pre-wrap;">
-                                ${task.report}
-                            </div>
-                        `;
+                        detailContent += `<div style="font-size: 8pt; color: #2563eb; margin-top: 4px; border-top: 1px dashed #94a3b8; padding-top: 3px; text-align: left; white-space: pre-wrap;">${task.report}</div>`;
                     }
                     
                     html += `
