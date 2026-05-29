@@ -222,7 +222,6 @@ onAuthStateChanged(auth, async (user) => {
 
         // ログイン成功時
         currentUser = auth.currentUser;
-        document.getElementById('current-user-email').textContent = currentUser.email;
         
         // 所属会社の解決
         currentCompany = await resolveUserCompany(currentUser.email);
@@ -237,11 +236,18 @@ onAuthStateChanged(auth, async (user) => {
             return;
         }
         
+        const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid || e.email === currentUser.email) : null;
+        
+        // ユーザー名の決定と表示
+        let userNameToShow = currentUser.displayName || currentUser.email;
+        if (myEmpInfo && myEmpInfo.name) {
+            userNameToShow = myEmpInfo.name;
+        }
+        document.getElementById('current-user-email').textContent = userNameToShow;
+        
         const compLabel = document.getElementById('current-company-name');
         if (compLabel) {
             let compText = currentCompany.companyName || currentCompany.companyId;
-            // ログインユーザーの情報を employees から探索（UID または Email で判定）
-            const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid || e.email === currentUser.email) : null;
             if (myEmpInfo && myEmpInfo.branch) {
                 compText += " " + myEmpInfo.branch;
             }
