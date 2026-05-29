@@ -1258,28 +1258,49 @@ const normalizeDailyTasks = (dayLog) => {
     }
     if (typeof dayLog === 'object') {
         const ts = [];
+        const labels = { morning: '午前', afternoon: '午後', night: '夜間' };
         ['morning', 'afternoon', 'night'].forEach(period => {
             const sec = dayLog[period];
             if (sec && (sec.project || sec.detail)) {
+                // timelineから時間数を計算 (午前: 0-7, 午後: 10-17, 夜間: 18以降)
+                let h = 0;
+                const tl = dayLog.timeline || '';
+                if (tl) {
+                    if (period === 'morning') {
+                        h = tl.substring(0, 8).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                    } else if (period === 'afternoon') {
+                        h = tl.substring(10, 18).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                    } else if (period === 'night') {
+                        h = tl.substring(18).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                    }
+                }
                 ts.push({
                     project: sec.project,
                     detail: sec.detail,
-                    hours: 0,
-                    timeline: dayLog.timeline || ''
+                    hours: h,
+                    timeline: dayLog.timeline || '',
+                    period: period,
+                    periodLabel: labels[period]
                 });
             }
         });
-        if (ts.length > 0) {
+        
+        // もし各periodの時間がすべて0で、全体にtimelineがある場合は従来のフォールバック
+        let totalH = ts.reduce((sum, t) => sum + t.hours, 0);
+        if (totalH === 0 && ts.length > 0) {
             const tl = dayLog.timeline || '';
-            const totalWorkHours = tl ? tl.split('').filter(s => s === '1' || s === '3').length * 0.5 : 0;
+            const totalWorkHours = tl ? tl.split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5 : 0;
             ts[0].hours = totalWorkHours;
         }
+
         if (dayLog.leaveType) {
             ts.push({
                 project: dayLog.leaveType,
                 detail: '',
                 hours: 0,
-                timeline: ''
+                timeline: '',
+                period: 'leave',
+                periodLabel: '休暇等'
             });
         }
         return ts;
@@ -3603,32 +3624,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const r = report;
         const dates = getDaysOfWeek(r.week);
         
-        let printTasksHtml = '';
+                let printTasksHtml = '';
         daysName.forEach((day, idx) => {
             const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
             const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
             
+            const dateLabel = `${dates ? formatDate(dates[idx]) : ''}<br>(${day})`;
+            const rowSpan = ts.length || 1;
+
             if (ts.length > 0) {
-                ts.forEach((t) => {
-                    printTasksHtml += `<tr>
-                        <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
-                        <td style="border:1px solid var(--border);padding:8px;">${t.project || ''}</td>
-                        <td style="border:1px solid var(--border);padding:8px;">${t.detail || ''}</td>
-                        <td style="text-align:center;border:1px solid var(--border);padding:8px;white-space:nowrap;">${parseFloat(t.hours||0).toFixed(1)}H</td>
-                        <td style="white-space: pre-wrap; font-size:0.85rem;border:1px solid var(--border);padding:8px;">${dailyRep}</td>
-                    </tr>`;
+                ts.forEach((t, tIdx) => {
+                    const isFirst = tIdx === 0;
+                    let rowHtml = '<tr>';
+                    if (isFirst) {
+                        rowHtml += `<td rowspan="${rowSpan}" style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;vertical-align:middle;">${dateLabel}</td>`;
+                    }
+                    
+                    // 午前/午後/夜間のバッジを表示
+                    const badgeBg = t.period === 'morning' ? '#e0f2fe' : (t.period === 'afternoon' ? '#fef3c7' : '#f3e8ff');
+                    const badgeColor = t.period === 'morning' ? '#0369a1' : (t.period === 'afternoon' ? '#b45309' : '#6b21a8');
+                    const periodBadge = t.periodLabel ? `<span style="display:inline-block;padding:2px 6px;font-size:0.75rem;font-weight:bold;border-radius:4px;background:${badgeBg};color:${badgeColor};margin-right:8px;vertical-align:middle;">${t.periodLabel}</span>` : '';
+                    
+                    rowHtml += `
+                        <td style="border:1px solid var(--border);padding:8px;vertical-align:middle;">${periodBadge}<span style="vertical-align:middle;">${t.project || ''}</span></td>
+                        <td style="border:1px solid var(--border);padding:8px;vertical-align:middle;">${t.detail || ''}</td>
+                        <td style="text-align:center;border:1px solid var(--border);padding:8px;white-space:nowrap;vertical-align:middle;">${parseFloat(t.hours||0).toFixed(1)}H</td>
+                    `;
+                    
+                    if (isFirst) {
+                        rowHtml += `<td rowspan="${rowSpan}" style="white-space: pre-wrap; font-size:0.85rem;border:1px solid var(--border);padding:8px;vertical-align:top;">${dailyRep || '-'}</td>`;
+                    }
+                    rowHtml += '</tr>';
+                    printTasksHtml += rowHtml;
                 });
             } else if (dailyRep) {
                 printTasksHtml += `<tr>
-                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
-                    <td colspan="3" style="color: #64748b; font-style: italic; border:1px solid var(--border); padding:8px; text-align:center;">作業記録なし</td>
-                    <td style="white-space: pre-wrap; font-size:0.85rem; border:1px solid var(--border); padding:8px;">${dailyRep}</td>
+                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;vertical-align:middle;">${dateLabel}</td>
+                    <td colspan="3" style="color: #64748b; font-style: italic; border:1px solid var(--border); padding:8px; text-align:center;vertical-align:middle;">作業記録なし</td>
+                    <td style="white-space: pre-wrap; font-size:0.85rem; border:1px solid var(--border); padding:8px;vertical-align:top;">${dailyRep}</td>
                 </tr>`;
             } else {
                 printTasksHtml += `<tr>
-                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
-                    <td colspan="3" style="color: #cbd5e1; text-align:center; background:#f8fafc; border:1px solid var(--border); padding:8px;">休み / 記録なし</td>
-                    <td style="color:#cbd5e1; background:#f8fafc; text-align:center; border:1px solid var(--border); padding:8px;">-</td>
+                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;vertical-align:middle;">${dateLabel}</td>
+                    <td colspan="3" style="color: #cbd5e1; text-align:center; background:#f8fafc; border:1px solid var(--border); padding:8px;vertical-align:middle;">休み / 記録なし</td>
+                    <td style="color:#cbd5e1; background:#f8fafc; text-align:center; border:1px solid var(--border); padding:8px;vertical-align:middle;">-</td>
                 </tr>`;
             }
         });
