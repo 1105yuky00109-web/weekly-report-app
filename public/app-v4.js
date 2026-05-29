@@ -2298,7 +2298,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('btn-save-plan').addEventListener('click', () => saveReport('plan'));
                         document.getElementById('btn-submit-plan').addEventListener('click', () => saveReport('plan_submitted'));
                     } else if (planStatus === 'submitted') {
-                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--primary); width:100%;">⌛ 予定の承認待ちです（編集はロックされています）</div>`;
+                        actionContainer.innerHTML = `
+                            <div style="text-align:center; font-weight:bold; color:var(--primary); width:100%; margin-bottom: 10px;">⌛ 予定の承認待ちです（編集はロックされています）</div>
+                            <button type="button" id="btn-withdraw-plan" class="btn btn-secondary btn-large" style="background-color:#6b7280; color:#ffffff; flex: 1; margin: 0 auto; max-width: 300px;">予定の提出を取り消す</button>
+                        `;
+                        document.getElementById('btn-withdraw-plan').addEventListener('click', async () => {
+                            if (confirm('予定の提出を取り消して、下書き状態に戻しますか？')) {
+                                await saveReport('plan_withdrawn');
+                            }
+                        });
                     } else if (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected')) {
                         actionContainer.innerHTML = `
                             <button type="button" id="btn-save-actual" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">実績を一時保存</button>
@@ -2983,6 +2991,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 送られてきたstatusに応じて詳細なステータスへ変換
         if (status === 'plan') {
             planStatus = 'draft';
+        } else if (status === 'plan_withdrawn') {
+            planStatus = 'draft';
         } else if (status === 'plan_submitted') {
             planStatus = 'submitted';
         } else if (status === 'plan_approved') {
@@ -3039,6 +3049,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('実績を確定提出しました！');
             } else if (status === 'plan_submitted') {
                 alert('予定を提出しました！');
+            } else if (status === 'plan_withdrawn') {
+                alert('予定の提出を取り消しました（下書き状態に戻しました）。');
             } else if (status === 'plan') {
                 alert('予定を一時保存しました！');
             } else {
