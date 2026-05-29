@@ -27,6 +27,8 @@ const newConfig = `const firebaseConfig = {
 };`;
 
 // デプロイ前に、最新の app.js と style.css を v4 用のファイル名で複製する
+// ※ 現在は app-v4.js / style-v4.css を直接編集しているため、上書きを防ぐためにコメントアウトします。
+/*
 try {
     fs.copyFileSync(
         path.join(__dirname, 'public', 'app.js'),
@@ -40,6 +42,7 @@ try {
 } catch (e) {
     console.error("❌ ファイル複製エラー:", e.message);
 }
+*/
 
 console.log("🔄 デプロイ準備: Firebaseの接続設定を一時的に注入します...");
 

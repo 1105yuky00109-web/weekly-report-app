@@ -104,16 +104,22 @@
             <form id="schedule-form">
                 <input type="hidden" id="sched-id" value="">
 
-                <!-- 1. 工事名 & 2. 元請 -->
+                <!-- 1. 工事名 & 2. 元請 & 担当支店 -->
                 <div class="form-row">
-                    <div class="form-group">
+                    <div class="form-group" style="flex:2;">
                         <label for="sched-project">工事名 <span style="color:red">*</span></label>
                         <input type="text" id="sched-project" placeholder="例: ○○ビル新築工事" required list="project-list">
                         <datalist id="project-list"></datalist>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="flex:1;">
                         <label for="sched-client">元請</label>
                         <input type="text" id="sched-client" placeholder="例: 西武建設">
+                    </div>
+                    <div class="form-group" style="flex:1; display:none;">
+                        <label for="sched-branch">担当支店</label>
+                        <select id="sched-branch">
+                            <option value="">選択してください</option>
+                        </select>
                     </div>
                 </div>
 
@@ -212,7 +218,7 @@
                         <label for="sched-bar-pattern">バーの模様</label>
                         <select id="sched-bar-pattern">
                             <option value="solid">塗りつぶし（通常）</option>
-                            <option value="stripe">ストライプ（斜線）</option>
+                            <option value="stripe">スポット（点線）</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex:0;min-width:100px;display:flex;align-items:center;gap:8px;margin-top:20px;">
@@ -249,6 +255,10 @@
                     <option value="2027">2027年度 (R9)</option>
                     <option value="2028">2028年度 (R10)</option>
                 </select>
+                <label for="gantt-branch-filter" style="font-weight:bold;color:var(--text);margin-left:15px;">支店:</label>
+                <select id="gantt-branch-filter" style="padding:10px;font-size:1rem;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);">
+                    <option value="">すべて</option>
+                </select>
             </div>
             <div class="actions">
                 <button id="btn-export-gantt" class="btn btn-secondary btn-small">📊 Excel出力</button>
@@ -276,6 +286,12 @@
                         <label for="member-name">氏名 <span style="color:red">*</span></label>
                         <input type="text" id="member-name" placeholder="例: 山田 太郎" required>
                     </div>
+                    <div class="form-group" style="flex:1.5; display:none;">
+                        <label for="member-branch">所属支店</label>
+                        <select id="member-branch">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
                     <div class="form-group" style="flex:1;">
                         <label>役割 <span style="color:red">*</span></label>
                         <div style="display:flex;flex-direction:column;gap:5px;padding-top:5px;">
@@ -302,6 +318,14 @@
                 <h3>登録済み担当者一覧</h3>
                 <div id="member-list-container">
                     <table style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border); background: var(--bg-muted, #f1f5f9);">
+                                <th style="text-align:left;padding:12px;">氏名</th>
+                                <th style="text-align:left;padding:12px;">役割</th>
+                                <th style="text-align:left;padding:12px;">保有資格</th>
+                                <th style="text-align:center;padding:12px;width:150px;">操作</th>
+                            </tr>
+                        </thead>
                         <tbody id="member-list-tbody"></tbody>
                     </table>
                 </div>
@@ -369,6 +393,12 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="filter-branch">支店で絞込み</label>
+                    <select id="filter-branch">
+                        <option value="">すべての支店</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="filter-author">担当者で絞込み</label>
                     <select id="filter-author">
                         <option value="">すべての担当者</option>
@@ -417,6 +447,12 @@
         <div class="list-controls no-print">
             <div class="filters" style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
                 <div class="form-group" style="margin-bottom:0;">
+                    <label for="summary-filter-branch">支店で絞込み</label>
+                    <select id="summary-filter-branch">
+                        <option value="">すべての支店</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
                     <label for="summary-filter-month">月で絞込み</label>
                     <select id="summary-filter-month">
                         <option value="">すべての月</option>
@@ -462,6 +498,12 @@
                         <label for="emp-email">メールアドレス <span style="color:red">*</span></label>
                         <input type="email" id="emp-email" placeholder="例: hanako@company.com" required>
                     </div>
+                    <div class="form-group">
+                        <label for="emp-branch">所属支店 <span style="color:red">*</span></label>
+                        <select id="emp-branch" required>
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
                 </div>
                 <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">※ 仮パスワードは自動生成され、登録したメールアドレスへ送信されます。初回ログイン時にパスワード変更が必要です。</p>
                 <button type="submit" id="emp-add-btn" class="btn btn-primary">社員を追加</button>
@@ -475,11 +517,38 @@
                         <tr>
                             <th>氏名</th>
                             <th>メール</th>
+                            <th>所属支店</th>
                             <th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="employee-list-tbody"></tbody>
                 </table>
+                </div>
+            </div>
+
+            <!-- 支店マスタ設定セクション -->
+            <div style="margin-top:40px; border-top: 2px dashed var(--border); padding-top:30px;">
+                <h3>🏢 支店マスタ設定</h3>
+                <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:15px;">会社の支店（拠点）を追加・削除できます。ここで追加した支店は、社員・担当者・工事の登録時に選択できるようになります。</p>
+                <form id="branch-manage-form" style="display:flex;gap:10px;margin-bottom:20px;align-items:flex-end;">
+                    <div class="form-group" style="margin:0;flex:1;">
+                        <label for="new-branch-name">新規支店名</label>
+                        <input type="text" id="new-branch-name" placeholder="例: 東京支店" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height:42px;">支店を追加</button>
+                </form>
+                <div id="branch-list-container" style="max-width:500px;">
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border);">
+                                <th style="text-align:left;padding:8px;">支店名</th>
+                                <th style="width:100px;text-align:center;padding:8px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="branch-list-tbody">
+                            <!-- JSで動的に描画 -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -494,10 +563,18 @@
     <div style="background:var(--card-bg);max-width:700px;width:90%;margin:40px auto;padding:30px;border-radius:12px;">
         <h3 style="margin-bottom:20px;">✏️ 工事情報を編集</h3>
         <div class="form-row">
-            <div class="form-group">
+            <div class="form-group" style="flex:2;">
                 <label for="edit-project">工事名 <span style="color:red">*</span></label>
                 <input type="text" id="edit-project" required>
             </div>
+            <div class="form-group" style="flex:1;">
+                <label for="edit-branch">担当支店 <span style="color:red">*</span></label>
+                <select id="edit-branch" required>
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
             <div class="form-group">
                 <label for="edit-client">元請</label>
                 <input type="text" id="edit-client">
@@ -580,7 +657,7 @@
                 <label for="edit-bar-pattern">バーの模様</label>
                 <select id="edit-bar-pattern">
                     <option value="solid">塗りつぶし</option>
-                    <option value="stripe">ストライプ</option>
+                    <option value="stripe">スポット（点線）</option>
                 </select>
             </div>
         </div>

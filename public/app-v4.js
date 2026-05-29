@@ -56,6 +56,81 @@ async function resolveUserCompany(email) {
     }
 }
 
+// 各種プルダウンに支店データを反映する関数
+function populateBranchDropdowns() {
+    if (!currentCompany) return;
+    const branches = currentCompany.branches || [];
+
+    // 登録用ドロップダウン
+    const registerSelects = [
+        document.getElementById('sched-branch'),
+        document.getElementById('edit-branch'),
+        document.getElementById('member-branch'),
+        document.getElementById('emp-branch')
+    ];
+
+    registerSelects.forEach(select => {
+        if (!select) return;
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">選択してください</option>';
+        branches.forEach(branch => {
+            const opt = document.createElement('option');
+            opt.value = branch;
+            opt.textContent = branch;
+            select.appendChild(opt);
+        });
+        if (currentVal && branches.includes(currentVal)) {
+            select.value = currentVal;
+        }
+    });
+
+    // フィルター用ドロップダウン
+    const filterSelects = [
+        { el: document.getElementById('gantt-branch-filter'), defaultText: 'すべて' },
+        { el: document.getElementById('filter-branch'), defaultText: 'すべての支店' },
+        { el: document.getElementById('summary-filter-branch'), defaultText: 'すべての支店' }
+    ];
+
+    filterSelects.forEach(item => {
+        const select = item.el;
+        if (!select) return;
+        const currentVal = select.value;
+        select.innerHTML = `<option value="">${item.defaultText}</option>`;
+        branches.forEach(branch => {
+            const opt = document.createElement('option');
+            opt.value = branch;
+            opt.textContent = branch;
+            select.appendChild(opt);
+        });
+        if (currentVal && branches.includes(currentVal)) {
+            select.value = currentVal;
+        }
+    });
+}
+
+// 担当者または社員の所属支店を特定するヘルパー関数
+function getAuthorBranch(authorName) {
+    if (!authorName) return '';
+    // 1. 担当者マスタ(members)から検索
+    const member = allMembers.find(m => m.name === authorName);
+    if (member && member.branch) return member.branch;
+    // 2. 社員アカウント(employees)から検索
+    if (currentCompany && currentCompany.employees) {
+        const emp = currentCompany.employees.find(e => e.name === authorName);
+        if (emp && emp.branch) return emp.branch;
+    }
+    return '';
+}
+
+// 工事(schedules)の担当支店を特定するヘルパー関数
+function getProjectBranch(projectName) {
+    if (!projectName) return '';
+    const sched = allSchedules.find(s => s.project === projectName);
+    if (sched && sched.branch) return sched.branch;
+    return '';
+}
+
+
 // DOM要素
 const loginContainer = document.getElementById('login-container');
 const appContainer = document.getElementById('app-container');
@@ -95,7 +170,13 @@ onAuthStateChanged(auth, async (user) => {
         
         const compLabel = document.getElementById('current-company-name');
         if (compLabel) {
-            compLabel.textContent = currentCompany.companyName || currentCompany.companyId;
+            let compText = currentCompany.companyName || currentCompany.companyId;
+            // ログインユーザーの情報を employees から探索（UID または Email で判定）
+            const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid || e.email === currentUser.email) : null;
+            if (myEmpInfo && myEmpInfo.branch) {
+                compText += " " + myEmpInfo.branch;
+            }
+            compLabel.textContent = compText;
         }
         
         // 役割（管理者のみ）を示すバッジの表示制御
@@ -123,6 +204,33 @@ onAuthStateChanged(auth, async (user) => {
         
         // データ初期読み込み（DOMContentLoaded後に確実に実行されるよう安全に呼び出す）
         await loadMembers();
+        populateBranchDropdowns();
+
+        // ログインユーザーの所属支店を初期フィルター値に設定（一般社員の場合）
+        if (currentCompany && currentCompany.role === 'employee') {
+            const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
+            if (myEmpInfo && myEmpInfo.branch) {
+                const ganttFilter = document.getElementById('gantt-branch-filter');
+                const listFilter = document.getElementById('filter-branch');
+                const summaryFilter = document.getElementById('summary-filter-branch');
+                
+                // 工程表フィルターは本人の所属支店を初期値とする（切り替えは許可）
+                if (ganttFilter) {
+                    ganttFilter.value = myEmpInfo.branch;
+                }
+                
+                // 日報関連フィルターは本人の所属支店に固定化（disabledとする）
+                if (listFilter) {
+                    listFilter.value = myEmpInfo.branch;
+                    listFilter.disabled = true;
+                }
+                if (summaryFilter) {
+                    summaryFilter.value = myEmpInfo.branch;
+                    summaryFilter.disabled = true;
+                }
+            }
+        }
+
         const safeLoadAll = async () => {
             if (typeof window.loadSchedules === 'function') await window.loadSchedules();
             if (typeof window.loadReports === 'function') await window.loadReports(false);
@@ -314,6 +422,88 @@ function initEmployeeManagePanel() {
     const empAddMsg = document.getElementById('emp-add-message');
     const empListTbody = document.getElementById('employee-list-tbody');
 
+    // 登録済み支店一覧を描画する関数
+    const renderBranchList = () => {
+        const branchListTbody = document.getElementById('branch-list-tbody');
+        if (!branchListTbody) return;
+        const branches = currentCompany.branches || [];
+
+        if (branches.length === 0) {
+            branchListTbody.innerHTML = `
+                <tr>
+                    <td colspan="2" style="padding: 12px; text-align: center; color: var(--text-muted);">登録されている支店はありません。</td>
+                </tr>
+            `;
+            return;
+        }
+
+        branchListTbody.innerHTML = branches.map((branch, idx) => {
+            const bg = idx % 2 ? '#f8fafc' : '#fff';
+            return `
+                <tr style="background: ${bg}; border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-weight: bold; color: var(--text);">${branch}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button type="button" class="btn btn-small btn-delete-branch" data-branch="${branch}" style="background-color: #dc2626; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;">削除</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // 支店削除処理
+        branchListTbody.querySelectorAll('.btn-delete-branch').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const branchToDelete = btn.dataset.branch;
+                if (!confirm(`支店「${branchToDelete}」を削除しますか？\n※ 登録済みの社員や工事の所属支店情報は自動削除されません。`)) return;
+
+                try {
+                    const compDocRef = doc(db, "companies", currentCompany.companyId);
+                    const updatedBranches = (currentCompany.branches || []).filter(b => b !== branchToDelete);
+                    
+                    await updateDoc(compDocRef, { branches: updatedBranches });
+                    currentCompany.branches = updatedBranches;
+                    
+                    renderBranchList();
+                    populateBranchDropdowns();
+                } catch (err) {
+                    console.error("Error deleting branch:", err);
+                    alert("支店の削除に失敗しました: " + err.message);
+                }
+            });
+        });
+    };
+
+    // 支店追加フォームの処理
+    const branchForm = document.getElementById('branch-manage-form');
+    if (branchForm) {
+        branchForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const newBranchInput = document.getElementById('new-branch-name');
+            const newBranchName = newBranchInput ? newBranchInput.value.trim() : '';
+            if (!newBranchName) return;
+
+            const branches = currentCompany.branches || [];
+            if (branches.includes(newBranchName)) {
+                alert("既に同じ名前の支店が存在します。");
+                return;
+            }
+
+            try {
+                const compDocRef = doc(db, "companies", currentCompany.companyId);
+                const updatedBranches = [...branches, newBranchName];
+
+                await updateDoc(compDocRef, { branches: updatedBranches });
+                currentCompany.branches = updatedBranches;
+
+                if (newBranchInput) newBranchInput.value = '';
+                renderBranchList();
+                populateBranchDropdowns();
+            } catch (err) {
+                console.error("Error adding branch:", err);
+                alert("支店の追加に失敗しました: " + err.message);
+            }
+        };
+    }
+
     // 登録済み社員一覧を描画する関数
     const renderEmployeeList = () => {
         if (!empListTbody) return;
@@ -330,32 +520,35 @@ function initEmployeeManagePanel() {
             countBadge.textContent = `（残り登録可能: ${remaining}名 / 最大${maxUsers}名、現在: ${totalCount}名登録済み）`;
         }
 
-        // 入力フォームとボタンの制御 (上限に達している場合は無効化)
+        // 入力フォームとボタンの制御
         const submitBtn = empAddForm ? empAddForm.querySelector('button[type="submit"]') : null;
         const nameInput = document.getElementById('emp-name');
         const emailInput = document.getElementById('emp-email');
+        const branchSelect = document.getElementById('emp-branch');
         if (totalCount >= maxUsers) {
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.textContent = '登録上限に達しています';
-                submitBtn.style.backgroundColor = '#94a3b8'; // グレーアウト色
+                submitBtn.style.backgroundColor = '#94a3b8';
             }
             if (nameInput) nameInput.disabled = true;
             if (emailInput) emailInput.disabled = true;
+            if (branchSelect) branchSelect.disabled = true;
         } else {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = '社員を追加する';
-                submitBtn.style.backgroundColor = ''; // デフォルト色に戻す
+                submitBtn.textContent = '社員を追加';
+                submitBtn.style.backgroundColor = '';
             }
             if (nameInput) nameInput.disabled = false;
             if (emailInput) emailInput.disabled = false;
+            if (branchSelect) branchSelect.disabled = false;
         }
 
         if (employees.length === 0) {
             empListTbody.innerHTML = `
                 <tr>
-                    <td colspan="2" style="padding: 20px; text-align: center; color: var(--text-muted);">登録されている社員はいません。</td>
+                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">登録されている社員はいません。</td>
                 </tr>
             `;
             return;
@@ -369,6 +562,8 @@ function initEmployeeManagePanel() {
                 <tr style="background: ${bg}; border-bottom: 1px solid var(--border);">
                     <td style="padding: 12px; font-weight: bold; color: var(--text);">${emp.name}</td>
                     <td style="padding: 12px; color: var(--text-muted); font-family: monospace;">${emp.email}</td>
+                    <td style="padding: 12px; color: var(--text);">${emp.branch || '未設定'}</td>
+                    <td style="padding: 12px;"></td>
                 </tr>
             `;
         }).join('');
@@ -376,10 +571,10 @@ function initEmployeeManagePanel() {
 
     // タブクリック時の追加処理
     tab.addEventListener('click', () => {
-        // 表示切り替え処理は共通のタブボタン用イベントリスナーが実行するため、
-        // ここでは会社情報をFirestoreから最新にロードして社員一覧を更新する処理のみを行います。
         loadLatestCompanyInfo().then(() => {
             renderEmployeeList();
+            renderBranchList();
+            populateBranchDropdowns();
         });
     });
 
@@ -393,6 +588,7 @@ function initEmployeeManagePanel() {
 
             const name = document.getElementById('emp-name').value.trim();
             const email = document.getElementById('emp-email').value.trim();
+            const branch = document.getElementById('emp-branch').value;
 
             try {
                 // Cloud Functions API (addEmployee) の呼び出し
@@ -415,12 +611,24 @@ function initEmployeeManagePanel() {
                     throw new Error(data.error || '通信エラーが発生しました。');
                 }
 
+                // API呼出成功直後に、Firestoreの会社ドキュメント内のemployees配列にbranchを紐付ける
+                await loadLatestCompanyInfo();
+                const employees = currentCompany.employees || [];
+                const updatedEmployees = employees.map(emp => {
+                    if (emp.email === email) {
+                        return { ...emp, branch: branch };
+                    }
+                    return emp;
+                });
+                
+                const compDocRef = doc(db, "companies", currentCompany.companyId);
+                await updateDoc(compDocRef, { employees: updatedEmployees });
+                currentCompany.employees = updatedEmployees;
+
                 empAddMsg.className = 'message success';
                 empAddMsg.textContent = `社員「${name}」のアカウントを正常に追加しました！本人宛てに仮パスワードと再設定案内のメールを送信しました。`;
                 empAddForm.reset();
 
-                // 会社情報を最新に更新し、一覧を再描画
-                await loadLatestCompanyInfo();
                 renderEmployeeList();
             } catch (err) {
                 console.error(err);
@@ -429,6 +637,9 @@ function initEmployeeManagePanel() {
             }
         };
     }
+
+    renderEmployeeList();
+    renderBranchList();
 }
 
 // 会社ドキュメントを最新にリロードするヘルパー関数
@@ -570,13 +781,22 @@ function renderMemberList() {
                 <td style="padding: 12px; color: var(--text-main);">${rolesText}</td>
                 <td style="padding: 12px; color: var(--text-muted); font-size: 0.85rem;">${qualsText}</td>
                 <td style="padding: 12px; text-align: center;">
-                    <button class="btn btn-danger btn-small delete-member-btn" data-id="${m.id}" style="padding: 6px 12px;">削除</button>
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                        <button class="btn btn-secondary btn-small edit-member-btn" data-id="${m.id}" style="padding: 6px 12px;">編集</button>
+                        <button class="btn btn-danger btn-small delete-member-btn" data-id="${m.id}" style="padding: 6px 12px;">削除</button>
+                    </div>
                 </td>
             </tr>
         `;
     }).join('');
 
-    // 削除ボタンのイベント紐付け
+    // イベント紐付け
+    tbody.querySelectorAll('.edit-member-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const memberId = btn.dataset.id;
+            openMemberEditModal(memberId);
+        });
+    });
     tbody.querySelectorAll('.delete-member-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
             const memberId = btn.dataset.id;
@@ -711,7 +931,7 @@ function populateMemberDropdowns() {
 }
 
 // メンバー登録
-async function addMember(name, roles, qualifications, customQualifications, isDedicated) {
+async function addMember(name, roles, qualifications, customQualifications, isDedicated, branch) {
     if (!currentUser || !currentCompany) return;
     try {
         const companyId = currentCompany.companyId;
@@ -721,6 +941,7 @@ async function addMember(name, roles, qualifications, customQualifications, isDe
             qualifications,
             customQualifications,
             isDedicated,
+            branch,
             createdAt: new Date().toISOString()
         };
         await addDoc(collection(db, "companies", companyId, "members"), newMember);
@@ -744,6 +965,137 @@ async function deleteMember(memberId) {
     }
 }
 
+// メンバー更新
+async function updateMember(memberId, name, roles, qualifications, customQualifications, isDedicated, branch) {
+    if (!currentUser || !currentCompany) return;
+    try {
+        const companyId = currentCompany.companyId;
+        const updatedData = {
+            name,
+            roles,
+            qualifications,
+            customQualifications,
+            isDedicated,
+            branch
+        };
+        await updateDoc(doc(db, "companies", companyId, "members", memberId), updatedData);
+        await loadMembers();
+    } catch (e) {
+        console.error("Error updating member: ", e);
+        alert("メンバーの更新に失敗しました。");
+    }
+}
+
+// 担当者編集モーダルの表示
+function openMemberEditModal(memberId) {
+    const member = allMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    const existing = document.getElementById('member-edit-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'member-edit-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); z-index: 9999;
+        display: flex; justify-content: center; align-items: center; padding: 20px;
+        box-sizing: border-box;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white; color: #1e293b;
+        border-radius: 12px; padding: 30px; width: 100%; max-width: 500px;
+        max-height: 90vh; overflow-y: auto;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        box-sizing: border-box;
+    `;
+
+    const isRole = (r) => (member.roles || []).includes(r) ? 'checked' : '';
+    const isQual = (q) => (member.qualifications || []).includes(q) ? 'checked' : '';
+
+    modal.innerHTML = `
+        <h3 style="margin-bottom: 20px; font-size: 1.3rem; border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #1e293b; font-weight: bold;">
+            ✏️ 担当者の資格・情報編集
+        </h3>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">氏名 <span style="color:red">*</span></label>
+            <input type="text" id="edit-member-name" value="${(member.name || '').replace(/"/g, '&quot;')}" required
+                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">担当役割 <span style="color:red">*</span></label>
+            <div style="display:flex; flex-direction:column; gap:5px; padding-top:5px;">
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="sales" ${isRole('sales')} required> 営業担当</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="const" ${isRole('const')}> 工務担当</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="site" ${isRole('site')}> 工事（現場）担当</label>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">保有資格（複数選択可）</label>
+            <div style="display:grid; grid-template-columns:1fr; gap:8px; padding-top:5px;">
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="checkbox" name="edit-member-qual" value="q2b_躯体" ${isQual('q2b_躯体')}> 2級建築施工管理技士（躯体）</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="checkbox" name="edit-member-qual" value="q2b_仕上" ${isQual('q2b_仕上')}> 2級建築施工管理技士（仕上）</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="checkbox" name="edit-member-qual" value="q1b" ${isQual('q1b')}> 1級建築施工管理技士</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="checkbox" name="edit-member-qual" value="q1c" ${isQual('q1c')}> 1級土木施工管理技士</label>
+                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="checkbox" name="edit-member-qual" value="exp" ${isQual('exp')}> 実務経験</label>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button id="btn-edit-member-cancel" class="btn btn-secondary" style="padding:10px 20px;">キャンセル</button>
+            <button id="btn-edit-member-save" class="btn btn-primary" style="padding:10px 20px;">保存</button>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // キャンセルボタン
+    document.getElementById('btn-edit-member-cancel').addEventListener('click', () => {
+        overlay.remove();
+    });
+
+    // 保存ボタン
+    document.getElementById('btn-edit-member-save').addEventListener('click', async () => {
+        const name = document.getElementById('edit-member-name').value.trim();
+        if (!name) {
+            alert('氏名を入力してください。');
+            return;
+        }
+
+        const roleEl = document.querySelector('input[name="edit-member-role"]:checked');
+        const roles = roleEl ? [roleEl.value] : [];
+        if (roles.length === 0) {
+            alert('担当役割を選択してください。');
+            return;
+        }
+
+        const qualifications = [];
+        document.querySelectorAll('input[name="edit-member-qual"]:checked').forEach(cb => {
+            qualifications.push(cb.value);
+        });
+
+        // 支店は元の値を維持
+        const branch = member.branch || '';
+        const isDedicated = member.isDedicated || 'none';
+        const customQualifications = member.customQualifications || '';
+
+        try {
+            await updateMember(memberId, name, roles, qualifications, customQualifications, isDedicated, branch);
+            overlay.remove();
+            alert('担当者情報を更新しました！');
+        } catch (e) {
+            console.error(e);
+            alert('更新に失敗しました。');
+        }
+    });
+}
+
 // DOMContentLoadedの後半でバインドするための初期化処理
 document.addEventListener('DOMContentLoaded', () => {
     // メンバー登録フォームの送信処理
@@ -760,6 +1112,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const name = document.getElementById('member-name').value.trim();
+            let resolvedBranch = '';
+            const myEmpInfo = currentCompany && currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid || e.email === currentUser.email) : null;
+            if (myEmpInfo && myEmpInfo.branch) {
+                resolvedBranch = myEmpInfo.branch;
+            } else {
+                const listFilter = document.getElementById('filter-branch');
+                resolvedBranch = listFilter ? listFilter.value : '';
+            }
+            const branch = resolvedBranch;
             const dedication = "none";
             const customQual = "";
 
@@ -780,7 +1141,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                await addMember(name, roles, qualifications, customQual, dedication);
+                await addMember(name, roles, qualifications, customQual, dedication, branch);
                 
                 if (memberMsg) {
                     memberMsg.className = 'message success';
@@ -2035,9 +2396,19 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
             const schedId = document.getElementById('sched-id').value;
+            let resolvedBranch = '';
+            if (currentCompany && currentCompany.role === 'employee') {
+                const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
+                resolvedBranch = (myEmpInfo && myEmpInfo.branch) ? myEmpInfo.branch : '';
+            } else {
+                const ganttFilter = document.getElementById('gantt-branch-filter');
+                resolvedBranch = ganttFilter ? ganttFilter.value : '';
+            }
+
             const schedData = {
                 companyId,
                 project: document.getElementById('sched-project').value.trim(),
+                branch: resolvedBranch, // 判定した支店を自動設定
                 author: document.getElementById('sched-author').value.trim(),
                 start: document.getElementById('sched-start').value,
                 end: document.getElementById('sched-end').value,
@@ -2254,8 +2625,16 @@ document.addEventListener('DOMContentLoaded', () => {
             current.setDate(current.getDate() + 1);
         }
 
+        // 支店フィルターの適用
+        const ganttBranchFilter = document.getElementById('gantt-branch-filter');
+        const selectedBranch = ganttBranchFilter ? ganttBranchFilter.value : '';
+        let filteredSchedules = allSchedules;
+        if (selectedBranch) {
+            filteredSchedules = allSchedules.filter(s => s.branch === selectedBranch);
+        }
+
         // 年度と重なるスケジュールを抽出
-        const targetSchedules = allSchedules.filter(s => s.start <= endStr && s.end >= startStr);
+        const targetSchedules = filteredSchedules.filter(s => s.start <= endStr && s.end >= startStr);
         // 表示順は開始日の早い順、その次は工事名順とする
         targetSchedules.sort((a, b) => (a.start || '') > (b.start || '') ? 1 : ((a.start || '') < (b.start || '') ? -1 : ((a.project || '') > (b.project || '') ? 1 : -1)));
 
@@ -2270,8 +2649,58 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.style.width = '100%';
         }
 
+        // 資格サマリーの動的生成
+        let qualSummaryHtml = '';
+        if (allMembers && allMembers.length > 0) {
+            const list1stConst = [];
+            const list1stCivil = [];
+            const list2ndConstBody = [];
+            const listPractical = [];
+
+            // 選択されている支店でメンバーを絞り込む（空の場合は全メンバー）
+            const branchFilteredMembers = selectedBranch 
+                ? allMembers.filter(m => m.branch === selectedBranch)
+                : allMembers;
+
+            branchFilteredMembers.forEach(m => {
+                const name = m.name || '';
+                const quals = m.qualifications || [];
+                
+                // 専任区分のカッコ書き処理
+                let nameWithDed = name;
+                if (m.isDedicated === 'branch') {
+                    nameWithDed += '（支店専任）';
+                } else if (m.isDedicated === 'non_dedicated') {
+                    nameWithDed += '（非専任）';
+                }
+
+                if (quals.includes('q1b')) list1stConst.push(nameWithDed);
+                if (quals.includes('q1c')) list1stCivil.push(nameWithDed);
+                if (quals.includes('q2b_躯体')) list2ndConstBody.push(nameWithDed);
+                if (quals.includes('exp')) listPractical.push(nameWithDed);
+            });
+
+            qualSummaryHtml = `
+                <div class="gantt-qual-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <div style="margin-bottom: 2px;"><strong>≪1級建築≫</strong> ${list1stConst.join('・') || '-'} <span style="margin-left: 5px; font-weight: bold;">${list1stConst.length}名</span></div>
+                            <div style="margin-bottom: 2px;"><strong>≪1級土木≫</strong> ${list1stCivil.join('・') || '-'} <span style="margin-left: 5px; font-weight: bold;">${list1stCivil.length}名</span></div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                                <div><strong>≪2級躯体≫</strong> ${list2ndConstBody.join('・') || '-'} <span style="margin-left: 5px; font-weight: bold;">${list2ndConstBody.length}名</span></div>
+                                <div><strong>≪実務経験≫</strong> ${listPractical.join('・') || '-'} <span style="margin-left: 5px; font-weight: bold;">${listPractical.length}名</span></div>
+                            </div>
+                        </div>
+                        <div style="font-weight: bold; font-size: 0.72rem; margin-top: 4px; padding-bottom: 2px; color: inherit;">
+                            主任技術者の専任配置の要件：請負4500万円以上
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // 列定義: 左側詳細テーブル（10カラム、合計615pxに縮小） + 右側カレンダー各日(1frで画面幅に収める)
-        let html = `<div class="gantt-grid" style="grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(${dateList.length}, 1fr); width: 100%;">`;
+        let html = qualSummaryHtml + `<div class="gantt-grid" style="grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(${dateList.length}, 1fr); width: 100%;">`;
 
         // ==========================================
         // 行1: ヘッダー (左側：10個の詳細カラムヘッダー、右側：各月)
@@ -2446,6 +2875,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     ganttYearSelect.addEventListener('change', renderGanttChart);
+    const ganttBranchFilter = document.getElementById('gantt-branch-filter');
+    if (ganttBranchFilter) {
+        ganttBranchFilter.addEventListener('change', renderGanttChart);
+    }
 
     // 工事名サジェスト（Datalist）の更新
     // 工事名（支店・現場名）サジェスト（Datalist）の更新
@@ -2616,6 +3049,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderTable = () => {
         const filterMonth = document.getElementById('filter-month').value;
         const filterAuthor = document.getElementById('filter-author').value;
+        const filterBranchSelect = document.getElementById('filter-branch');
+        const filterBranch = filterBranchSelect ? filterBranchSelect.value : '';
         const tbody = document.getElementById('reports-tbody');
         const printContainer = document.getElementById('print-details-container');
         const personalSummary = document.getElementById('personal-summary-container');
@@ -2623,7 +3058,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtered = allReports.filter(r => 
             (r.status === undefined || r.status === 'confirmed') &&
             (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
-            (filterAuthor === '' || r.author === filterAuthor)
+            (filterAuthor === '' || r.author === filterAuthor) &&
+            (filterBranch === '' || getAuthorBranch(r.author) === filterBranch)
         );
         filtered.sort((a,b) => (a.week < b.week ? 1 : -1)); // 降順
         
@@ -2788,6 +3224,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!t.project || !t.hours) return;
                         const proj = t.project;
                         if (['有給', '有休', '欠勤', '休日'].includes(proj)) return;
+
+                        // 工事別集計画面の支店フィルター
+                        const summaryFilterBranchSelect = document.getElementById('summary-filter-branch');
+                        const summaryFilterBranch = summaryFilterBranchSelect ? summaryFilterBranchSelect.value : '';
+                        if (summaryFilterBranch && getProjectBranch(proj) !== summaryFilterBranch) {
+                            return;
+                        }
+
                         const auth = r.author || '不明';
                         
                         let hrs = 0;
@@ -2859,12 +3303,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = bodyHtml;
     };
 
-    ['filter-month', 'filter-author'].forEach(id => {
+    ['filter-month', 'filter-author', 'filter-branch'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', renderTable);
     });
-    const summaryFilterMonth = document.getElementById('summary-filter-month');
-    if(summaryFilterMonth) summaryFilterMonth.addEventListener('change', renderSummaryTable);
+    ['summary-filter-month', 'summary-filter-branch'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', renderSummaryTable);
+    });
 
     // 工事別集計の表示モード切り替えロジック
     let summaryDisplayMode = 'total'; // 'total' (合計) または 'site' (現場従事時間)
@@ -4023,6 +4469,7 @@ function startEditScheduleMode(sched) {
     if (cancelBtn) cancelBtn.classList.remove('hidden');
 
     document.getElementById('sched-project').value = sched.project || '';
+    document.getElementById('sched-branch').value = sched.branch || ''; // 担当支店を追加
     document.getElementById('sched-client').value = sched.client || '';
     document.getElementById('sched-address').value = sched.address || '';
     document.getElementById('sched-start').value = sched.start || '';
@@ -4114,16 +4561,33 @@ function openEditModal(sched) {
         return optHtml;
     };
 
+    // 支店プルダウンの生成
+    const makeBranchOptions = (currentVal) => {
+        const branches = currentCompany ? (currentCompany.branches || []) : [];
+        let optHtml = `<option value="">選択してください</option>`;
+        branches.forEach(branch => {
+            const selected = branch === currentVal ? 'selected' : '';
+            optHtml += `<option value="${branch}" ${selected}>${branch}</option>`;
+        });
+        return optHtml;
+    };
+
     modal.innerHTML = `
         <h3 style="margin-bottom: 20px; font-size: 1.3rem; border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #1e293b; font-weight: bold;">
             ✏️ 工程の編集・修正
         </h3>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px;">
             <div>
                 <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">工事名 <span style="color:red">*</span></label>
                 <input type="text" id="edit-project" value="${(sched.project || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+            </div>
+            <div style="display: none;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">担当支店</label>
+                <select id="edit-branch" style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b; height:42px;">
+                    ${makeBranchOptions(sched.branch)}
+                </select>
             </div>
             <div>
                 <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">元請</label>
@@ -4277,6 +4741,7 @@ function openEditModal(sched) {
         const updatedData = {
             companyId: currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1],
             project: document.getElementById('edit-project').value.trim(),
+            branch: document.getElementById('edit-branch').value, // 担当支店を追加
             client: document.getElementById('edit-client').value.trim(),
             address: document.getElementById('edit-address').value.trim(),
             start: document.getElementById('edit-start').value,

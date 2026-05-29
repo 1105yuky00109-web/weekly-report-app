@@ -221,6 +221,8 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         text-shadow: none !important;
         overflow: hidden !important;
         white-space: nowrap !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
@@ -1212,11 +1214,11 @@ body.dark-theme .status-badge.status-approved {
 /* ストライプパターン */
 .gantt-bar.pattern-stripe {
     background-image: repeating-linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.25),
-        rgba(255, 255, 255, 0.25) 10px,
-        transparent 10px,
-        transparent 20px
+        90deg,
+        rgba(255, 255, 255, 0.75),
+        rgba(255, 255, 255, 0.75) 12px,
+        transparent 12px,
+        transparent 24px
     );
 }
 
@@ -1427,4 +1429,47 @@ body.dark-theme .proj-card-assign-badge.non-dedicated {
 
 @keyframes btn-spin {
     to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   ガントチャート上部 資格保有者サマリーパネル
+   ========================================== */
+.gantt-qual-panel {
+    background-color: #d9e1f2;
+    border: 1px solid #8ea9db;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 0.72rem;
+    color: #1f4e79;
+    line-height: 1.6;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+    border-radius: 4px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.gantt-qual-panel strong {
+    color: #1f4e79;
+}
+body.dark-theme .gantt-qual-panel {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #93c5fd;
+}
+body.dark-theme .gantt-qual-panel strong {
+    color: #93c5fd;
+}
+
+@media print {
+    .gantt-qual-panel {
+        background-color: #d9e1f2 !important;
+        border: 1px solid #8ea9db !important;
+        color: #1f4e79 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .gantt-qual-panel strong {
+        color: #1f4e79 !important;
+    }
 }
