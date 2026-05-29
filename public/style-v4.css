@@ -1473,3 +1473,9 @@ body.dark-theme .gantt-qual-panel strong {
         color: #1f4e79 !important;
     }
 }
+
+/* Edge等のブラウザが自動表示するパスワード表示の目のマークを非表示にする */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
