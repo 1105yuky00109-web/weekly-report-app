@@ -2993,6 +2993,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let actualStatus = (existingReport && existingReport.actualStatus) ? existingReport.actualStatus : 'draft';
         let actualRejectReason = (existingReport && existingReport.actualRejectReason) ? existingReport.actualRejectReason : '';
 
+        // 実績ステータスの変更時に予定が承認済であることをバリデーション
+        const isActualChange = ['draft', 'confirmed', 'approved', 'actual_rejected'].includes(status);
+        if (isActualChange && planStatus !== 'approved') {
+            alert('予定が承認されていないため、実績の変更・提出はできません。先に予定を承認してもらってください。');
+            return;
+        }
+
         // 送られてきたstatusに応じて詳細なステータスへ変換
         if (status === 'plan') {
             planStatus = 'draft';
@@ -3937,8 +3944,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isPlanApproveDisabled = planStatus !== 'submitted';
         const isPlanRejectDisabled = planStatus !== 'submitted';
-        const isActualApproveDisabled = actualStatus !== 'submitted';
-        const isActualRejectDisabled = actualStatus !== 'submitted';
+        const isActualApproveDisabled = actualStatus !== 'submitted' || planStatus !== 'approved';
+        const isActualRejectDisabled = actualStatus !== 'submitted' || planStatus !== 'approved';
 
         adminPanel.innerHTML = `
             <h4 style="margin:0 0 12px 0; display:flex; align-items:center; gap:6px; color:var(--text-main);">🛡️ 上長承認操作パネル</h4>
