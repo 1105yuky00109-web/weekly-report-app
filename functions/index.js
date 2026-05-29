@@ -394,6 +394,44 @@ exports.checkEmailRegistered = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// 週表記 (例: 2026-W22) を 日付範囲 (例: 2026/05/25 〜 2026/05/31) に変換する
+function formatWeekString(weekStr) {
+  if (!weekStr || !weekStr.includes('-W')) return weekStr;
+  try {
+    const [yearStr, weekNumStr] = weekStr.split('-W');
+    const year = parseInt(yearStr, 10);
+    const week = parseInt(weekNumStr, 10);
+    
+    // その年の1月4日は必ず第1週に含まれる (ISO 8601規格)
+    const jan4 = new Date(year, 0, 4);
+    const dayOfJan4 = jan4.getDay();
+    
+    // 1月4日の属する週の月曜日を求める
+    const jan4Mon = new Date(jan4);
+    jan4Mon.setDate(jan4.getDate() - (dayOfJan4 === 0 ? 6 : dayOfJan4 - 1));
+    
+    // 対象の週の月曜日を求める
+    const targetMon = new Date(jan4Mon);
+    targetMon.setDate(jan4Mon.getDate() + (week - 1) * 7);
+    
+    // 日曜日を求める
+    const targetSun = new Date(targetMon);
+    targetSun.setDate(targetMon.getDate() + 6);
+    
+    const format = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${date}`;
+    };
+    
+    return `${format(targetMon)} 〜 ${format(targetSun)}`;
+  } catch (e) {
+    console.error('Error formatting week string:', e);
+    return weekStr;
+  }
+}
+
 // ------------------------------------------------------------
 // 5. onReportWrite (週報の提出トリガー)
 // ------------------------------------------------------------
@@ -428,15 +466,16 @@ exports.onReportWrite = functions.firestore
 
     const authorName = afterData.author || '社員';
     const weekVal = afterData.week || '';
+    const formattedWeek = formatWeekString(weekVal);
 
     let title = '週報提出のお知らせ';
     let body = '';
     if (isPlanSubmitted && isActualSubmitted) {
-      body = `${authorName}さんが${weekVal}の「予定」および「実績」を提出しました。`;
+      body = `${authorName}さんが${formattedWeek}の「予定」および「実績」を提出しました。`;
     } else if (isPlanSubmitted) {
-      body = `${authorName}さんが${weekVal}の「予定」を提出しました。`;
+      body = `${authorName}さんが${formattedWeek}の「予定」を提出しました。`;
     } else {
-      body = `${authorName}さんが${weekVal}の「実績」を提出しました。`;
+      body = `${authorName}さんが${formattedWeek}の「実績」を提出しました。`;
     }
 
     const messages = tokens.map(token => ({
@@ -514,8 +553,9 @@ exports.sendRemindNotification = functions.https.onRequest(async (req, res) => {
 
     const tokens = employee.fcmTokens || [];
     const targetTypeJP = type === 'plan' ? '予定' : '実績';
+    const formattedWeek = formatWeekString(week);
     const title = '週報提出の催促';
-    const body = `${week}の週報の「${targetTypeJP}」の提出が未完了です。至急ご入力・ご提出をお願いします。`;
+    const body = `${formattedWeek}の週報の「${targetTypeJP}」の提出が未完了です。至急ご入力・ご提出をお願いします。`;
 
     // 1. FCMプッシュ送信
     if (tokens.length > 0) {
@@ -564,11 +604,11 @@ exports.sendRemindNotification = functions.https.onRequest(async (req, res) => {
       const mailOptions = {
         from: `工事週報管理システム <${smtpUser}>`,
         to: employee.email,
-        subject: `【催促】${week}の週報（${targetTypeJP}）提出のお願い`,
+        subject: `【催促】${formattedWeek}の週報（${targetTypeJP}）提出のお願い`,
         text: `${employee.name} 様
 いつもお疲れ様です。管理者より週報提出の催促通知が届いています。
 
-対象週： ${week}
+対象週： ${formattedWeek}
 未提出： ${targetTypeJP}
 
 以下のログインURLよりシステムにアクセスし、至急ご提出をお願いいたします。
