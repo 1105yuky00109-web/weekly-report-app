@@ -3571,6 +3571,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalBody = document.getElementById('modal-report-body');
         if (!modal || !modalBody) return;
 
+        // モーダルのヘッダータイトルに社員名と対象週を動的にセット
+        const modalTitle = document.getElementById('modal-title');
+        if (modalTitle) {
+            modalTitle.innerText = `📄 週報詳細・上長承認 (${empName} 様 ｜ ${formatWeekRange(targetWeek)})`;
+        }
+
         modalBody.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">読み込み中...</div>';
         modal.classList.remove('hidden');
 
@@ -3596,51 +3602,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const r = report;
         const dates = getDaysOfWeek(r.week);
-        const getDayLabel = (idx, name) => dates ? `${formatDate(dates[idx])}<br>(${name})` : name;
-        
-        const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-        const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
         
         let printTasksHtml = '';
-        days.forEach((dayKey, idx) => {
-            const morningProj = r[`morning_${dayKey}_project`] || '';
-            const morningWork = r[`morning_${dayKey}_work`] || '';
-            const morningHours = parseFloat(r[`morning_${dayKey}_hours`]) || 0;
+        daysName.forEach((day, idx) => {
+            const ts = r.dailyLogs ? normalizeDailyTasks(r.dailyLogs[day]) : [];
+            const dailyRep = (r.dailyReports && r.dailyReports[day]) ? r.dailyReports[day] : '';
             
-            const afternoonProj = r[`afternoon_${dayKey}_project`] || '';
-            const afternoonWork = r[`afternoon_${dayKey}_work`] || '';
-            const afternoonHours = parseFloat(r[`afternoon_${dayKey}_hours`]) || 0;
-            
-            const note = r[`note_${dayKey}`] || '';
-            
-            let rowSpan = 1;
-            const hasMorning = (morningProj || morningWork || morningHours > 0);
-            const hasAfternoon = (afternoonProj || afternoonWork || afternoonHours > 0);
-            
-            if (hasMorning && hasAfternoon) rowSpan = 2;
-            
-            const dayLabel = getDayLabel(idx, dayNames[idx]);
-            
-            if (hasMorning || hasAfternoon || note) {
-                let firstRow = `<tr><td rowspan="${rowSpan}" class="print-day-label" style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);">${dayLabel}</td>`;
-                if (hasMorning) {
-                    firstRow += `<td>${morningProj}</td><td>${morningWork}</td><td>${morningHours > 0 ? morningHours + 'H' : '-'}</td>`;
-                } else if (hasAfternoon) {
-                    firstRow += `<td>${afternoonProj}</td><td>${afternoonWork}</td><td>${afternoonHours > 0 ? afternoonHours + 'H' : '-'}</td>`;
-                } else {
-                    firstRow += `<td colspan="3" style="color:#94a3b8; text-align:center;">日次レポートのみ</td>`;
-                }
-                firstRow += `<td rowspan="${rowSpan}" style="font-size:0.8rem; text-align:left; vertical-align:top; white-space:pre-wrap; max-width:250px;">${note || '-'}</td></tr>`;
-                printTasksHtml += firstRow;
-                
-                if (rowSpan === 2) {
-                    printTasksHtml += `<tr><td>${afternoonProj}</td><td>${afternoonWork}</td><td>${afternoonHours > 0 ? afternoonHours + 'H' : '-'}</td></tr>`;
-                }
+            if (ts.length > 0) {
+                ts.forEach((t) => {
+                    printTasksHtml += `<tr>
+                        <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
+                        <td style="border:1px solid var(--border);padding:8px;">${t.project || ''}</td>
+                        <td style="border:1px solid var(--border);padding:8px;">${t.detail || ''}</td>
+                        <td style="text-align:center;border:1px solid var(--border);padding:8px;white-space:nowrap;">${parseFloat(t.hours||0).toFixed(1)}H</td>
+                        <td style="white-space: pre-wrap; font-size:0.85rem;border:1px solid var(--border);padding:8px;">${dailyRep}</td>
+                    </tr>`;
+                });
+            } else if (dailyRep) {
+                printTasksHtml += `<tr>
+                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
+                    <td colspan="3" style="color: #64748b; font-style: italic; border:1px solid var(--border); padding:8px; text-align:center;">作業記録なし</td>
+                    <td style="white-space: pre-wrap; font-size:0.85rem; border:1px solid var(--border); padding:8px;">${dailyRep}</td>
+                </tr>`;
             } else {
                 printTasksHtml += `<tr>
-                    <td class="print-day-label" style="background:#f8fafc; color:#94a3b8; text-align:center;">${dayLabel}</td>
-                    <td colspan="3" style="color:#cbd5e1; text-align:center; background:#f8fafc;">休み / 記録なし</td>
-                    <td style="color:#cbd5e1; background:#f8fafc; text-align:center;">-</td>
+                    <td style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);border:1px solid var(--border);padding:8px;">${dates ? formatDate(dates[idx]) : ''}<br>(${day})</td>
+                    <td colspan="3" style="color: #cbd5e1; text-align:center; background:#f8fafc; border:1px solid var(--border); padding:8px;">休み / 記録なし</td>
+                    <td style="color:#cbd5e1; background:#f8fafc; text-align:center; border:1px solid var(--border); padding:8px;">-</td>
                 </tr>`;
             }
         });
