@@ -46,6 +46,8 @@ let currentCompany = null;
 let allReports = [];
 let allSchedules = [];
 let allMembers = [];
+let currentIsPlanEditable = true;
+let currentIsActualEditable = true;
 
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
 async function resolveUserCompany(email) {
@@ -1608,6 +1610,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const checkUnsavedChanges = () => {
+        // 予定も実績も編集不可（ロック状態）のときは、保存警告をスキップ
+        if (!currentIsPlanEditable && !currentIsActualEditable) {
+            return false;
+        }
         // 現在のフォームロック状態（上長承認済みの場合は編集できないため、変更チェックしない）
         const badge = document.getElementById('report-status-badge');
         const isApproved = badge && (badge.classList.contains('status-approved') || badge.dataset.actualStatus === 'approved');
@@ -1911,6 +1917,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isPlanEditable = (planStatus === 'draft' || planStatus === 'rejected');
         const isActualEditable = (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected'));
+        currentIsPlanEditable = isPlanEditable;
+        currentIsActualEditable = isActualEditable;
 
         const form = document.getElementById('report-form');
         if (!form) return;
