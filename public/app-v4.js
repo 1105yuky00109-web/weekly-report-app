@@ -6001,5 +6001,38 @@ document.addEventListener('DOMContentLoaded', () => {
             signOut(auth).catch(err => console.error(err));
         });
     }
+
+    // PWAアプリ内インストールボタン制御
+    let deferredPrompt = null;
+    const btnInstallApp = document.getElementById('btn-install-app');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // ブラウザのデフォルトバナーを抑止
+        e.preventDefault();
+        // イベントオブジェクトを保持
+        deferredPrompt = e;
+        // インストールボタンを表示
+        if (btnInstallApp) {
+            btnInstallApp.style.display = 'inline-flex';
+        }
+    });
+
+    if (btnInstallApp) {
+        btnInstallApp.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            // プロンプトをポップアップ表示
+            deferredPrompt.prompt();
+            // ユーザーの決定を待つ
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to PWA install: ${outcome}`);
+            deferredPrompt = null;
+            btnInstallApp.style.display = 'none';
+        });
+    }
+
+    // すでにスタンドアロン起動している場合はボタンを非表示
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        if (btnInstallApp) btnInstallApp.style.display = 'none';
+    }
 });
 
