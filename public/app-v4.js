@@ -2800,8 +2800,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const saveReport = async (status, rejectReason = '') => {
         // すでに実績が承認済みの場合は上書き保存・再提出を禁止
-        const weekVal = document.getElementById('week').value;
-        const authorVal = document.getElementById('author').value;
+        const weekInput = document.getElementById('week');
+        const authorInput = document.getElementById('author');
+        if (!weekInput || !authorInput) return;
+        const weekVal = weekInput.value;
+        const authorVal = authorInput.value;
         const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
         
         if (existingReport && existingReport.actualStatus === 'approved') {
