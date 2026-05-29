@@ -1944,9 +1944,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (copySelect) copySelect.disabled = !isActualEditable;
         if (copyBtn) copyBtn.disabled = !isActualEditable;
 
-        // タイムラインとパレットの操作無効化 (実績入力用)
+        // タイムラインとパレットの操作無効化 (予定・実績入力用)
+        const isTimelineEditable = (isPlanEditable || isActualEditable);
         document.querySelectorAll('.timeline-container-scroll, .timeline-palette').forEach(el => {
-            if (!isActualEditable) {
+            if (!isTimelineEditable) {
                 el.style.pointerEvents = 'none';
                 el.style.opacity = '0.5';
             } else {
