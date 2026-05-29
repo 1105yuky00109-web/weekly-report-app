@@ -63,4 +63,5 @@ injectTo('app.js');
 injectTo('app-v4.js');
 injectTo('seed.js');
 injectTo('system-admin.js');
+injectTo('firebase-messaging-sw.js');
 

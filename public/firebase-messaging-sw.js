@@ -1,7 +1,8 @@
-// Firebase Cloud Messaging Service Worker
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
+// firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
+// 注意: この設定値は build-inject.js によって置換注入されます
 const firebaseConfig = {
     apiKey: "AIzaSyBero5buqjW670UPObtf4QiVX-rkhhFfPs",
     authDomain: "weekly-report-93e5f.firebaseapp.com",
@@ -14,47 +15,57 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// バックグラウンド通知の受信処理
+// バックグラウンド通知を受信したときの処理
 messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message: ', payload);
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
     
-    const notificationTitle = payload.notification ? payload.notification.title : '週報システム';
+    const notificationTitle = payload.notification.title || '週報システムからの通知';
     const notificationOptions = {
-        body: payload.notification ? payload.notification.body : '新しい週報の提出または変更がありました。',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        body: payload.notification.body || '',
+        icon: 'icon-192.png',
+        badge: 'icon-192.png',
         data: payload.data || {}
     };
 
-    // Badging API を使用してアプリアイコンにバッジを表示
-    if (payload.data && payload.data.badgeCount) {
-        const badgeCount = parseInt(payload.data.badgeCount, 10);
-        if (!isNaN(badgeCount) && 'setAppBadge' in navigator) {
-            navigator.setAppBadge(badgeCount).catch(err => {
-                console.error('Failed to set app badge: ', err);
-            });
-        }
+    // デスクトップアイコン等の通知バッジを表示 (Badging API)
+    if ('setAppBadge' in navigator) {
+        navigator.setAppBadge(1).catch(err => console.error('Error setting app badge:', err));
     }
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// 通知をクリックした時の処理
+// 通知をクリックしたときの処理
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    
-    // アプリのURLを開く、または既存のウィンドウにフォーカスする
-    event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            for (let i = 0; i < windowClients.length; i++) {
-                const client = windowClients[i];
-                if ('focus' in client) {
-                    return client.focus();
-                }
+
+    const urlToOpen = new URL('./index.html', self.location.origin).href;
+
+    const promiseChain = clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+    }).then((windowClients) => {
+        let matchingClient = null;
+
+        for (let i = 0; i < windowClients.length; i++) {
+            const windowClient = windowClients[i];
+            if (windowClient.url === urlToOpen) {
+                matchingClient = windowClient;
+                break;
             }
-            if (clients.openWindow) {
-                return clients.openWindow('/');
-            }
-        })
-    );
+        }
+
+        if (matchingClient) {
+            return matchingClient.focus();
+        } else {
+            return clients.openWindow(urlToOpen);
+        }
+    });
+
+    // バッジをクリアする
+    if ('clearAppBadge' in navigator) {
+        navigator.clearAppBadge().catch(err => console.error('Error clearing app badge:', err));
+    }
+
+    event.waitUntil(promiseChain);
 });

@@ -448,72 +448,130 @@ exports.onReportWrite = functions.firestore
     const isPlanSubmitted = afterData.planStatus === 'submitted' && (!beforeData || beforeData.planStatus !== 'submitted');
     const isActualSubmitted = afterData.actualStatus === 'submitted' && (!beforeData || beforeData.actualStatus !== 'submitted');
 
-    if (!isPlanSubmitted && !isActualSubmitted) {
+    // 承認・差し戻しステータスへの変化を確認
+    const isPlanApproved = afterData.planStatus === 'approved' && (!beforeData || beforeData.planStatus !== 'approved');
+    const isPlanRejected = afterData.planStatus === 'rejected' && (!beforeData || beforeData.planStatus !== 'rejected');
+    const isActualApproved = afterData.actualStatus === 'approved' && (!beforeData || beforeData.actualStatus !== 'approved');
+    const isActualRejected = afterData.actualStatus === 'rejected' && (!beforeData || beforeData.actualStatus !== 'rejected');
+
+    if (!isPlanSubmitted && !isActualSubmitted && !isPlanApproved && !isPlanRejected && !isActualApproved && !isActualRejected) {
       return null;
     }
 
-    // 会社の管理者FCMトークンを取得
+    // 会社の管理者情報・社員情報を取得
     const companyRef = db.collection('companies').doc(companyId);
     const companyDoc = await companyRef.get();
     if (!companyDoc.exists) return null;
-
     const companyData = companyDoc.data();
-    const tokens = companyData.adminFcmTokens || [];
-    if (tokens.length === 0) {
-      console.log('No FCM tokens registered for admin.');
-      return null;
-    }
 
     const authorName = afterData.author || '社員';
     const weekVal = afterData.week || '';
     const formattedWeek = formatWeekString(weekVal);
 
-    let title = '週報提出のお知らせ';
-    let body = '';
-    if (isPlanSubmitted && isActualSubmitted) {
-      body = `${authorName}さんが${formattedWeek}の「予定」および「実績」を提出しました。`;
-    } else if (isPlanSubmitted) {
-      body = `${authorName}さんが${formattedWeek}の「予定」を提出しました。`;
-    } else {
-      body = `${authorName}さんが${formattedWeek}の「実績」を提出しました。`;
-    }
-
-    const messages = tokens.map(token => ({
-      token: token,
-      notification: {
-        title: title,
-        body: body
-      },
-      data: {
-        click_action: '/',
-        companyId: companyId,
-        reportId: reportId,
-        badgeCount: '1'
-      }
-    }));
-
-    try {
-      const response = await admin.messaging().sendEach(messages);
-      console.log(`Successfully sent ${response.successCount} messages.`);
-      
-      // 無効なトークンのクリーンアップ
-      const invalidTokens = [];
-      response.responses.forEach((resp, idx) => {
-        if (!resp.success) {
-          const errCode = resp.error.code;
-          if (errCode === 'messaging/invalid-registration-token' || errCode === 'messaging/registration-token-not-registered') {
-            invalidTokens.push(tokens[idx]);
-          }
+    // 1. 社員から提出があった場合、管理者に Push 通知を送る
+    if (isPlanSubmitted || isActualSubmitted) {
+      const adminTokens = companyData.adminFcmTokens || [];
+      if (adminTokens.length > 0) {
+        let title = '週報提出のお知らせ';
+        let body = '';
+        if (isPlanSubmitted && isActualSubmitted) {
+          body = `${authorName}さんが${formattedWeek}の「予定」および「実績」を提出しました。`;
+        } else if (isPlanSubmitted) {
+          body = `${authorName}さんが${formattedWeek}の「予定」を提出しました。`;
+        } else {
+          body = `${authorName}さんが${formattedWeek}の「実績」を提出しました。`;
         }
-      });
 
-      if (invalidTokens.length > 0) {
-        const updatedTokens = tokens.filter(t => !invalidTokens.includes(t));
-        await companyRef.update({ adminFcmTokens: updatedTokens });
+        const adminMessages = adminTokens.map(token => ({
+          token: token,
+          notification: { title, body },
+          data: {
+            click_action: '/',
+            companyId: companyId,
+            reportId: reportId,
+            badgeCount: '1'
+          }
+        }));
+
+        try {
+          const response = await admin.messaging().sendEach(adminMessages);
+          console.log(`Successfully sent ${response.successCount} messages to admin.`);
+          
+          // 無効トークンのクリーンアップ
+          const invalidTokens = [];
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              const errCode = resp.error.code;
+              if (errCode === 'messaging/invalid-registration-token' || errCode === 'messaging/registration-token-not-registered') {
+                invalidTokens.push(adminTokens[idx]);
+              }
+            }
+          });
+
+          if (invalidTokens.length > 0) {
+            const updatedTokens = adminTokens.filter(t => !invalidTokens.includes(t));
+            await companyRef.update({ adminFcmTokens: updatedTokens });
+          }
+        } catch (err) {
+          console.error('Error sending FCM to admin:', err);
+        }
       }
-    } catch (err) {
-      console.error('Error sending FCM to admin:', err);
     }
+
+    // 2. 上長が承認・差し戻しした場合、社員に Push 通知を送る
+    if (isPlanApproved || isPlanRejected || isActualApproved || isActualRejected) {
+      const employee = companyData.employees ? companyData.employees.find(e => e.email === afterData.email || e.uid === afterData.uid) : null;
+      const empTokens = employee ? (employee.fcmTokens || []) : [];
+
+      if (empTokens.length > 0) {
+        let title = '週報ステータス更新';
+        let body = '';
+        if (isPlanApproved) body = `${formattedWeek}の「予定」が承認されました。`;
+        else if (isPlanRejected) body = `${formattedWeek}の「予定」が差し戻されました。理由をご確認ください。`;
+        else if (isActualApproved) body = `${formattedWeek}の「実績」が承認され、週報が確定しました。`;
+        else if (isActualRejected) body = `${formattedWeek}の「実績」が差し戻されました。理由をご確認ください。`;
+
+        const empMessages = empTokens.map(token => ({
+          token: token,
+          notification: { title, body },
+          data: {
+            click_action: '/',
+            companyId: companyId,
+            reportId: reportId,
+            badgeCount: '1'
+          }
+        }));
+
+        try {
+          const response = await admin.messaging().sendEach(empMessages);
+          console.log(`Successfully sent ${response.successCount} messages to employee.`);
+          
+          // 無効トークンのクリーンアップ
+          const invalidEmpTokens = [];
+          response.responses.forEach((resp, idx) => {
+            if (!resp.success) {
+              const errCode = resp.error.code;
+              if (errCode === 'messaging/invalid-registration-token' || errCode === 'messaging/registration-token-not-registered') {
+                invalidEmpTokens.push(empTokens[idx]);
+              }
+            }
+          });
+
+          if (invalidEmpTokens.length > 0) {
+            const updatedEmployees = companyData.employees.map(emp => {
+              if (emp.email === afterData.email || emp.uid === afterData.uid) {
+                return { ...emp, fcmTokens: emp.fcmTokens.filter(t => !invalidEmpTokens.includes(t)) };
+              }
+              return emp;
+            });
+            await companyRef.update({ employees: updatedEmployees });
+          }
+        } catch (err) {
+          console.error('Error sending FCM to employee:', err);
+        }
+      }
+    }
+
     return null;
   });
 

@@ -1,23 +1,21 @@
 {
-  "short_name": "工事週報",
-  "name": "工事・日報管理システム",
+  "short_name": "週報ガント",
+  "name": "週報・工程管理システム",
   "icons": [
     {
       "src": "icon-192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
+      "sizes": "192x192"
     },
     {
       "src": "icon-512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
+      "sizes": "512x512"
     }
   ],
-  "start_url": "/",
-  "background_color": "#2563eb",
-  "theme_color": "#2563eb",
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
   "display": "standalone",
-  "orientation": "any"
+  "theme_color": "#0284c7",
+  "orientation": "portrait-primary"
 }

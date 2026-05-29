@@ -9,7 +9,7 @@ const firebaseConfig = {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 // Firebase初期化
@@ -1249,6 +1249,44 @@ document.addEventListener('DOMContentLoaded', () => {
 btnLogout.addEventListener('click', () => {
     signOut(auth).catch(err => console.error(err));
 });
+
+// トースト通知を表示する関数
+const showToast = (message, type = 'success', duration = 5000) => {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const card = document.createElement('div');
+    card.className = `toast-card toast-${type}`;
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'error') icon = '❌';
+
+    card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.25rem;line-height:1;">${icon}</span>
+            <span style="font-weight:500;">${message}</span>
+        </div>
+        <button class="toast-close">&times;</button>
+    `;
+
+    const closeBtn = card.querySelector('.toast-close');
+    closeBtn.onclick = () => {
+        card.style.animation = 'toastFadeOut 0.3s ease-out forwards';
+        setTimeout(() => card.remove(), 300);
+    };
+
+    container.appendChild(card);
+
+    setTimeout(() => {
+        if (card.parentNode) {
+            card.style.animation = 'toastFadeOut 0.3s ease-out forwards';
+            setTimeout(() => card.remove(), 300);
+        }
+    }, duration);
+};
+window.showToast = showToast;
 
 // 日別タスクデータを新旧形式問わず配列に正規化するヘルパー関数
 const normalizeDailyTasks = (dayLog) => {
@@ -3327,23 +3365,81 @@ document.addEventListener('DOMContentLoaded', () => {
         select.dataset.reportsJson = JSON.stringify(myReports);
     };
 
-    // データ読み込み（日報）
-    window.loadReports = async (isSummary = false) => {
+    // リアルタイム購読の管理変数
+    let reportsUnsubscribe = null;
+    let prevReportStatuses = {};
+
+    // データ読み込み（日報：リアルタイム同期版）
+    window.loadReports = (isSummary = false) => {
         try {
             const cid = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
             const q = query(collection(db, "reports"), where("companyId", "==", cid));
-            const querySnapshot = await getDocs(q);
-            allReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            updateFilterOptions();
-            updateCopySelect();
-            updateProjectSuggestions();
-            if (isSummary) {
-                renderSummaryTable();
-            } else {
-                renderTable();
-                loadReportForSelectedWeek();
+
+            if (reportsUnsubscribe) {
+                reportsUnsubscribe();
             }
+
+            reportsUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                allReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // ステータス変更の検知とトースト通知
+                allReports.forEach(r => {
+                    // 自分自身の週報のみ通知する (一般社員の場合)
+                    const isMyReport = currentUser && (r.author === currentUser.displayName || r.email === currentUser.email);
+                    if (isMyReport) {
+                        const key = `${r.week}`;
+                        const prev = prevReportStatuses[key];
+                        const currentPlanStatus = r.planStatus || 'draft';
+                        const currentActualStatus = r.actualStatus || 'draft';
+                        
+                        if (prev) {
+                            const weekRange = formatWeekRange(r.week);
+                            // 予定ステータスの変更検知
+                            if (prev.planStatus !== currentPlanStatus) {
+                                if (currentPlanStatus === 'approved') {
+                                    showToast(`🎉 ${weekRange} の【予定】が承認されました！`, 'success');
+                                } else if (currentPlanStatus === 'rejected') {
+                                    showToast(`⚠️ ${weekRange} の【予定】が差し戻されました。理由をご確認ください。`, 'warning', 8000);
+                                } else if (currentPlanStatus === 'submitted') {
+                                    showToast(`✉️ ${weekRange} の【予定】を提出しました。`, 'success');
+                                }
+                            }
+                            // 実績ステータスの変更検知
+                            if (prev.actualStatus !== currentActualStatus) {
+                                if (currentActualStatus === 'approved') {
+                                    showToast(`🎉 ${weekRange} の【実績】が承認されました！週報が確定しました。`, 'success');
+                                } else if (currentActualStatus === 'rejected') {
+                                    showToast(`⚠️ ${weekRange} の【実績】が差し戻されました。理由をご確認ください。`, 'warning', 8000);
+                                } else if (currentActualStatus === 'submitted') {
+                                    showToast(`✉️ ${weekRange} の【実績】を提出しました。`, 'success');
+                                }
+                            }
+                        }
+                        
+                        // 状態を記憶
+                        prevReportStatuses[key] = {
+                            planStatus: currentPlanStatus,
+                            actualStatus: currentActualStatus
+                        };
+                    }
+                });
+
+                updateFilterOptions();
+                updateCopySelect();
+                updateProjectSuggestions();
+                if (isSummary) {
+                    renderSummaryTable();
+                } else {
+                    renderTable();
+                    // 現在選択されている週のレポートデータを再反映（入力ロックなどの状態変化を同期）
+                    const weekInput = document.getElementById('report-week');
+                    if (weekInput && weekInput.value) {
+                        loadReportForSelectedWeek();
+                    }
+                }
+            }, (err) => {
+                console.error("Error in onSnapshot for reports:", err);
+            });
         } catch (e) {
             console.error("Error loading reports: ", e);
         }
