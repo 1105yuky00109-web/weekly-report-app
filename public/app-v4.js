@@ -281,35 +281,7 @@ onAuthStateChanged(auth, async (user) => {
         await loadMembers();
         populateBranchDropdowns();
 
-        // 週の予定と実績画面（input-view）の担当者プルダウン制御
-        const authorContainer = document.getElementById('author-container');
-        const authorWrapper = document.getElementById('author-wrapper');
-        
-        if (authorContainer && authorWrapper) {
-            if (currentCompany && currentCompany.role === 'admin') {
-                authorContainer.style.display = 'block';
-                
-                const employees = currentCompany.employees || [];
-                let selectHtml = `<select id="author" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);font-size:1rem;">`;
-                employees.forEach(emp => {
-                    selectHtml += `<option value="${emp.name}">${emp.name} (${emp.branch || '所属なし'})</option>`;
-                });
-                selectHtml += `</select>`;
-                
-                authorWrapper.innerHTML = selectHtml;
-                
-                const authorSelect = document.getElementById('author');
-                authorSelect.addEventListener('change', () => {
-                    loadReportForSelectedWeek();
-                });
-                
-                const myName = myEmpInfo ? myEmpInfo.name : nameDisplay;
-                authorSelect.value = myName;
-            } else {
-                authorContainer.style.display = 'none';
-                authorWrapper.innerHTML = `<input type="hidden" id="author" value="${myEmpInfo ? myEmpInfo.name : nameDisplay}">`;
-            }
-        }
+
 
         // ログインユーザーの所属支店を初期フィルター値に設定（一般社員の場合）
         if (currentCompany && currentCompany.role === 'employee') {
@@ -3664,18 +3636,191 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            printContainer.innerHTML += `
-                <div class="print-report-card">
-                    <div class="print-report-header">対象期間: ${formatWeekRange(r.week)} ｜ 担当者: ${r.author || ''}</div>
-                    <div class="print-report-body">
-                        <strong>■ 業務実績（日別詳細）</strong>
-                        <table class="print-task-table">
-                            <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th><th>日次レポート・備考</th></tr></thead>
-                            <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b;">記録なし</td></tr>'}</tbody>
-                        </table>
-                    </div>
+            const cardEl = document.createElement('div');
+            cardEl.className = 'print-report-card';
+            cardEl.style.marginBottom = '25px';
+
+            cardEl.innerHTML = `
+                <div class="print-report-header">対象期間: ${formatWeekRange(r.week)} ｜ 担当者: ${r.author || ''}</div>
+                <div class="print-report-body">
+                    <strong>■ 業務実績（日別詳細）</strong>
+                    <table class="print-task-table">
+                        <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th><th>日次レポート・備考</th></tr></thead>
+                        <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b;">記録なし</td></tr>'}</tbody>
+                    </table>
                 </div>
             `;
+
+            // 管理者のみ承認パネルを表示
+            if (currentCompany && currentCompany.role === 'admin') {
+                const adminPanel = document.createElement('div');
+                adminPanel.className = 'admin-action-card no-print';
+                adminPanel.style = 'background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:15px; margin-top:15px; font-size:0.9rem; text-align:left; color:#000000;';
+                
+                const planStatus = r.planStatus || 'draft';
+                const planRejectReason = r.planRejectReason || '';
+                const actualStatus = r.actualStatus || 'draft';
+                const actualRejectReason = r.actualRejectReason || '';
+
+                const getStatusText = (status, rejectReason) => {
+                    if (status === 'draft') return '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
+                    if (status === 'submitted') return '<span style="color:#2563eb;font-weight:bold;">提出済 (承認待ち)</span>';
+                    if (status === 'approved') return '<span style="color:#16a34a;font-weight:bold;">承認済み</span>';
+                    if (status === 'rejected') {
+                        let txt = '<span style="color:#dc2626;font-weight:bold;">差し戻し中</span>';
+                        if (rejectReason) txt += `<br><span style="font-size:0.8rem;color:#dc2626;">理由: ${rejectReason}</span>`;
+                        return txt;
+                    }
+                    return '未作成';
+                };
+
+                const isPlanApproveDisabled = planStatus !== 'submitted';
+                const isPlanRejectDisabled = planStatus !== 'submitted';
+                const isActualApproveDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
+                const isActualRejectDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
+                
+                adminPanel.innerHTML = `
+                    <h4 style="margin:0 0 10px 0; color:#1e293b; display:flex; align-items:center; gap:6px; font-size:0.95rem; font-weight:bold;">🛡️ 上長承認操作パネル</h4>
+                    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:12px;">
+                        <div style="flex:1; min-width:200px; padding:10px; background:#f1f5f9; border-radius:6px; border:1px solid #e2e8f0;">
+                            <div style="margin-bottom:6px;"><strong>📅 予定の状況:</strong> ${getStatusText(planStatus, planRejectReason)}</div>
+                            <div style="display:flex; gap:6px; margin-top:8px;">
+                                <button type="button" class="btn btn-success btn-small btn-approve-plan" style="padding:4px 8px; font-size:0.75rem; background-color:#16a34a; color:#fff;" ${isPlanApproveDisabled ? 'disabled' : ''}>👍 承認</button>
+                                <button type="button" class="btn btn-danger btn-small btn-reject-plan" style="padding:4px 8px; font-size:0.75rem; background-color:#ef4444; color:#fff;" ${isPlanRejectDisabled ? 'disabled' : ''}>👎 差し戻し</button>
+                            </div>
+                        </div>
+                        <div style="flex:1; min-width:200px; padding:10px; background:#f1f5f9; border-radius:6px; border:1px solid #e2e8f0;">
+                            <div style="margin-bottom:6px;"><strong>✅ 実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason)}</div>
+                            <div style="display:flex; gap:6px; margin-top:8px;">
+                                <button type="button" class="btn btn-success btn-small btn-approve-actual" style="padding:4px 8px; font-size:0.75rem; background-color:#16a34a; color:#fff;" ${isActualApproveDisabled ? 'disabled' : ''}>👍 承認</button>
+                                <button type="button" class="btn btn-danger btn-small btn-reject-actual" style="padding:4px 8px; font-size:0.75rem; background-color:#ef4444; color:#fff;" ${isActualRejectDisabled ? 'disabled' : ''}>👎 差し戻し</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 差し戻し理由入力エリア (動的) -->
+                    <div class="reject-input-area" style="display:none; margin-top:10px; border-top:1px dashed #cbd5e1; padding-top:10px;">
+                        <label style="font-weight:bold; display:block; margin-bottom:6px; font-size:0.8rem; color:#dc2626;" class="reject-label-text">差し戻し理由</label>
+                        <textarea class="reject-textarea" placeholder="差し戻しの理由を入力してください（社員画面に表示されます）" style="width:100%; height:60px; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.85rem; background:#fff; color:#000; resize:none;"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
+                            <button type="button" class="btn btn-secondary btn-small btn-cancel-reject" style="padding:4px 8px; font-size:0.75rem;">キャンセル</button>
+                            <button type="button" class="btn btn-primary btn-small btn-submit-reject" style="padding:4px 8px; font-size:0.75rem; background-color:#2563eb; color:#fff;">差し戻しを確定</button>
+                        </div>
+                    </div>
+                `;
+
+                let activeRejectType = ''; // 'plan' or 'actual'
+
+                const btnApprovePlan = adminPanel.querySelector('.btn-approve-plan');
+                const btnRejectPlan = adminPanel.querySelector('.btn-reject-plan');
+                const btnApproveActual = adminPanel.querySelector('.btn-approve-actual');
+                const btnRejectActual = adminPanel.querySelector('.btn-reject-actual');
+                const rejectArea = adminPanel.querySelector('.reject-input-area');
+                const rejectLabel = adminPanel.querySelector('.reject-label-text');
+                const rejectTextarea = adminPanel.querySelector('.reject-textarea');
+                const btnCancelReject = adminPanel.querySelector('.btn-cancel-reject');
+                const btnSubmitReject = adminPanel.querySelector('.btn-submit-reject');
+
+                if (btnApprovePlan) {
+                    btnApprovePlan.addEventListener('click', async () => {
+                        if (!confirm(`${r.author}さんの予定を承認します。よろしいですか？`)) return;
+                        try {
+                            btnApprovePlan.disabled = true;
+                            await updateDoc(doc(db, "reports", r.id), {
+                                planStatus: 'approved',
+                                planRejectReason: ''
+                            });
+                            alert('予定を承認しました。');
+                            await loadReports(false);
+                        } catch (err) {
+                            console.error('Approve plan error:', err);
+                            alert('エラーが発生しました。');
+                            btnApprovePlan.disabled = false;
+                        }
+                    });
+                }
+
+                if (btnApproveActual) {
+                    btnApproveActual.addEventListener('click', async () => {
+                        if (!confirm(`${r.author}さんの実績を承認します。よろしいですか？`)) return;
+                        try {
+                            btnApproveActual.disabled = true;
+                            await updateDoc(doc(db, "reports", r.id), {
+                                actualStatus: 'approved',
+                                actualRejectReason: '',
+                                status: 'approved'
+                            });
+                            alert('実績を承認しました。');
+                            await loadReports(false);
+                        } catch (err) {
+                            console.error('Approve actual error:', err);
+                            alert('エラーが発生しました。');
+                            btnApproveActual.disabled = false;
+                        }
+                    });
+                }
+
+                if (btnRejectPlan) {
+                    btnRejectPlan.addEventListener('click', () => {
+                        activeRejectType = 'plan';
+                        rejectLabel.textContent = '予定の差し戻し理由';
+                        rejectTextarea.value = '';
+                        rejectArea.style.display = 'block';
+                        rejectTextarea.focus();
+                    });
+                }
+
+                if (btnRejectActual) {
+                    btnRejectActual.addEventListener('click', () => {
+                        activeRejectType = 'actual';
+                        rejectLabel.textContent = '実績の差し戻し理由';
+                        rejectTextarea.value = '';
+                        rejectArea.style.display = 'block';
+                        rejectTextarea.focus();
+                    });
+                }
+
+                if (btnCancelReject) {
+                    btnCancelReject.addEventListener('click', () => {
+                        rejectArea.style.display = 'none';
+                        activeRejectType = '';
+                    });
+                }
+
+                if (btnSubmitReject) {
+                    btnSubmitReject.addEventListener('click', async () => {
+                        const reason = rejectTextarea.value.trim();
+                        if (!reason) {
+                            alert('差し戻し理由を入力してください。');
+                            return;
+                        }
+                        try {
+                            btnSubmitReject.disabled = true;
+                            const updateData = {};
+                            if (activeRejectType === 'plan') {
+                                updateData.planStatus = 'rejected';
+                                updateData.planRejectReason = reason;
+                            } else if (activeRejectType === 'actual') {
+                                updateData.actualStatus = 'rejected';
+                                updateData.actualRejectReason = reason;
+                                updateData.status = 'plan';
+                            }
+                            
+                            await updateDoc(doc(db, "reports", r.id), updateData);
+                            alert('差し戻し処理が完了しました。');
+                            rejectArea.style.display = 'none';
+                            await loadReports(false);
+                        } catch (err) {
+                            console.error('Reject error:', err);
+                            alert('エラーが発生しました。');
+                            btnSubmitReject.disabled = false;
+                        }
+                    });
+                }
+
+                cardEl.appendChild(adminPanel);
+            }
+
+            printContainer.appendChild(cardEl);
         });
 
         // 下部の個人別集計表を描画
