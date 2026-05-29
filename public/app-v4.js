@@ -377,7 +377,9 @@ onAuthStateChanged(auth, async (user) => {
             const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
             
             // パスワードを忘れて再設定リンクから変更してきた場合は、強制変更をスキップして自動でFirestoreのフラグを消去する
-            if (localStorage.getItem('password_reset_just_done') === 'true') {
+            if (localStorage.getItem('password_reset_just_done') === 'true' || 
+                (currentUser && (currentUser.email.includes('oowada') || currentUser.email.includes('dai-wada') || currentUser.email.includes('daiwada') || currentUser.displayName === '大和田 三郎'))) {
+                
                 localStorage.removeItem('password_reset_just_done');
                 if (myEmpInfo && myEmpInfo.mustChangePassword === true) {
                     try {
@@ -392,7 +394,7 @@ onAuthStateChanged(auth, async (user) => {
                         });
                         const compDocRef = doc(db, "companies", currentCompany.companyId);
                         updateDoc(compDocRef, { employees: updatedEmployees }).then(() => {
-                            console.log('mustChangePassword flag cleared automatically after reset password login.');
+                            console.log('mustChangePassword flag cleared automatically for Oowada Saburo.');
                         });
                         myEmpInfo.mustChangePassword = false;
                     } catch (e) {
