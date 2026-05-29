@@ -1510,9 +1510,10 @@ const generateWeekOptions = () => {
             
             // 重複排除
             if (!options.find(o => o.value === weekStr)) {
+                const isCurrent = weekStr === currentWeekStr;
                 options.push({
                     value: weekStr,
-                    text: `${sy}年 ${m}/${d} 〜 ${sm}/${sd} の週`
+                    text: `${sy}年 ${m}/${d} 〜 ${sm}/${sd} の週${isCurrent ? ' (今週)' : ''}`
                 });
             }
             
@@ -3668,6 +3669,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const newOpt = document.createElement('option');
                     newOpt.value = opt.value;
                     newOpt.textContent = opt.textContent;
+                    newOpt.style.color = opt.style.color;
+                    newOpt.style.fontWeight = opt.style.fontWeight;
                     weekSelect.appendChild(newOpt);
                 });
                 weekSelect.value = mainWeekSelect.value;
