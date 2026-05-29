@@ -429,7 +429,7 @@
         <div id="personal-summary-container"></div>
 
         <!-- レポート一覧テーブル -->
-        <div style="overflow-x:auto;">
+        <div class="no-print" style="overflow-x:auto; display:none;">
             <table id="reports-table" style="width:100%;border-collapse:collapse;">
                 <thead>
                     <tr>
@@ -444,7 +444,7 @@
         </div>
 
         <!-- レポート一覧コンテナ -->
-        <div id="report-list-container"></div>
+        <div id="report-list-container" class="no-print" style="display:none;"></div>
 
         <!-- 印刷エリア -->
         <div id="print-area" class="only-print">
@@ -716,7 +716,18 @@
     </div>
 </div>
 
+<!-- 週報詳細モーダル (管理者承認用) -->
+<div id="report-modal" class="modal-overlay hidden no-print" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 10000; backdrop-filter: blur(4px);">
+    <div class="modal-content" style="background: var(--bg-card, #ffffff); border-radius: 12px; width: 95%; max-width: 1000px; max-height: 90%; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.3); padding: 25px; position: relative; border: 1px solid var(--border);">
+        <button id="btn-close-modal" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+        <h2 style="margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; color: var(--text-main); font-size: 1.3rem;">📄 週報詳細・上長承認</h2>
+        <div id="modal-report-body" style="color: var(--text);">
+            <!-- ここに週報プレビューと承認パネルが動的に流し込まれる -->
+        </div>
+    </div>
+</div>
+
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app-v4.js?v=20260529-06"></script>
+<script type="module" src="app-v4.js?v=20260529-07"></script>
 </body>
 </html>

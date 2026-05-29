@@ -3525,8 +3525,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
             card.innerHTML = `
-                <div style="font-weight:bold;font-size:1rem;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px;">
-                    👤 ${emp.name} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal;">(${emp.branch || '所属なし'})</span>
+                <div style="font-weight:bold;font-size:1rem;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
+                    <div>👤 ${emp.name} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal;">(${emp.branch || '所属なし'})</span></div>
+                    <button type="button" class="btn btn-primary btn-small btn-view-report" 
+                            style="padding:2px 8px;font-size:0.75rem;background:var(--primary-color,#2563eb);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-left:auto;"
+                            data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">📄 週報</button>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;">
                     <div style="display:flex;align-items:center;">
@@ -3549,9 +3552,271 @@ document.addEventListener('DOMContentLoaded', () => {
                     sendRemind(uid, targetWeek, type, e.target);
                 });
             });
+
+            card.querySelectorAll('.btn-view-report').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const email = e.currentTarget.dataset.email;
+                    const name = e.currentTarget.dataset.name;
+                    const week = e.currentTarget.dataset.week;
+                    openReportModal(name, email, week);
+                });
+            });
             
             listDiv.appendChild(card);
         });
+    };
+
+    const openReportModal = async (empName, empEmail, targetWeek) => {
+        const modal = document.getElementById('report-modal');
+        const modalBody = document.getElementById('modal-report-body');
+        if (!modal || !modalBody) return;
+
+        modalBody.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">読み込み中...</div>';
+        modal.classList.remove('hidden');
+
+        const btnClose = document.getElementById('btn-close-modal');
+        if (btnClose) {
+            btnClose.onclick = () => {
+                modal.classList.add('hidden');
+            };
+        }
+
+        const report = allReports.find(r => r.week === targetWeek && (r.author === empName || r.authorEmail === empEmail));
+
+        if (!report) {
+            modalBody.innerHTML = `
+                <div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
+                    <div style="font-size:3rem;margin-bottom:15px;">📄</div>
+                    <p style="font-size:1.1rem;font-weight:bold;margin-bottom:5px;">週報データが未作成です</p>
+                    <p style="font-size:0.9rem;">${empName} 様の ${formatWeekRange(targetWeek)} の週報データはまだ一時保存もされていません。</p>
+                </div>
+            `;
+            return;
+        }
+
+        const r = report;
+        const dates = getDaysOfWeek(r.week);
+        const getDayLabel = (idx, name) => dates ? `${formatDate(dates[idx])}<br>(${name})` : name;
+        
+        const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+        
+        let printTasksHtml = '';
+        days.forEach((dayKey, idx) => {
+            const morningProj = r[`morning_${dayKey}_project`] || '';
+            const morningWork = r[`morning_${dayKey}_work`] || '';
+            const morningHours = parseFloat(r[`morning_${dayKey}_hours`]) || 0;
+            
+            const afternoonProj = r[`afternoon_${dayKey}_project`] || '';
+            const afternoonWork = r[`afternoon_${dayKey}_work`] || '';
+            const afternoonHours = parseFloat(r[`afternoon_${dayKey}_hours`]) || 0;
+            
+            const note = r[`note_${dayKey}`] || '';
+            
+            let rowSpan = 1;
+            const hasMorning = (morningProj || morningWork || morningHours > 0);
+            const hasAfternoon = (afternoonProj || afternoonWork || afternoonHours > 0);
+            
+            if (hasMorning && hasAfternoon) rowSpan = 2;
+            
+            const dayLabel = getDayLabel(idx, dayNames[idx]);
+            
+            if (hasMorning || hasAfternoon || note) {
+                let firstRow = `<tr><td rowspan="${rowSpan}" class="print-day-label" style="text-align:center;font-weight:bold;white-space:nowrap;background:var(--bg-muted, #f8fafc);">${dayLabel}</td>`;
+                if (hasMorning) {
+                    firstRow += `<td>${morningProj}</td><td>${morningWork}</td><td>${morningHours > 0 ? morningHours + 'H' : '-'}</td>`;
+                } else if (hasAfternoon) {
+                    firstRow += `<td>${afternoonProj}</td><td>${afternoonWork}</td><td>${afternoonHours > 0 ? afternoonHours + 'H' : '-'}</td>`;
+                } else {
+                    firstRow += `<td colspan="3" style="color:#94a3b8; text-align:center;">日次レポートのみ</td>`;
+                }
+                firstRow += `<td rowspan="${rowSpan}" style="font-size:0.8rem; text-align:left; vertical-align:top; white-space:pre-wrap; max-width:250px;">${note || '-'}</td></tr>`;
+                printTasksHtml += firstRow;
+                
+                if (rowSpan === 2) {
+                    printTasksHtml += `<tr><td>${afternoonProj}</td><td>${afternoonWork}</td><td>${afternoonHours > 0 ? afternoonHours + 'H' : '-'}</td></tr>`;
+                }
+            } else {
+                printTasksHtml += `<tr>
+                    <td class="print-day-label" style="background:#f8fafc; color:#94a3b8; text-align:center;">${dayLabel}</td>
+                    <td colspan="3" style="color:#cbd5e1; text-align:center; background:#f8fafc;">休み / 記録なし</td>
+                    <td style="color:#cbd5e1; background:#f8fafc; text-align:center;">-</td>
+                </tr>`;
+            }
+        });
+
+        const cardEl = document.createElement('div');
+        cardEl.className = 'print-report-card';
+        cardEl.style.marginBottom = '0';
+        cardEl.style.boxShadow = 'none';
+        cardEl.style.border = 'none';
+
+        cardEl.innerHTML = `
+            <div class="print-report-header" style="background:var(--primary-color);color:#fff;border-radius:6px 6px 0 0;padding:12px 15px;font-weight:bold;font-size:1.1rem;display:flex;justify-content:space-between;">
+                <div>対象期間: ${formatWeekRange(r.week)}</div>
+                <div>担当者: ${r.author || ''}</div>
+            </div>
+            <div class="print-report-body" style="padding:20px;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;background:var(--card-bg);">
+                <strong style="display:block;margin-bottom:12px;color:var(--text-main);font-size:1rem;">■ 業務実績（日別詳細）</strong>
+                <table class="print-task-table" style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+                    <thead><tr><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">日付(曜)</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">工事名</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">作業内容</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">時間</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">日次レポート・備考</th></tr></thead>
+                    <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b; border:1px solid var(--border);">記録なし</td></tr>'}</tbody>
+                </table>
+            </div>
+        `;
+
+        const planStatus = r.planStatus || 'draft';
+        const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : 'draft');
+        const planRejectReason = r.planRejectReason || '';
+        const actualRejectReason = r.actualRejectReason || '';
+
+        const getStatusText = (status, rejectReason) => {
+            if (status === 'draft') return '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
+            if (status === 'submitted') return '<span style="color:#2563eb;font-weight:bold;">提出済 (承認待ち)</span>';
+            if (status === 'approved') return '<span style="color:#16a34a;font-weight:bold;">承認済み</span>';
+            if (status === 'rejected') {
+                let txt = '<span style="color:#dc2626;font-weight:bold;">差し戻し中</span>';
+                if (rejectReason) txt += `<br><span style="font-size:0.8rem;color:#dc2626;">理由: ${rejectReason}</span>`;
+                return txt;
+            }
+            return '未作成';
+        };
+
+        const adminPanel = document.createElement('div');
+        adminPanel.className = 'admin-approval-panel no-print';
+        adminPanel.style.marginTop = '20px';
+        adminPanel.style.padding = '15px';
+        adminPanel.style.background = 'var(--bg-muted, #f8fafc)';
+        adminPanel.style.border = '1px dashed var(--primary-color)';
+        adminPanel.style.borderRadius = '8px';
+
+        const isPlanApproveDisabled = planStatus !== 'submitted';
+        const isPlanRejectDisabled = planStatus !== 'submitted';
+        const isActualApproveDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
+        const isActualRejectDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
+
+        adminPanel.innerHTML = `
+            <h4 style="margin:0 0 12px 0; display:flex; align-items:center; gap:6px; color:var(--text-main);">🛡️ 上長承認操作パネル</h4>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; font-size:0.9rem;">
+                    <div><strong>予定の状況:</strong> ${getStatusText(planStatus, planRejectReason)}</div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-primary btn-small btn-approve-plan" style="padding:4px 12px; font-size:0.8rem;" ${isPlanApproveDisabled ? 'disabled' : ''}>予定を承認</button>
+                        <button type="button" class="btn btn-danger btn-small btn-reject-plan" style="padding:4px 12px; font-size:0.8rem;" ${isPlanRejectDisabled ? 'disabled' : ''}>予定を差し戻す</button>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; font-size:0.9rem; border-top: 1px solid var(--border); padding-top: 12px;">
+                    <div><strong>実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason)}</div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-primary btn-small btn-approve-actual" style="padding:4px 12px; font-size:0.8rem;" ${isActualApproveDisabled ? 'disabled' : ''}>実績を承認</button>
+                        <button type="button" class="btn btn-danger btn-small btn-reject-actual" style="padding:4px 12px; font-size:0.8rem;" ${isActualRejectDisabled ? 'disabled' : ''}>実績を差し戻す</button>
+                    </div>
+                </div>
+                
+                <div class="reject-comment-area" style="display:none; flex-direction:column; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
+                    <label style="font-size:0.85rem; font-weight:bold; color:#dc2626;">差し戻し理由（コメント）</label>
+                    <textarea class="txt-reject-reason" rows="3" placeholder="差し戻しの理由を入力してください..." style="width:100%; padding:8px; border:1px solid #fecaca; border-radius:6px; background:#fff5f5; color:#991b1b; font-size:0.85rem; resize:vertical;"></textarea>
+                    <div style="display:flex; gap:8px; justify-content:flex-end;">
+                        <button type="button" class="btn btn-secondary btn-small btn-cancel-reject" style="padding:4px 12px; font-size:0.8rem;">キャンセル</button>
+                        <button type="button" class="btn btn-danger btn-small btn-submit-reject" style="padding:4px 12px; font-size:0.8rem; background:#dc2626; color:#fff; border:none;">差し戻しを確定</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const btnApprovePlan = adminPanel.querySelector('.btn-approve-plan');
+        btnApprovePlan.addEventListener('click', async () => {
+            if (!confirm('予定を承認しますか？')) return;
+            try {
+                btnApprovePlan.disabled = true;
+                await updateDoc(doc(db, "reports", r.id), {
+                    planStatus: 'approved',
+                    planRejectReason: ''
+                });
+                alert('予定を承認しました。');
+                modal.classList.add('hidden');
+                await loadReports(false);
+            } catch (err) {
+                console.error(err);
+                alert('エラーが発生しました。');
+                btnApprovePlan.disabled = false;
+            }
+        });
+
+        const btnApproveActual = adminPanel.querySelector('.btn-approve-actual');
+        btnApproveActual.addEventListener('click', async () => {
+            if (!confirm('実績を承認しますか？')) return;
+            try {
+                btnApproveActual.disabled = true;
+                await updateDoc(doc(db, "reports", r.id), {
+                    actualStatus: 'approved',
+                    actualRejectReason: '',
+                    status: 'approved'
+                });
+                alert('実績を承認しました。');
+                modal.classList.add('hidden');
+                await loadReports(false);
+            } catch (err) {
+                console.error(err);
+                alert('エラーが発生しました。');
+                btnApproveActual.disabled = false;
+            }
+        });
+
+        const rejectArea = adminPanel.querySelector('.reject-comment-area');
+        const txtReason = adminPanel.querySelector('.txt-reject-reason');
+        const btnCancelReject = adminPanel.querySelector('.btn-cancel-reject');
+        const btnSubmitReject = adminPanel.querySelector('.btn-submit-reject');
+        
+        let activeRejectType = '';
+
+        const showRejectArea = (type) => {
+            activeRejectType = type;
+            rejectArea.style.display = 'flex';
+            txtReason.value = '';
+            txtReason.focus();
+        };
+
+        adminPanel.querySelector('.btn-reject-plan').addEventListener('click', () => showRejectArea('plan'));
+        adminPanel.querySelector('.btn-reject-actual').addEventListener('click', () => showRejectArea('actual'));
+
+        btnCancelReject.addEventListener('click', () => {
+            rejectArea.style.display = 'none';
+            activeRejectType = '';
+        });
+
+        btnSubmitReject.addEventListener('click', async () => {
+            const reason = txtReason.value.trim();
+            if (!reason) {
+                alert('差し戻し理由を入力してください。');
+                return;
+            }
+            try {
+                btnSubmitReject.disabled = true;
+                const updateData = {};
+                if (activeRejectType === 'plan') {
+                    updateData.planStatus = 'rejected';
+                    updateData.planRejectReason = reason;
+                } else if (activeRejectType === 'actual') {
+                    updateData.actualStatus = 'rejected';
+                    updateData.actualRejectReason = reason;
+                    updateData.status = 'plan';
+                }
+                
+                await updateDoc(doc(db, "reports", r.id), updateData);
+                alert('差し戻し処理が完了しました。');
+                modal.classList.add('hidden');
+                await loadReports(false);
+            } catch (err) {
+                console.error(err);
+                alert('エラーが発生しました。');
+                btnSubmitReject.disabled = false;
+            }
+        });
+
+        cardEl.appendChild(adminPanel);
+        modalBody.innerHTML = '';
+        modalBody.appendChild(cardEl);
     };
 
     const renderTable = () => {
@@ -3827,10 +4092,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 cardEl.appendChild(adminPanel);
             }
 
-            // 画面表示用コンテナに追加 (画面上に書類と承認パネルが表示されるようにする)
-            if (reportListContainer) {
-                reportListContainer.appendChild(cardEl);
-            }
+            // 画面表示用コンテナへの自動追加は廃止 (モーダルでの個別表示に切り替えたため)
         });
 
         // 下部の個人別集計表を描画
