@@ -281,6 +281,36 @@ onAuthStateChanged(auth, async (user) => {
         await loadMembers();
         populateBranchDropdowns();
 
+        // 週の予定と実績画面（input-view）の担当者プルダウン制御
+        const authorContainer = document.getElementById('author-container');
+        const authorWrapper = document.getElementById('author-wrapper');
+        
+        if (authorContainer && authorWrapper) {
+            if (currentCompany && currentCompany.role === 'admin') {
+                authorContainer.style.display = 'block';
+                
+                const employees = currentCompany.employees || [];
+                let selectHtml = `<select id="author" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);font-size:1rem;">`;
+                employees.forEach(emp => {
+                    selectHtml += `<option value="${emp.name}">${emp.name} (${emp.branch || '所属なし'})</option>`;
+                });
+                selectHtml += `</select>`;
+                
+                authorWrapper.innerHTML = selectHtml;
+                
+                const authorSelect = document.getElementById('author');
+                authorSelect.addEventListener('change', () => {
+                    loadReportForSelectedWeek();
+                });
+                
+                const myName = myEmpInfo ? myEmpInfo.name : nameDisplay;
+                authorSelect.value = myName;
+            } else {
+                authorContainer.style.display = 'none';
+                authorWrapper.innerHTML = `<input type="hidden" id="author" value="${myEmpInfo ? myEmpInfo.name : nameDisplay}">`;
+            }
+        }
+
         // ログインユーザーの所属支店を初期フィルター値に設定（一般社員の場合）
         if (currentCompany && currentCompany.role === 'employee') {
             const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;

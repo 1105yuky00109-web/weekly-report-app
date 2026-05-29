@@ -354,9 +354,12 @@
             <div id="report-status-badge" class="status-badge" style="margin-bottom:15px;"></div>
 
             <form id="report-form">
-                <div class="form-group" style="display:none;">
-                    <label for="author">担当者名</label>
-                    <input type="text" id="author" readonly>
+                <!-- 担当者選択 (管理者の場合はselect、社員の場合は非表示input) -->
+                <div id="author-container" class="form-group" style="display:none; margin-bottom:15px; max-width:250px;">
+                    <label for="author" style="font-weight:bold; font-size:0.85rem;">表示対象の社員</label>
+                    <div id="author-wrapper">
+                        <input type="text" id="author" readonly>
+                    </div>
                 </div>
 
                 <!-- 過去の週報をコピー (一番上に移動) -->
@@ -717,6 +720,6 @@
 </div>
 
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app-v4.js?v=20260529-02"></script>
+<script type="module" src="app-v4.js?v=20260529-03"></script>
 </body>
 </html>
