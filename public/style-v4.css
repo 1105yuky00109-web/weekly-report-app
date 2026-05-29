@@ -1498,3 +1498,14 @@ body.dark-theme button:disabled {
     border-color: #334155 !important;
     opacity: 0.6;
 }
+
+/* ==========================================
+   週報入力画面のロック（グレーアウト）表示
+   ========================================== */
+#report-form.form-locked #days-container,
+#report-form.form-locked #copy-past-report-select,
+#report-form.form-locked #btn-copy-past-report {
+    opacity: 0.6;
+    pointer-events: none;
+    filter: grayscale(30%);
+}

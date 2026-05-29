@@ -1929,6 +1929,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('report-form');
         if (!form) return;
 
+        // 全てロックされているか（予定も実績も編集不可か）のトグル
+        const isAllLocked = !isPlanEditable && !isActualEditable;
+        form.classList.toggle('form-locked', isAllLocked);
+
         // 予定関連のインプット (支店・現場名、作業内容・備考)
         form.querySelectorAll('.morning-project, .morning-detail, .afternoon-project, .afternoon-detail, .night-project, .night-detail').forEach(el => {
             el.disabled = !isPlanEditable;
