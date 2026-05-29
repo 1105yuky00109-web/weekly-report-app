@@ -1610,6 +1610,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const checkUnsavedChanges = () => {
+        // 保存ボタンが画面上に存在しない場合は無条件で保存警告をスキップ
+        const hasSaveButtons = document.getElementById('btn-save-plan') || document.getElementById('btn-save-actual');
+        if (!hasSaveButtons) {
+            return false;
+        }
+
         // 予定も実績も編集不可（ロック状態）のときは、保存警告をスキップ
         if (!currentIsPlanEditable && !currentIsActualEditable) {
             return false;
