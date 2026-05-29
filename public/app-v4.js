@@ -3562,6 +3562,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.getElementById('reports-tbody');
         const printContainer = document.getElementById('print-details-container');
         const personalSummary = document.getElementById('personal-summary-container');
+        const reportListContainer = document.getElementById('report-list-container');
 
         const filtered = allReports.filter(r => 
             (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
@@ -3570,7 +3571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
         filtered.sort((a,b) => (a.week < b.week ? 1 : -1)); // 降順
         
-        tbody.innerHTML = ''; printContainer.innerHTML = ''; if(personalSummary) personalSummary.innerHTML = '';
+        tbody.innerHTML = ''; printContainer.innerHTML = ''; if(personalSummary) personalSummary.innerHTML = ''; if(reportListContainer) reportListContainer.innerHTML = '';
 
         const authorProjectHours = {};
 
@@ -3649,6 +3650,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </table>
                 </div>
             `;
+
+            // 印刷用カードの生成と追加 (承認パネルを含まないクリーンなプレビュー)
+            const printCardEl = document.createElement('div');
+            printCardEl.className = 'print-report-card';
+            printCardEl.style.marginBottom = '25px';
+            printCardEl.innerHTML = cardEl.innerHTML;
+            printContainer.appendChild(printCardEl);
 
             // 管理者のみ承認パネルを表示
             if (currentCompany && currentCompany.role === 'admin') {
@@ -3819,7 +3827,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 cardEl.appendChild(adminPanel);
             }
 
-            printContainer.appendChild(cardEl);
+            // 画面表示用コンテナに追加 (画面上に書類と承認パネルが表示されるようにする)
+            if (reportListContainer) {
+                reportListContainer.appendChild(cardEl);
+            }
         });
 
         // 下部の個人別集計表を描画
