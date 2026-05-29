@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <script>
+        (function() {
+            const RESET_KEY = 'sw_reset_v4';
+            if (!localStorage.getItem(RESET_KEY)) {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                        var promises = [];
+                        for (var i = 0; i < registrations.length; i++) {
+                            promises.push(registrations[i].unregister());
+                        }
+                        Promise.all(promises).then(function() {
+                            if ('caches' in window) {
+                                caches.keys().then(function(names) {
+                                    for (var j = 0; j < names.length; j++) {
+                                        caches.delete(names[j]);
+                                    }
+                                });
+                            }
+                            localStorage.setItem(RESET_KEY, 'true');
+                            window.location.reload(true);
+                        });
+                    }).catch(function(err) {
+                        console.error('Failed to reset SW:', err);
+                    });
+                } else {
+                    localStorage.setItem(RESET_KEY, 'true');
+                }
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工事・日報管理システム</title>
@@ -771,14 +801,6 @@
 
 <!-- app.js（Firebase v10 モジュール対応） -->
 <script type="module" src="app-v4.js?v=20260529-12"></script>
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('firebase-messaging-sw.js')
-                .then(reg => console.log('ServiceWorker registered:', reg))
-                .catch(err => console.error('ServiceWorker registration failed:', err));
-        });
-    }
-</script>
+<!-- Service Workerの登録はapp-v4.js側で対応判定を行いながら安全に処理されます -->
 </body>
 </html>
