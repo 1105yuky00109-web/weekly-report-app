@@ -375,6 +375,32 @@ onAuthStateChanged(auth, async (user) => {
         const passModal = document.getElementById('password-change-modal');
         if (passModal && currentCompany) {
             const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
+            
+            // パスワードを忘れて再設定リンクから変更してきた場合は、強制変更をスキップして自動でFirestoreのフラグを消去する
+            if (localStorage.getItem('password_reset_just_done') === 'true') {
+                localStorage.removeItem('password_reset_just_done');
+                if (myEmpInfo && myEmpInfo.mustChangePassword === true) {
+                    try {
+                        const employees = currentCompany.employees || [];
+                        const updatedEmployees = employees.map(emp => {
+                            if (emp.uid === currentUser.uid) {
+                                const newEmp = { ...emp };
+                                delete newEmp.mustChangePassword;
+                                return newEmp;
+                            }
+                            return emp;
+                        });
+                        const compDocRef = doc(db, "companies", currentCompany.companyId);
+                        updateDoc(compDocRef, { employees: updatedEmployees }).then(() => {
+                            console.log('mustChangePassword flag cleared automatically after reset password login.');
+                        });
+                        myEmpInfo.mustChangePassword = false;
+                    } catch (e) {
+                        console.error('Failed to auto-clear mustChangePassword flag:', e);
+                    }
+                }
+            }
+
             if (myEmpInfo && myEmpInfo.mustChangePassword === true) {
                 passModal.style.display = 'flex';
             } else {

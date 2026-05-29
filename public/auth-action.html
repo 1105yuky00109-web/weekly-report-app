@@ -376,8 +376,8 @@
             submitBtn.disabled = true;
             submitBtn.textContent = '変更中...';
 
-            try {
                 await confirmPasswordReset(auth, oobCode, newPass);
+                localStorage.setItem('password_reset_just_done', 'true');
                 show('view-success');
             } catch (e) {
                 console.error('confirmPasswordReset error:', e);
