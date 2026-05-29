@@ -69,18 +69,3 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(promiseChain);
 });
-
-// PWAインストール要件を満たすためのサービスワーカー用イベント
-self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Installed');
-    self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activated');
-    event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-    // インストール要件用のダミーfetchリスナー（ネットワークリクエストをそのまま通過）
-});

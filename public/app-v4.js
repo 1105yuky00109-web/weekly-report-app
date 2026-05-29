@@ -3445,7 +3445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     renderTable();
                     // 現在選択されている週のレポートデータを再反映（入力ロックなどの状態変化を同期）
-                    const weekInput = document.getElementById('report-week');
+                    const weekInput = document.getElementById('week');
                     if (weekInput && weekInput.value) {
                         loadReportForSelectedWeek();
                     }
