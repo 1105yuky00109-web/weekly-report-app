@@ -1474,8 +1474,27 @@ body.dark-theme .gantt-qual-panel strong {
     }
 }
 
-/* Edge等のブラウザが自動表示するパスワード表示の目のマークを非表示にする */
+/* Edge等のブラウザが自動表示するパスワード表示 of 目のマークを非表示にする */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
     display: none;
+}
+
+/* 無効化されたボタン(disabled)のスタイル */
+.btn:disabled,
+button:disabled {
+    background: #cbd5e1 !important;
+    color: #94a3b8 !important;
+    border-color: #cbd5e1 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 0.6;
+}
+body.dark-theme .btn:disabled,
+body.dark-theme button:disabled {
+    background: #334155 !important;
+    color: #64748b !important;
+    border-color: #334155 !important;
+    opacity: 0.6;
 }

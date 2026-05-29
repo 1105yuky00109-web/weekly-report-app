@@ -3815,8 +3815,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isPlanApproveDisabled = planStatus !== 'submitted';
         const isPlanRejectDisabled = planStatus !== 'submitted';
-        const isActualApproveDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
-        const isActualRejectDisabled = (planStatus !== 'approved' || actualStatus !== 'submitted');
+        const isActualApproveDisabled = actualStatus !== 'submitted';
+        const isActualRejectDisabled = actualStatus !== 'submitted';
 
         adminPanel.innerHTML = `
             <h4 style="margin:0 0 12px 0; display:flex; align-items:center; gap:6px; color:var(--text-main);">🛡️ 上長承認操作パネル</h4>
