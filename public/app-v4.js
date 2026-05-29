@@ -3564,7 +3564,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const personalSummary = document.getElementById('personal-summary-container');
 
         const filtered = allReports.filter(r => 
-            (r.status === undefined || r.status === 'confirmed') &&
             (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
             (filterAuthor === '' || r.author === filterAuthor) &&
             (filterBranch === '' || getAuthorBranch(r.author) === filterBranch)
