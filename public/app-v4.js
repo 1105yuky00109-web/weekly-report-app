@@ -10,11 +10,13 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 // Firebase初期化
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const messaging = getMessaging(app);
 
 // 状態管理
 let currentUser = null;
@@ -137,6 +139,73 @@ const appContainer = document.getElementById('app-container');
 const loginForm = document.getElementById('login-form');
 const btnLogout = document.getElementById('btn-logout');
 
+// 通知設定とFCMトークンの取得・保存
+const setupNotification = async () => {
+    if (!currentUser || !currentCompany) return;
+    
+    try {
+        console.log('Requesting notification permission...');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log('Notification permission not granted.');
+            return;
+        }
+
+        // Service Workerの登録
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        console.log('Service Worker registered. Scope:', registration.scope);
+
+        // FCMデバイストークンの取得
+        const vapidKey = currentCompany.vapidKey || "BF0d94_Z8_J6N21cZ9tP34U0WpM6v-34U90tS48zNn8P";
+        const token = await getToken(messaging, {
+            serviceWorkerRegistration: registration,
+            vapidKey: vapidKey
+        });
+
+        if (token) {
+            console.log('FCM Token obtained:', token);
+            if (currentCompany.role === 'admin') {
+                const tokens = currentCompany.adminFcmTokens || [];
+                if (!tokens.includes(token)) {
+                    tokens.push(token);
+                    await updateDoc(doc(db, "companies", currentCompany.companyId), {
+                        adminFcmTokens: tokens
+                    });
+                    currentCompany.adminFcmTokens = tokens;
+                    console.log('Admin FCM Token saved to Firestore.');
+                }
+            } else {
+                // 一般社員のトークン保存
+                const employees = currentCompany.employees || [];
+                let isUpdated = false;
+                const updatedEmployees = employees.map(emp => {
+                    if (emp.uid === currentUser.uid || emp.email === currentUser.email) {
+                        const tokens = emp.fcmTokens || [];
+                        if (!tokens.includes(token)) {
+                            tokens.push(token);
+                            isUpdated = true;
+                            return { ...emp, fcmTokens: tokens };
+                        }
+                    }
+                    return emp;
+                });
+                
+                if (isUpdated) {
+                    await updateDoc(doc(db, "companies", currentCompany.companyId), {
+                        employees: updatedEmployees
+                    });
+                    currentCompany.employees = updatedEmployees;
+                    console.log('Employee FCM Token saved to Firestore.');
+                }
+            }
+        } else {
+            console.warn('No FCM token obtained.');
+        }
+    } catch (error) {
+        console.error('Error during FCM setup:', error);
+    }
+};
+
 // 認証状態の監視
 onAuthStateChanged(auth, async (user) => {
     // 接続判定が完了したため、ローディング表示を非表示にする
@@ -234,6 +303,10 @@ onAuthStateChanged(auth, async (user) => {
         const safeLoadAll = async () => {
             if (typeof window.loadSchedules === 'function') await window.loadSchedules();
             if (typeof window.loadReports === 'function') await window.loadReports(false);
+            setupNotification();
+            if ('clearAppBadge' in navigator) {
+                navigator.clearAppBadge().catch(err => console.error('Failed to clear app badge:', err));
+            }
         };
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', safeLoadAll, { once: true });
@@ -1412,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkUnsavedChanges = () => {
         // 現在のフォームロック状態（上長承認済みの場合は編集できないため、変更チェックしない）
         const badge = document.getElementById('report-status-badge');
-        const isApproved = badge && badge.classList.contains('status-approved');
+        const isApproved = badge && (badge.classList.contains('status-approved') || badge.dataset.actualStatus === 'approved');
         if (isApproved) return false;
 
         const currentDataStr = JSON.stringify(getUnsavedData());
@@ -1547,7 +1620,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const badge = document.getElementById('report-status-badge');
                         let status = 'plan';
                         if (badge) {
-                            if (badge.classList.contains('status-approved')) status = 'approved';
+                            if (badge.dataset.status) status = badge.dataset.status;
+                            else if (badge.classList.contains('status-approved')) status = 'approved';
                             else if (badge.classList.contains('status-confirmed')) status = 'confirmed';
                         }
                         
@@ -1663,7 +1737,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const badge = document.getElementById('report-status-badge');
                         let status = 'plan';
                         if (badge) {
-                            if (badge.classList.contains('status-approved')) status = 'approved';
+                            if (badge.dataset.status) status = badge.dataset.status;
+                            else if (badge.classList.contains('status-approved')) status = 'approved';
                             else if (badge.classList.contains('status-confirmed')) status = 'confirmed';
                         }
                         await saveReport(status);
@@ -1691,31 +1766,67 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // フォーム制御関数 (一括 disabled化/活性化)
-    const setFormLocked = (isLocked) => {
+    // フォーム制御関数 (予定・実績のステータスに応じたきめ細かい制御)
+    const setFormLocked = (pStatus, aStatus) => {
+        let planStatus = 'draft';
+        let actualStatus = 'draft';
+
+        if (typeof pStatus === 'boolean') {
+            if (pStatus) {
+                planStatus = 'approved';
+                actualStatus = 'approved';
+            } else {
+                planStatus = 'draft';
+                actualStatus = 'draft';
+            }
+        } else {
+            planStatus = pStatus || 'draft';
+            actualStatus = aStatus || 'draft';
+        }
+
+        const isPlanEditable = (planStatus === 'draft' || planStatus === 'rejected');
+        const isActualEditable = (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected'));
+
         const form = document.getElementById('report-form');
         if (!form) return;
-        
-        // 入力項目, ボタンを一括制御
-        form.querySelectorAll('input, textarea, select, button').forEach(el => {
-            if (el.id === 'week' || el.id === 'btn-print-weekly' || el.closest('#report-action-buttons')) {
-                return;
-            }
-            el.disabled = isLocked;
+
+        // 予定関連のインプット (支店・現場名、作業内容・備考)
+        form.querySelectorAll('.morning-project, .morning-detail, .afternoon-project, .afternoon-detail, .night-project, .night-detail').forEach(el => {
+            el.disabled = !isPlanEditable;
         });
-        
-        // 日報コピー欄の無効化
+
+        // 実績関連のインプット (詳細レポート)
+        form.querySelectorAll('.morning-report, .afternoon-report, .night-report').forEach(el => {
+            el.disabled = !isActualEditable;
+        });
+
+        // 休みボタンと前日コピーボタンの制御
+        document.querySelectorAll('.leave-quick-btn, .btn-copy-prev').forEach(btn => {
+            if (isPlanEditable) {
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                btn.disabled = false;
+            } else {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.5';
+                btn.disabled = true;
+            }
+        });
+
+        // 日報コピー欄の無効化 (実績入力用)
         const copySelect = document.getElementById('copy-past-report-select');
         const copyBtn = document.getElementById('btn-copy-past-report');
-        if (copySelect) copySelect.disabled = isLocked;
-        if (copyBtn) copyBtn.disabled = isLocked;
-        
-        // タイムラインとパレットの操作無効化
+        if (copySelect) copySelect.disabled = !isActualEditable;
+        if (copyBtn) copyBtn.disabled = !isActualEditable;
+
+        // タイムラインとパレットの操作無効化 (実績入力用)
         document.querySelectorAll('.timeline-container-scroll, .timeline-palette').forEach(el => {
-            if (isLocked) {
+            if (!isActualEditable) {
                 el.style.pointerEvents = 'none';
                 el.style.opacity = '0.5';
             } else {
-                const isInLeaveCard = el.closest('.day-card')?.querySelector('.leave-type-input')?.value;
+                // 休み( leaveType )が設定されているカードかどうかチェック
+                const isInLeaveCard = el.closest('.day-card')?.querySelector('.day-leave-type')?.value;
                 if (isInLeaveCard) {
                     el.style.pointerEvents = 'none';
                     el.style.opacity = '0.5';
@@ -1725,42 +1836,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        
-        // 追加・削除ボタンの非表示・表示切替
-        document.querySelectorAll('.btn-add-task, .remove-task-btn, .btn-copy-prev').forEach(btn => {
-            if (isLocked) {
-                btn.style.display = 'none';
-            } else {
-                btn.style.display = '';
-            }
-        });
     };
 
-    // 日次レポート入力欄の無効化・背景グレーアウト制御
+    // 日次レポート入力欄の無効化・背景グレーアウト制御 (新セクション用)
     const updateDayReportTextStatus = (dayCard) => {
         if (!dayCard) return;
-        const reportTextarea = dayCard.querySelector('.day-report-text');
-        if (!reportTextarea) return;
         
-        const leaveInput = dayCard.querySelector('.leave-type-input');
+        const leaveInput = dayCard.querySelector('.day-leave-type');
         let hasLeave = leaveInput && leaveInput.value ? true : false;
         
-        const badge = document.getElementById('report-status-badge');
-        const isLocked = badge && badge.classList.contains('status-approved');
-        
-        if (hasLeave) {
-            reportTextarea.value = '';
-            reportTextarea.disabled = true;
-            reportTextarea.style.backgroundColor = '#f1f5f9';
-        } else {
-            if (isLocked) {
-                reportTextarea.disabled = true;
-                reportTextarea.style.backgroundColor = '';
+        dayCard.querySelectorAll('.morning-report, .afternoon-report, .night-report').forEach(reportInput => {
+            if (hasLeave) {
+                reportInput.value = '';
+                reportInput.disabled = true;
+                reportInput.style.backgroundColor = '#f1f5f9';
             } else {
-                reportTextarea.disabled = false;
-                reportTextarea.style.backgroundColor = '';
+                // 状態は setFormLocked で別途制御されるため、ここでは休み時のクリアとグレーアウトのみ行う
+                reportInput.style.backgroundColor = '';
             }
-        }
+        });
     };
 
     // 日別入力枠
@@ -1784,6 +1878,60 @@ document.addEventListener('DOMContentLoaded', () => {
         if (weekTotalSpan) {
             weekTotalSpan.textContent = `週合計: ${weekTotal.toFixed(1)}H (現場従事: ${weekSiteTotal.toFixed(1)}H)`;
         }
+    };
+
+    const showRejectModal = (title, onConfirm) => {
+        const existing = document.getElementById('reject-reason-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'reject-reason-modal';
+        modal.style = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: var(--bg-card, #ffffff); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 90%; max-width: 480px; padding: 24px; box-sizing: border-box; border: 1px solid var(--border);">
+                <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 1.2rem; color: var(--text-main); font-weight: bold;">${title}</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">差し戻しの理由を入力してください（社員の画面に表示されます）。</p>
+                <textarea id="reject-reason-textarea" placeholder="理由を入力してください（例：水曜日の作業詳細が不足しています）" 
+                    style="width: 100%; height: 100px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; box-sizing: border-box; resize: none; background: #ffffff; color: #000000;"></textarea>
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="button" id="reject-cancel-btn" class="btn btn-secondary" style="padding: 8px 16px;">キャンセル</button>
+                    <button type="button" id="reject-submit-btn" class="btn btn-danger" style="padding: 8px 16px; background-color: #ef4444; color: #ffffff;">差し戻し確定</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const cancelBtn = modal.querySelector('#reject-cancel-btn');
+        const submitBtn = modal.querySelector('#reject-submit-btn');
+        const textarea = modal.querySelector('#reject-reason-textarea');
+
+        cancelBtn.addEventListener('click', () => {
+            modal.remove();
+        });
+
+        submitBtn.addEventListener('click', () => {
+            const reason = textarea.value.trim();
+            if (!reason) {
+                alert('差し戻し理由を入力してください。');
+                return;
+            }
+            onConfirm(reason);
+            modal.remove();
+        });
     };
 
     const loadReportForSelectedWeek = () => {
@@ -1812,25 +1960,81 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // デフォルトではロック解除
-        setFormLocked(false);
+        // 実績ステータスバッジの動的生成
+        let actualBadge = document.getElementById('report-actual-status-badge');
+        if (!actualBadge && badge) {
+            actualBadge = document.createElement('span');
+            actualBadge.id = 'report-actual-status-badge';
+            actualBadge.style = 'margin-left: 8px;';
+            badge.parentNode.insertBefore(actualBadge, badge.nextSibling);
+        }
+
+        // 警告表示エリア（差し戻し理由）の動的生成
+        let warningEl = document.getElementById('report-reject-warning');
+        if (!warningEl && badge) {
+            warningEl = document.createElement('div');
+            warningEl.id = 'report-reject-warning';
+            warningEl.style = 'margin-top:8px; padding:10px 14px; border-radius:6px; background-color:#fef2f2; border:1px solid #fee2e2; color:#b91c1c; font-size:0.9rem; font-weight:bold; display:none; flex-direction:column; gap:4px;';
+            badge.parentNode.appendChild(warningEl);
+        }
+        if (warningEl) warningEl.style.display = 'none';
+
+        // ステータス値のロードと互換性処理
+        let planStatus = 'draft';
+        let planRejectReason = '';
+        let actualStatus = 'draft';
+        let actualRejectReason = '';
+
+        if (existingReport) {
+            planStatus = existingReport.planStatus || 'draft';
+            planRejectReason = existingReport.planRejectReason || '';
+            actualStatus = existingReport.actualStatus || 'draft';
+            actualRejectReason = existingReport.actualRejectReason || '';
+
+            // 互換性処理: 古いデータで status フィールドだけがある場合
+            if (!existingReport.planStatus && !existingReport.actualStatus) {
+                const legacyStatus = existingReport.status;
+                if (legacyStatus === 'approved') {
+                    planStatus = 'approved';
+                    actualStatus = 'approved';
+                } else if (legacyStatus === 'confirmed') {
+                    planStatus = 'approved';
+                    actualStatus = 'submitted';
+                } else {
+                    planStatus = 'draft';
+                    actualStatus = 'draft';
+                }
+            }
+        }
+
+        // 未来の週は予定のみ許可
+        if (isFutureWeek) {
+            planStatus = 'draft';
+            actualStatus = 'draft';
+        }
+
+        // バッジデータセットの更新 (他所での判定用)
+        if (badge) {
+            badge.dataset.planStatus = planStatus;
+            badge.dataset.actualStatus = actualStatus;
+            badge.dataset.status = actualStatus === 'approved' ? 'approved' : (actualStatus === 'submitted' ? 'confirmed' : 'plan');
+        }
+
+        // フォームコントロールのロック適用
+        setFormLocked(planStatus, actualStatus);
         
         if (existingReport) {
-            console.log('[loadReport] Found report:', existingReport.week, 'dailyLogs keys:', existingReport.dailyLogs ? Object.keys(existingReport.dailyLogs) : 'none');
             daysName.forEach(day => {
                 const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
                 if (!taskList) return;
                 const dayLog = existingReport.dailyLogs ? existingReport.dailyLogs[day] : null;
-                console.log(`[loadReport] ${day}:`, typeof dayLog, Array.isArray(dayLog) ? 'array' : 'object', dayLog);
                 
                 if (dayLog) {
                     if (Array.isArray(dayLog)) {
-                        // 旧形式（配列: [{project, detail, hours, timeline}]）
                         dayLog.forEach(t => {
                             if (taskList.addTaskRow) taskList.addTaskRow(t.project || '', t.detail || '', t.hours || '', t.timeline || '');
                         });
                     } else if (typeof dayLog === 'object') {
-                        // 新形式（オブジェクト: {morning, afternoon, night, timeline, leaveType}）
                         if (taskList.setCardData) taskList.setCardData(dayLog);
                     }
                 }
@@ -1841,37 +2045,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // ステータスに応じた処理
-            let status = existingReport.status;
-            if (!status) {
-                status = isFutureWeek ? 'plan' : 'confirmed'; // 古いデータは未来の週なら予定、過去なら確定済み扱いとする
-            }
-            // 未来の週は強制的に予定(plan)状態とする
-            if (isFutureWeek) {
-                status = 'plan';
-            }
-            
+            // バッジ表示テキスト＆カラーの更新
             if (badge) {
-                if (status === 'approved') {
+                if (planStatus === 'approved') {
                     badge.className = 'status-badge status-approved';
-                    badge.textContent = '上長承認済み';
-                } else if (status === 'confirmed') {
+                    badge.textContent = '予定: 承認済み';
+                } else if (planStatus === 'submitted') {
                     badge.className = 'status-badge status-confirmed';
-                    badge.textContent = '実績確定済み';
+                    badge.textContent = '予定: 承認待ち';
+                } else if (planStatus === 'rejected') {
+                    badge.className = 'status-badge status-none';
+                    badge.style.backgroundColor = '#ef4444';
+                    badge.style.color = '#ffffff';
+                    badge.textContent = '予定: 差し戻し';
                 } else {
                     badge.className = 'status-badge status-plan';
-                    badge.textContent = '予定（未確定）';
+                    badge.style.backgroundColor = '';
+                    badge.style.color = '';
+                    badge.textContent = '予定: 下書き';
                 }
             }
-            
-            // ロック処理
-            if (status === 'approved') {
-                setFormLocked(true);
+
+            if (actualBadge) {
+                actualBadge.style.display = 'inline-block';
+                if (planStatus !== 'approved') {
+                    actualBadge.className = 'status-badge status-none';
+                    actualBadge.style.backgroundColor = '#94a3b8';
+                    actualBadge.style.color = '#ffffff';
+                    actualBadge.textContent = '実績: 未開始';
+                } else if (actualStatus === 'approved') {
+                    actualBadge.className = 'status-badge status-approved';
+                    actualBadge.style.backgroundColor = '';
+                    actualBadge.style.color = '';
+                    actualBadge.textContent = '実績: 承認済み';
+                } else if (actualStatus === 'submitted') {
+                    actualBadge.className = 'status-badge status-confirmed';
+                    actualBadge.style.backgroundColor = '';
+                    actualBadge.style.color = '';
+                    actualBadge.textContent = '実績: 承認待ち';
+                } else if (actualStatus === 'rejected') {
+                    actualBadge.className = 'status-badge status-none';
+                    actualBadge.style.backgroundColor = '#ef4444';
+                    actualBadge.style.color = '#ffffff';
+                    actualBadge.textContent = '実績: 差し戻し';
+                } else {
+                    actualBadge.className = 'status-badge status-plan';
+                    actualBadge.style.backgroundColor = '';
+                    actualBadge.style.color = '';
+                    actualBadge.textContent = '実績: 入力中';
+                }
+            }
+
+            // 差し戻し警告の表示
+            if (planStatus === 'rejected' && planRejectReason && warningEl) {
+                warningEl.style.display = 'flex';
+                warningEl.innerHTML = `<div>⚠️ 予定が差し戻されました。</div><div style="font-weight:normal; font-size:0.85rem; margin-top:2px;">差し戻し理由: ${planRejectReason}</div>`;
+            } else if (actualStatus === 'rejected' && actualRejectReason && warningEl) {
+                warningEl.style.display = 'flex';
+                warningEl.innerHTML = `<div>⚠️ 実績が差し戻されました。</div><div style="font-weight:normal; font-size:0.85rem; margin-top:2px;">差し戻し理由: ${actualRejectReason}</div>`;
             }
             
+            // ボタン制御
             if (actionContainer) {
+                const currentUserName = currentUser.displayName || currentUser.email.split('@')[0];
+                const isAdminViewingOthers = (currentCompany && currentCompany.role === 'admin' && currentAuthor !== currentUserName);
+
                 if (isFutureWeek) {
-                    // 未来の週は予定の更新（一時保存）のみ可能
                     actionContainer.innerHTML = `
                         <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定を更新（一時保存）</button>
                     `;
@@ -1879,31 +2118,58 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (btnSavePlan) {
                         btnSavePlan.addEventListener('click', () => saveReport('plan'));
                     }
-                } else if (status === 'approved') {
-                    actionContainer.innerHTML = `
-                        <button type="button" id="btn-unapprove-report" class="btn btn-danger btn-large">上長承認を取り消す</button>
-                    `;
-                    const btnUnapprove = document.getElementById('btn-unapprove-report');
-                    if (btnUnapprove) {
-                        btnUnapprove.addEventListener('click', () => saveReport('confirmed'));
-                    }
-                } else if (status === 'confirmed') {
-                    actionContainer.innerHTML = `
-                        <button type="submit" id="btn-submit-report" class="btn btn-success btn-large" style="flex: 1;">実績確定を更新（上書き）</button>
-                        <button type="button" id="btn-approve-report" class="btn btn-primary btn-large" style="flex: 1; background-color: var(--primary);">上長承認する</button>
-                    `;
-                    const btnApprove = document.getElementById('btn-approve-report');
-                    if (btnApprove) {
-                        btnApprove.addEventListener('click', () => saveReport('approved'));
+                } else if (isAdminViewingOthers) {
+                    // 管理者が他社員の週報を閲覧している場合
+                    if (planStatus === 'submitted') {
+                        actionContainer.innerHTML = `
+                            <button type="button" id="btn-admin-approve-plan" class="btn btn-success btn-large" style="flex:1;">👍 予定を承認する</button>
+                            <button type="button" id="btn-admin-reject-plan" class="btn btn-danger btn-large" style="flex:1; background-color:#ef4444;">👎 予定を差し戻す</button>
+                        `;
+                        document.getElementById('btn-admin-approve-plan').addEventListener('click', () => saveReport('plan_approved'));
+                        document.getElementById('btn-admin-reject-plan').addEventListener('click', () => {
+                            showRejectModal('予定の差し戻し', (reason) => saveReport('plan_rejected', reason));
+                        });
+                    } else if (planStatus === 'approved' && actualStatus === 'submitted') {
+                        actionContainer.innerHTML = `
+                            <button type="button" id="btn-admin-approve-actual" class="btn btn-success btn-large" style="flex:1;">👍 実績を承認する</button>
+                            <button type="button" id="btn-admin-reject-actual" class="btn btn-danger btn-large" style="flex:1; background-color:#ef4444;">👎 実績を差し戻す</button>
+                        `;
+                        document.getElementById('btn-admin-approve-actual').addEventListener('click', () => saveReport('approved'));
+                        document.getElementById('btn-admin-reject-actual').addEventListener('click', () => {
+                            showRejectModal('実績の差し戻し', (reason) => saveReport('actual_rejected', reason));
+                        });
+                    } else if (planStatus === 'approved' && actualStatus === 'approved') {
+                        actionContainer.innerHTML = `
+                            <button type="button" id="btn-admin-unapprove" class="btn btn-danger btn-large" style="background-color:#ef4444;">🔓 承認を取り消す（差し戻す）</button>
+                        `;
+                        document.getElementById('btn-admin-unapprove').addEventListener('click', () => {
+                            showRejectModal('承認取り消し・実績差し戻し', (reason) => saveReport('actual_rejected', reason));
+                        });
+                    } else {
+                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--text-muted); width:100%;">この週報は現在、社員が入力中または一時保存状態です。</div>`;
                     }
                 } else {
-                    actionContainer.innerHTML = `
-                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定として一時保存</button>
-                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large" style="flex: 1;">実績として確定登録</button>
-                    `;
-                    const btnSavePlan = document.getElementById('btn-save-plan');
-                    if (btnSavePlan) {
-                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
+                    // 社員本人（または管理者が自分の週報を編集している場合）
+                    if (planStatus === 'draft' || planStatus === 'rejected') {
+                        actionContainer.innerHTML = `
+                            <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定を一時保存</button>
+                            <button type="button" id="btn-submit-plan" class="btn btn-primary btn-large" style="flex: 1;">予定を提出する</button>
+                        `;
+                        document.getElementById('btn-save-plan').addEventListener('click', () => saveReport('plan'));
+                        document.getElementById('btn-submit-plan').addEventListener('click', () => saveReport('plan_submitted'));
+                    } else if (planStatus === 'submitted') {
+                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--primary); width:100%;">⌛ 予定の承認待ちです（編集はロックされています）</div>`;
+                    } else if (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected')) {
+                        actionContainer.innerHTML = `
+                            <button type="button" id="btn-save-actual" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">実績を一時保存</button>
+                            <button type="submit" id="btn-submit-actual" class="btn btn-primary btn-large" style="flex: 1;">実績を確定提出する</button>
+                        `;
+                        document.getElementById('btn-save-actual').addEventListener('click', () => saveReport('draft'));
+                        // form submit時に saveReport('confirmed') が呼ばれるように、formのsubmitにバインドされています
+                    } else if (planStatus === 'approved' && actualStatus === 'submitted') {
+                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--primary); width:100%;">⌛ 実績の承認待ちです（編集はロックされています）</div>`;
+                    } else if (planStatus === 'approved' && actualStatus === 'approved') {
+                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:#16a34a; width:100%;">✅ 今週の日報はすべて承認済みです</div>`;
                     }
                 }
             }
@@ -1919,10 +2185,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 badge.className = 'status-badge status-none';
                 badge.textContent = '未登録';
             }
+            if (actualBadge) {
+                actualBadge.style.display = 'none';
+            }
             
             if (actionContainer) {
                 if (isFutureWeek) {
-                    // 未来の週は予定として一時保存のみ可能
                     actionContainer.innerHTML = `
                         <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
                     `;
@@ -1931,26 +2199,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         btnSavePlan.addEventListener('click', () => saveReport('plan'));
                     }
                 } else {
+                    // 新規週報時は、まず予定を入力して提出する
                     actionContainer.innerHTML = `
-                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定として一時保存</button>
-                        <button type="submit" id="btn-submit-report" class="btn btn-primary btn-large" style="flex: 1;">実績として確定登録</button>
+                        <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">予定を一時保存</button>
+                        <button type="button" id="btn-submit-plan" class="btn btn-primary btn-large" style="flex: 1;">予定を提出する</button>
                     `;
-                    const btnSavePlan = document.getElementById('btn-save-plan');
-                    if (btnSavePlan) {
-                        btnSavePlan.addEventListener('click', () => saveReport('plan'));
-                    }
+                    document.getElementById('btn-save-plan').addEventListener('click', () => saveReport('plan'));
+                    document.getElementById('btn-submit-plan').addEventListener('click', () => saveReport('plan_submitted'));
                 }
             }
         }
         calculateWeekTotal();
         
-        // 各曜日の日次レポート欄の状態をアップデート
         daysName.forEach(day => {
             const dayCard = document.querySelector(`.task-list[data-day="${day}"]`).closest('.day-card');
             updateDayReportTextStatus(dayCard);
         });
 
-        // データの読込完了時に保存済みデータのベースラインを記録
         setTimeout(() => {
             lastSavedDataString = JSON.stringify(getUnsavedData());
             if (weekInput) {
@@ -2466,42 +2731,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // 日報(Report)保存 - Firebase Firestore
     const reportForm = document.getElementById('report-form');
 
-    const saveReport = async (status) => {
+    const saveReport = async (status, rejectReason = '') => {
         if (reportForm && !reportForm.checkValidity()) {
             reportForm.reportValidity();
             return;
         }
 
-        // 工事名が「有給」「欠勤」「休日」以外のとき、作業時間が 0H のままであればエラーにする
+        // 工事名が「有給」「欠勤」「休日」以外のとき、作業時間が 0H のままであればエラーにする（実績確定または実績承認時のみ）
         let hasZeroHoursError = false;
         let errorDay = '';
         let errorProject = '';
 
-        daysName.forEach(day => {
-            const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
-            if (!taskList || !taskList.getCardData) return;
-            const cardData = taskList.getCardData();
-            const leaveType = cardData.leaveType || '';
-            if (!leaveType) {
-                // 作業データがあるのにタイムラインが0の場合チェック
-                ['morning', 'afternoon', 'night'].forEach(t => {
-                    const proj = cardData[t]?.project || '';
-                    if (proj && !['有給', '欠勤', '休日'].includes(proj)) {
-                        const timeline = cardData.timeline || '';
-                        const workCount = timeline ? timeline.split('').filter(s => s === '1' || s === '3' || s === '5').length : 0;
-                        if (workCount === 0) {
-                            hasZeroHoursError = true;
-                            errorDay = day;
-                            errorProject = proj;
+        if (status === 'confirmed' || status === 'approved') {
+            daysName.forEach(day => {
+                const taskList = document.querySelector(`.task-list[data-day="${day}"]`);
+                if (!taskList || !taskList.getCardData) return;
+                const cardData = taskList.getCardData();
+                const leaveType = cardData.leaveType || '';
+                if (!leaveType) {
+                    // 作業データがあるのにタイムラインが0の場合チェック
+                    ['morning', 'afternoon', 'night'].forEach(t => {
+                        const proj = cardData[t]?.project || '';
+                        if (proj && !['有給', '欠勤', '休日'].includes(proj)) {
+                            const timeline = cardData.timeline || '';
+                            const workCount = timeline ? timeline.split('').filter(s => s === '1' || s === '3' || s === '5').length : 0;
+                            if (workCount === 0) {
+                                hasZeroHoursError = true;
+                                errorDay = day;
+                                errorProject = proj;
+                            }
                         }
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
 
-        if (hasZeroHoursError) {
-            alert(`【${errorDay}曜日】の「${errorProject}」の作業時間が 0 時間になっています。\nタイムラインをドラッグして作業時間（黒いバー）を入力してください。`);
-            return;
+            if (hasZeroHoursError) {
+                alert(`【${errorDay}曜日】の「${errorProject}」の作業時間が 0 時間になっています。\nタイムラインをドラッグして作業時間（黒いバー）を入力してください。`);
+                return;
+            }
         }
 
         const dailyLogs = {};
@@ -2540,26 +2807,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
+        const weekVal = document.getElementById('week').value;
+        const authorVal = document.getElementById('author').value;
+        const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
+
         const reportData = {
             companyId,
-            week: document.getElementById('week').value,
-            author: document.getElementById('author').value,
+            week: weekVal,
+            author: authorVal,
             dailyLogs,
             dailyReports,
-            status,
             timestamp: new Date().toISOString()
         };
 
-        const selectedWeek = reportData.week;
-        const currentAuthor = reportData.author;
-        const existingReport = allReports.find(r => r.week === selectedWeek && r.author === currentAuthor);
+        // 既存レポートがある場合のステータス引き継ぎと初期化
+        let planStatus = (existingReport && existingReport.planStatus) ? existingReport.planStatus : 'draft';
+        let planRejectReason = (existingReport && existingReport.planRejectReason) ? existingReport.planRejectReason : '';
+        let actualStatus = (existingReport && existingReport.actualStatus) ? existingReport.actualStatus : 'draft';
+        let actualRejectReason = (existingReport && existingReport.actualRejectReason) ? existingReport.actualRejectReason : '';
 
-        if (status === 'approved') {
+        // 送られてきたstatusに応じて詳細なステータスへ変換
+        if (status === 'plan') {
+            planStatus = 'draft';
+        } else if (status === 'plan_submitted') {
+            planStatus = 'submitted';
+        } else if (status === 'plan_approved') {
+            planStatus = 'approved';
+            actualStatus = 'draft'; // 予定が承認されたら実績入力を開始できるようにする
+        } else if (status === 'plan_rejected') {
+            planStatus = 'rejected';
+            planRejectReason = rejectReason || '';
+        } else if (status === 'draft') {
+            actualStatus = 'draft';
+        } else if (status === 'confirmed') {
+            actualStatus = 'submitted';
+        } else if (status === 'approved') {
+            actualStatus = 'approved';
             reportData.approvedAt = new Date().toISOString();
             reportData.approvedBy = currentUser.displayName || currentUser.email.split('@')[0];
+        } else if (status === 'actual_rejected') {
+            actualStatus = 'rejected';
+            actualRejectReason = rejectReason || '';
+        }
+
+        reportData.planStatus = planStatus;
+        reportData.planRejectReason = planRejectReason;
+        reportData.actualStatus = actualStatus;
+        reportData.actualRejectReason = actualRejectReason;
+
+        // 後方互換性のためのstatusフィールドマッピング
+        if (actualStatus === 'approved') {
+            reportData.status = 'approved';
+            reportData.approvedAt = new Date().toISOString();
+            reportData.approvedBy = currentUser.displayName || currentUser.email.split('@')[0];
+        } else if (actualStatus === 'submitted') {
+            reportData.status = 'confirmed';
         } else {
-            reportData.approvedAt = null;
-            reportData.approvedBy = null;
+            reportData.status = 'plan';
         }
 
         try {
@@ -2568,12 +2872,23 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 await addDoc(collection(db, "reports"), reportData);
             }
-            if (status === 'approved') {
-                alert('上長承認を登録しました！');
+
+            if (status === 'plan_approved') {
+                alert('予定を承認しました！');
+            } else if (status === 'plan_rejected') {
+                alert('予定を差し戻しました。');
+            } else if (status === 'actual_rejected') {
+                alert('実績を差し戻しました。');
+            } else if (status === 'approved') {
+                alert('実績（上長承認）を登録しました！');
             } else if (status === 'confirmed') {
-                alert('実績を確定登録しました！');
-            } else {
+                alert('実績を確定提出しました！');
+            } else if (status === 'plan_submitted') {
+                alert('予定を提出しました！');
+            } else if (status === 'plan') {
                 alert('予定を一時保存しました！');
+            } else {
+                alert('一時保存しました！');
             }
             await loadReports(false);
         } catch (error) {
@@ -3046,6 +3361,191 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // 催促通知を送信するAPI呼び出し
+    const sendRemind = async (employeeUid, week, type, btnElement) => {
+        if (!currentCompany) return;
+        
+        btnElement.disabled = true;
+        btnElement.textContent = '送信中...';
+        
+        try {
+            const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://127.0.0.1:5001/weekly-report-93e5f/us-central1'
+                : 'https://us-central1-weekly-report-93e5f.cloudfunctions.net';
+                
+            const response = await fetch(`${baseUrl}/sendRemindNotification`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    companyId: currentCompany.companyId,
+                    employeeUid: employeeUid,
+                    week: week,
+                    type: type // 'plan' or 'actual'
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                btnElement.textContent = '催促送信完了';
+                btnElement.style.backgroundColor = '#16a34a';
+                btnElement.style.color = '#ffffff';
+            } else {
+                alert('催促送信に失敗しました: ' + (result.error || '不明なエラー'));
+                btnElement.disabled = false;
+                btnElement.textContent = '催促';
+            }
+        } catch (e) {
+            console.error('Remind error:', e);
+            alert('通信エラーが発生しました。');
+            btnElement.disabled = false;
+            btnElement.textContent = '催促';
+        }
+    };
+
+    // 管理者用 催促パネルの描画
+    const renderRemindPanel = () => {
+        const container = document.getElementById('remind-panel-container');
+        if (!container) return;
+        
+        if (!currentCompany || currentCompany.role !== 'admin') {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.style.display = 'block';
+        
+        let weekSelect = document.getElementById('remind-week-select');
+        if (!weekSelect) {
+            const header = container.querySelector('h3');
+            const selectWrapper = document.createElement('div');
+            selectWrapper.style.margin = '10px 0 15px 0';
+            selectWrapper.style.display = 'flex';
+            selectWrapper.style.alignItems = 'center';
+            selectWrapper.style.gap = '10px';
+            selectWrapper.innerHTML = `
+                <label for="remind-week-select" style="font-weight:bold;">表示対象週:</label>
+                <select id="remind-week-select" style="padding:8px;font-size:0.9rem;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);"></select>
+            `;
+            header.after(selectWrapper);
+            weekSelect = document.getElementById('remind-week-select');
+            
+            const mainWeekSelect = document.getElementById('week');
+            if (mainWeekSelect) {
+                Array.from(mainWeekSelect.options).forEach(opt => {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = opt.value;
+                    newOpt.textContent = opt.textContent;
+                    weekSelect.appendChild(newOpt);
+                });
+                weekSelect.value = mainWeekSelect.value;
+            }
+            
+            weekSelect.addEventListener('change', renderRemindPanel);
+        }
+        
+        const targetWeek = weekSelect.value;
+        if (!targetWeek) return;
+        
+        const listDiv = document.getElementById('remind-status-list');
+        if (!listDiv) return;
+        
+        listDiv.innerHTML = '';
+        
+        const employees = currentCompany.employees || [];
+        if (employees.length === 0) {
+            listDiv.innerHTML = '<div style="grid-column: 1/-1; color: var(--text-muted); text-align: center; padding: 20px;">登録されている社員がいません。</div>';
+            return;
+        }
+        
+        employees.forEach(emp => {
+            const report = allReports.find(r => r.week === targetWeek && (r.author === emp.name || r.authorEmail === emp.email));
+            
+            let planStatus = 'uncreated';
+            let actualStatus = 'uncreated';
+            let planRejectReason = '';
+            let actualRejectReason = '';
+            
+            if (report) {
+                planStatus = report.planStatus || 'draft';
+                actualStatus = report.actualStatus || (report.status === 'approved' ? 'approved' : report.status === 'confirmed' ? 'submitted' : 'draft');
+                planRejectReason = report.planRejectReason || '';
+                actualRejectReason = report.actualRejectReason || '';
+            }
+            
+            const card = document.createElement('div');
+            card.style.background = 'var(--card-bg)';
+            card.style.border = '1px solid var(--border)';
+            card.style.borderRadius = '8px';
+            card.style.padding = '15px';
+            card.style.display = 'flex';
+            card.style.flexDirection = 'column';
+            card.style.gap = '10px';
+            
+            const getStatusBadge = (status, rejectReason) => {
+                let text = '未作成';
+                let color = '#94a3b8';
+                if (status === 'draft') {
+                    text = '一時保存';
+                    color = '#ea580c';
+                } else if (status === 'submitted') {
+                    text = '提出済';
+                    color = '#2563eb';
+                } else if (status === 'approved') {
+                    text = '承認済';
+                    color = '#16a34a';
+                } else if (status === 'rejected') {
+                    text = '差し戻し中';
+                    color = '#dc2626';
+                }
+                
+                let html = `<span style="background:${color}15;color:${color};border:1px solid ${color}30;padding:2px 6px;border-radius:4px;font-size:0.75rem;font-weight:bold;margin-left:5px;">${text}</span>`;
+                if (status === 'rejected' && rejectReason) {
+                    html += `<div style="font-size:0.75rem;color:#dc2626;margin-top:2px;">コメント: ${rejectReason}</div>`;
+                }
+                return html;
+            };
+            
+            const getRemindButton = (status, type) => {
+                if (status === 'submitted' || status === 'approved') {
+                    return '';
+                }
+                return `<button type="button" class="btn btn-secondary btn-small btn-remind" 
+                            style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;"
+                            data-uid="${emp.uid}" data-type="${type}">催促</button>`;
+            };
+            
+            card.innerHTML = `
+                <div style="font-weight:bold;font-size:1rem;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px;">
+                    👤 ${emp.name} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal;">(${emp.branch || '所属なし'})</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;">
+                    <div style="display:flex;align-items:center;">
+                        <span>📅 予定:</span>
+                        ${getStatusBadge(planStatus, planRejectReason)}
+                        ${getRemindButton(planStatus, 'plan')}
+                    </div>
+                    <div style="display:flex;align-items:center;">
+                        <span>✅ 実績:</span>
+                        ${getStatusBadge(actualStatus, actualRejectReason)}
+                        ${getRemindButton(actualStatus, 'actual')}
+                    </div>
+                </div>
+            `;
+            
+            card.querySelectorAll('.btn-remind').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const uid = e.target.dataset.uid;
+                    const type = e.target.dataset.type;
+                    sendRemind(uid, targetWeek, type, e.target);
+                });
+            });
+            
+            listDiv.appendChild(card);
+        });
+    };
+
     const renderTable = () => {
         const filterMonth = document.getElementById('filter-month').value;
         const filterAuthor = document.getElementById('filter-author').value;
@@ -3163,6 +3663,7 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryHtml += '</div>';
             personalSummary.innerHTML = summaryHtml;
         }
+        renderRemindPanel();
     };
 
     const renderSummaryTable = () => {
@@ -3476,7 +3977,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 承認状態の取得（画面のステータスバッジから判定）
         const badge = document.getElementById('report-status-badge');
-        const isApproved = badge && badge.classList.contains('status-approved');
+        const isApproved = badge && (badge.classList.contains('status-approved') || badge.dataset.actualStatus === 'approved');
         
         // 承認日付の取得
         const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);

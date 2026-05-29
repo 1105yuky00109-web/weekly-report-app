@@ -394,3 +394,214 @@ exports.checkEmailRegistered = functions.https.onRequest(async (req, res) => {
   }
 });
 
+// ------------------------------------------------------------
+// 5. onReportWrite (週報の提出トリガー)
+// ------------------------------------------------------------
+exports.onReportWrite = functions.firestore
+  .document('companies/{companyId}/reports/{reportId}')
+  .onWrite(async (change, context) => {
+    const { companyId, reportId } = context.params;
+    const beforeData = change.before.exists ? change.before.data() : null;
+    const afterData = change.after.exists ? change.after.data() : null;
+
+    if (!afterData) return null; // 削除時は通知しない
+
+    // 提出ステータスへの変化を確認
+    const isPlanSubmitted = afterData.planStatus === 'submitted' && (!beforeData || beforeData.planStatus !== 'submitted');
+    const isActualSubmitted = afterData.actualStatus === 'submitted' && (!beforeData || beforeData.actualStatus !== 'submitted');
+
+    if (!isPlanSubmitted && !isActualSubmitted) {
+      return null;
+    }
+
+    // 会社の管理者FCMトークンを取得
+    const companyRef = db.collection('companies').doc(companyId);
+    const companyDoc = await companyRef.get();
+    if (!companyDoc.exists) return null;
+
+    const companyData = companyDoc.data();
+    const tokens = companyData.adminFcmTokens || [];
+    if (tokens.length === 0) {
+      console.log('No FCM tokens registered for admin.');
+      return null;
+    }
+
+    const authorName = afterData.author || '社員';
+    const weekVal = afterData.week || '';
+
+    let title = '週報提出のお知らせ';
+    let body = '';
+    if (isPlanSubmitted && isActualSubmitted) {
+      body = `${authorName}さんが${weekVal}の「予定」および「実績」を提出しました。`;
+    } else if (isPlanSubmitted) {
+      body = `${authorName}さんが${weekVal}の「予定」を提出しました。`;
+    } else {
+      body = `${authorName}さんが${weekVal}の「実績」を提出しました。`;
+    }
+
+    const messages = tokens.map(token => ({
+      token: token,
+      notification: {
+        title: title,
+        body: body
+      },
+      data: {
+        click_action: '/',
+        companyId: companyId,
+        reportId: reportId,
+        badgeCount: '1'
+      }
+    }));
+
+    try {
+      const response = await admin.messaging().sendEach(messages);
+      console.log(`Successfully sent ${response.successCount} messages.`);
+      
+      // 無効なトークンのクリーンアップ
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          const errCode = resp.error.code;
+          if (errCode === 'messaging/invalid-registration-token' || errCode === 'messaging/registration-token-not-registered') {
+            invalidTokens.push(tokens[idx]);
+          }
+        }
+      });
+
+      if (invalidTokens.length > 0) {
+        const updatedTokens = tokens.filter(t => !invalidTokens.includes(t));
+        await companyRef.update({ adminFcmTokens: updatedTokens });
+      }
+    } catch (err) {
+      console.error('Error sending FCM to admin:', err);
+    }
+    return null;
+  });
+
+// ------------------------------------------------------------
+// 6. sendRemindNotification (管理者からの催促通知API)
+// ------------------------------------------------------------
+exports.sendRemindNotification = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    return res.status(204).send('');
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  const { companyId, employeeUid, week, type } = req.body;
+  if (!companyId || !employeeUid || !week || !type) {
+    return res.status(400).json({ error: '必須項目が不足しています。' });
+  }
+
+  try {
+    const companyRef = db.collection('companies').doc(companyId);
+    const companyDoc = await companyRef.get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: '会社が見つかりません。' });
+    }
+
+    const companyData = companyDoc.data();
+    const employee = companyData.employees ? companyData.employees.find(e => e.uid === employeeUid) : null;
+    if (!employee) {
+      return res.status(404).json({ error: '社員が見つかりません。' });
+    }
+
+    const tokens = employee.fcmTokens || [];
+    const targetTypeJP = type === 'plan' ? '予定' : '実績';
+    const title = '週報提出の催促';
+    const body = `${week}の週報の「${targetTypeJP}」の提出が未完了です。至急ご入力・ご提出をお願いします。`;
+
+    // 1. FCMプッシュ送信
+    if (tokens.length > 0) {
+      const messages = tokens.map(token => ({
+        token: token,
+        notification: { title, body },
+        data: { click_action: '/' }
+      }));
+
+      try {
+        const response = await admin.messaging().sendEach(messages);
+        console.log(`Sent remind messages: ${response.successCount}`);
+        
+        // 無効トークンのクリーンアップ
+        const invalidTokens = [];
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errCode = resp.error.code;
+            if (errCode === 'messaging/invalid-registration-token' || errCode === 'messaging/registration-token-not-registered') {
+              invalidTokens.push(tokens[idx]);
+            }
+          }
+        });
+
+        if (invalidTokens.length > 0) {
+          const updatedEmployees = companyData.employees.map(emp => {
+            if (emp.uid === employeeUid) {
+              return { ...emp, fcmTokens: emp.fcmTokens.filter(t => !invalidTokens.includes(t)) };
+            }
+            return emp;
+          });
+          await companyRef.update({ employees: updatedEmployees });
+        }
+      } catch (fcmErr) {
+        console.error('FCM remind error', fcmErr);
+      }
+    }
+
+    // 2. メールでの催促送信
+    try {
+      const nodemailer = require('nodemailer');
+      const smtpUser = 'areva.noreply@gmail.com';
+      const smtpPass = process.env.SMTP_PASS;
+      const loginUrl = `${process.env.HOST_URL || 'https://weekly-report-93e5f.web.app'}/index.html`;
+
+      const mailOptions = {
+        from: `工事週報管理システム <${smtpUser}>`,
+        to: employee.email,
+        subject: `【催促】${week}の週報（${targetTypeJP}）提出のお願い`,
+        text: `${employee.name} 様
+いつもお疲れ様です。管理者より週報提出の催促通知が届いています。
+
+対象週： ${week}
+未提出： ${targetTypeJP}
+
+以下のログインURLよりシステムにアクセスし、至急ご提出をお願いいたします。
+
+----------------------------------------
+■ ログインURL
+${loginUrl}
+----------------------------------------
+
+※すでに提出済みの場合は行き違いですのでご容赦ください。
+本メールはシステムより自動送信されています。
+`
+      };
+
+      if (smtpPass) {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: smtpUser,
+            pass: smtpPass
+          }
+        });
+        await transporter.sendMail(mailOptions);
+        console.log(`Sent remind email to ${employee.email}`);
+      }
+    } catch (mailErr) {
+      console.error('Email remind error', mailErr);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('sendRemindNotification error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+

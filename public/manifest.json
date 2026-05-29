@@ -1,0 +1,23 @@
+{
+  "short_name": "工事週報",
+  "name": "工事・日報管理システム",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#2563eb",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "any"
+}
