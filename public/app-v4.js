@@ -2799,6 +2799,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportForm = document.getElementById('report-form');
 
     const saveReport = async (status, rejectReason = '') => {
+        // すでに実績が承認済みの場合は上書き保存・再提出を禁止
+        const weekVal = document.getElementById('week').value;
+        const authorVal = document.getElementById('author').value;
+        const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
+        
+        if (existingReport && existingReport.actualStatus === 'approved') {
+            // 管理者が承認を取り消す（status === 'actual_rejected'）または実績承認更新（status === 'approved'）以外はブロック
+            if (status !== 'actual_rejected' && status !== 'approved') {
+                alert('この週報の実績はすでに承認されているため、再提出や編集はできません。');
+                return;
+            }
+        }
+
         if (reportForm && !reportForm.checkValidity()) {
             reportForm.reportValidity();
             return;
