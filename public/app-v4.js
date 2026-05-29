@@ -10,13 +10,23 @@ const firebaseConfig = {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
+import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 // Firebase初期化
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const messaging = getMessaging(app);
+let messaging = null;
+isSupported().then((supported) => {
+    if (supported) {
+        messaging = getMessaging(app);
+        console.log("Firebase Messaging initialized.");
+    } else {
+        console.log("FCM is not supported in this browser environment.");
+    }
+}).catch(err => {
+    console.error("Error checking FCM support:", err);
+});
 
 // 状態管理
 let currentUser = null;
@@ -142,6 +152,10 @@ const btnLogout = document.getElementById('btn-logout');
 // 通知設定とFCMトークンの取得・保存
 const setupNotification = async () => {
     if (!currentUser || !currentCompany) return;
+    if (!messaging) {
+        console.log('Notification setup skipped: Messaging is not supported or initialized.');
+        return;
+    }
     
     try {
         console.log('Requesting notification permission...');
