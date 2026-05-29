@@ -95,3 +95,16 @@ Netlifyでビルドが行われる際、`package.json` に定義された `npm r
 *   **バックアップの作成**：
     *   物理バックアップフォルダ（`weekly-report-app_backup_20260529`）を作成。
     *   Git コミットと Git タグ `stable-gantt-fix` を作成し、何があってもこの状態へ復元できるように保護。
+
+### 2026年5月29日 (追加改修)
+*   **上長承認フロー（予定・実績）の実装**：
+    *   Firestore の `reports` コレクションの各ドキュメントに `planStatus` / `actualStatus` / `planRejectReason` / `actualRejectReason` を新設し、予定と実績を個別に承認・差し戻し（コメント付き）できる仕組みを構築。
+    *   承認済みの状態では、一般社員側の入力エリアやボタンが編集ロック（無効化）されるよう制御を追加。
+*   **FCM (Firebase Cloud Messaging) によるWebプッシュ通知の実装**：
+    *   一般社員が週報（予定・実績）を提出した際、自動的に管理者のPCブラウザやスマホ（PWAインストール時）にプッシュ通知を送る Firestore トリガー関数 `onReportWrite` を `functions/index.js` に追加。
+    *   フロントエンド側で FCM トークンの取得と Firestore (管理者 tokens、一般社員 tokens) への自動保存を実装。
+    *   PWA化を推進するため、`manifest.json` の作成と HTML への読み込み設定、およびアプリアイコン画像の配置を完了。バッジAPIを統合し、アプリ起動時にアイコンの未読件数バッジが消える処理を追加。
+*   **管理者用「提出状況確認・催促」UIの実装**：
+    *   個人別一覧・レポート画面に管理者専用の「提出状況の確認と催促」パネルを新設。
+    *   選択された週について、全員の「予定」および「実績」の提出・承認・差し戻し状況を一覧表示。
+    *   未提出の社員に対して、ワンクリックでプッシュ通知（FCM）およびメールの双方で催促を送る Cloud Functions HTTPS API `sendRemindNotification` を実装し連携。
