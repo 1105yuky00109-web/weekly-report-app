@@ -3741,32 +3741,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 return html;
             };
             
-            const getRemindButton = (status, type) => {
-                if (status === 'submitted' || status === 'approved') {
-                    return '';
+            const getActionButton = (status, type) => {
+                // 1. 未作成のときは催促ボタン
+                if (status === 'uncreated') {
+                    return `<button type="button" class="btn btn-secondary btn-small btn-remind" 
+                                style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;"
+                                data-uid="${emp.uid}" data-type="${type}">催促</button>`;
                 }
-                return `<button type="button" class="btn btn-secondary btn-small btn-remind" 
-                            style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;"
-                            data-uid="${emp.uid}" data-type="${type}">催促</button>`;
+                
+                // 2. 提出済のときは「承認する」ボタン
+                if (status === 'submitted') {
+                    return `<button type="button" class="btn btn-primary btn-small btn-view-report" 
+                                style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:var(--primary-color,#2563eb);color:#fff;border:none;border-radius:4px;cursor:pointer;"
+                                data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">承認する</button>`;
+                }
+                
+                // 3. それ以外（一時保存や承認済）のときは「詳細」ボタン
+                return `<button type="button" class="btn btn-secondary btn-small btn-view-report" 
+                            style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#64748b;color:#fff;border:none;border-radius:4px;cursor:pointer;"
+                            data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">詳細</button>`;
             };
             
             card.innerHTML = `
                 <div style="font-weight:bold;font-size:1rem;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
                     <div>👤 ${emp.name} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:normal;">(${emp.branch || '所属なし'})</span></div>
-                    <button type="button" class="btn btn-primary btn-small btn-view-report" 
-                            style="padding:2px 8px;font-size:0.75rem;background:var(--primary-color,#2563eb);color:#fff;border:none;border-radius:4px;cursor:pointer;margin-left:auto;"
-                            data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">📄 週報</button>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;">
-                    <div style="display:flex;align-items:center;">
+                    <div style="display:flex;align-items:center;width:100%;">
                         <span>📅 予定:</span>
                         ${getStatusBadge(planStatus, planRejectReason)}
-                        ${getRemindButton(planStatus, 'plan')}
+                        ${getActionButton(planStatus, 'plan')}
                     </div>
-                    <div style="display:flex;align-items:center;">
+                    <div style="display:flex;align-items:center;width:100%;">
                         <span>✅ 実績:</span>
                         ${getStatusBadge(actualStatus, actualRejectReason)}
-                        ${getRemindButton(actualStatus, 'actual')}
+                        ${getActionButton(actualStatus, 'actual')}
                     </div>
                 </div>
             `;
