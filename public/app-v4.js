@@ -3928,14 +3928,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4 style="margin:0 0 12px 0; display:flex; align-items:center; gap:6px; color:var(--text-main);">🛡️ 上長承認操作パネル</h4>
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; font-size:0.9rem;">
-                    <div><strong>予定の状況:</strong> ${getStatusText(planStatus, planRejectReason)}</div>
+                    <div><strong>予定の状況:</strong> ${getStatusText(planStatus, planRejectReason, false)}</div>
                     <div style="display:flex; gap:8px;">
                         <button type="button" class="btn btn-primary btn-small btn-approve-plan" style="padding:4px 12px; font-size:0.8rem;" ${isPlanApproveDisabled ? 'disabled' : ''}>予定を承認</button>
                         <button type="button" class="btn btn-danger btn-small btn-reject-plan" style="padding:4px 12px; font-size:0.8rem;" ${isPlanRejectDisabled ? 'disabled' : ''}>予定を差し戻す</button>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; font-size:0.9rem; border-top: 1px solid var(--border); padding-top: 12px;">
-                    <div><strong>実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason)}</div>
+                    <div><strong>実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason, true)}</div>
                     <div style="display:flex; gap:8px;">
                         <button type="button" class="btn btn-primary btn-small btn-approve-actual" style="padding:4px 12px; font-size:0.8rem;" ${isActualApproveDisabled ? 'disabled' : ''}>実績を承認</button>
                         <button type="button" class="btn btn-danger btn-small btn-reject-actual" style="padding:4px 12px; font-size:0.8rem;" ${isActualRejectDisabled ? 'disabled' : ''}>実績を差し戻す</button>
