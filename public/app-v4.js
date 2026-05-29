@@ -3797,7 +3797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // モーダルのヘッダータイトルに社員名と対象週を動的にセット
         const modalTitle = document.getElementById('modal-title');
         if (modalTitle) {
-            modalTitle.innerText = `📄 週報詳細・上長承認 (${empName} 様 ｜ ${formatWeekRange(targetWeek)})`;
+            modalTitle.innerText = `📄 週報詳細・上長承認 (${empName} ｜ ${formatWeekRange(targetWeek)})`;
         }
 
         modalBody.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);">読み込み中...</div>';
@@ -3817,7 +3817,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="text-align:center;padding:40px 20px;color:var(--text-muted);">
                     <div style="font-size:3rem;margin-bottom:15px;">📄</div>
                     <p style="font-size:1.1rem;font-weight:bold;margin-bottom:5px;">週報データが未作成です</p>
-                    <p style="font-size:0.9rem;">${empName} 様の ${formatWeekRange(targetWeek)} の週報データはまだ一時保存もされていません。</p>
+                    <p style="font-size:0.9rem;">${empName} の ${formatWeekRange(targetWeek)} の週報データはまだ一時保存もされていません。</p>
                 </div>
             `;
             return;
@@ -3886,7 +3886,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div>担当者: ${r.author || ''}</div>
             </div>
             <div class="print-report-body" style="padding:20px;border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;background:var(--card-bg);">
-                <strong style="display:block;margin-bottom:12px;color:var(--text-main);font-size:1rem;">■ 業務実績（日別詳細）</strong>
+                <strong style="display:block;margin-bottom:12px;color:var(--text-main);font-size:1rem;">■ ${r.planStatus === 'approved' ? '業務実績' : '作業予定'}（日別詳細）</strong>
                 <table class="print-task-table" style="width:100%;border-collapse:collapse;margin-bottom:20px;">
                     <thead><tr><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">日付(曜)</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">工事名</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">作業内容</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">時間</th><th style="background:var(--bg-muted);color:var(--text-main);padding:8px;border:1px solid var(--border);">日次レポート・備考</th></tr></thead>
                     <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b; border:1px solid var(--border);">記録なし</td></tr>'}</tbody>
@@ -4137,7 +4137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cardEl.innerHTML = `
                 <div class="print-report-header">対象期間: ${formatWeekRange(r.week)} ｜ 担当者: ${r.author || ''}</div>
                 <div class="print-report-body">
-                    <strong>■ 業務実績（日別詳細）</strong>
+                    <strong>■ ${r.planStatus === 'approved' ? '業務実績' : '作業予定'}（日別詳細）</strong>
                     <table class="print-task-table">
                         <thead><tr><th>日付(曜)</th><th>工事名</th><th>作業内容</th><th>時間</th><th>日次レポート・備考</th></tr></thead>
                         <tbody>${printTasksHtml || '<tr><td colspan="5" style="text-align:center; padding:10px; color:#64748b;">記録なし</td></tr>'}</tbody>
@@ -4184,14 +4184,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4 style="margin:0 0 10px 0; color:#1e293b; display:flex; align-items:center; gap:6px; font-size:0.95rem; font-weight:bold;">🛡️ 上長承認操作パネル</h4>
                     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:12px;">
                         <div style="flex:1; min-width:200px; padding:10px; background:#f1f5f9; border-radius:6px; border:1px solid #e2e8f0;">
-                            <div style="margin-bottom:6px;"><strong>📅 予定の状況:</strong> ${getStatusText(planStatus, planRejectReason)}</div>
+                            <div style="margin-bottom:6px;"><strong>📅 予定の状況:</strong> ${getStatusText(planStatus, planRejectReason, false)}</div>
                             <div style="display:flex; gap:6px; margin-top:8px;">
                                 <button type="button" class="btn btn-success btn-small btn-approve-plan" style="padding:4px 8px; font-size:0.75rem; background-color:#16a34a; color:#fff;" ${isPlanApproveDisabled ? 'disabled' : ''}>👍 承認</button>
                                 <button type="button" class="btn btn-danger btn-small btn-reject-plan" style="padding:4px 8px; font-size:0.75rem; background-color:#ef4444; color:#fff;" ${isPlanRejectDisabled ? 'disabled' : ''}>👎 差し戻し</button>
                             </div>
                         </div>
                         <div style="flex:1; min-width:200px; padding:10px; background:#f1f5f9; border-radius:6px; border:1px solid #e2e8f0;">
-                            <div style="margin-bottom:6px;"><strong>✅ 実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason)}</div>
+                            <div style="margin-bottom:6px;"><strong>✅ 実績の状況:</strong> ${getStatusText(actualStatus, actualRejectReason, true)}</div>
                             <div style="display:flex; gap:6px; margin-top:8px;">
                                 <button type="button" class="btn btn-success btn-small btn-approve-actual" style="padding:4px 8px; font-size:0.75rem; background-color:#16a34a; color:#fff;" ${isActualApproveDisabled ? 'disabled' : ''}>👍 承認</button>
                                 <button type="button" class="btn btn-danger btn-small btn-reject-actual" style="padding:4px 8px; font-size:0.75rem; background-color:#ef4444; color:#fff;" ${isActualRejectDisabled ? 'disabled' : ''}>👎 差し戻し</button>
