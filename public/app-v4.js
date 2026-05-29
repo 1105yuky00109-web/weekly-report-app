@@ -2916,9 +2916,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
-        const weekVal = document.getElementById('week').value;
-        const authorVal = document.getElementById('author').value;
-        const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
+        // weekVal, authorVal, existingReport は関数の先頭で定義済みのものを再利用します
 
         const reportData = {
             companyId,
@@ -3555,9 +3553,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const result = await response.json();
             if (result.success) {
+                btnElement.disabled = false; // disabledによるグレーアウトを回避
+                btnElement.style.pointerEvents = 'none'; // クリック不可にする
                 btnElement.textContent = '催促送信完了';
                 btnElement.style.backgroundColor = '#16a34a';
                 btnElement.style.color = '#ffffff';
+                btnElement.style.borderColor = '#16a34a';
             } else {
                 alert('催促送信に失敗しました: ' + (result.error || '不明なエラー'));
                 btnElement.disabled = false;
