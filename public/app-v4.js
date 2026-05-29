@@ -2150,6 +2150,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualStatus = 'draft';
                 }
             }
+
+            // 安全ガード: 実績が承認済なら予定も強制的に承認済とする
+            if (actualStatus === 'approved') {
+                planStatus = 'approved';
+            }
         }
 
         // 未来の週は予定のみ許可
@@ -2993,6 +2998,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let actualStatus = (existingReport && existingReport.actualStatus) ? existingReport.actualStatus : 'draft';
         let actualRejectReason = (existingReport && existingReport.actualRejectReason) ? existingReport.actualRejectReason : '';
 
+        // 安全ガード: 既に実績が承認済なら、ロード段階で予定も承認済とみなす
+        if (actualStatus === 'approved') {
+            planStatus = 'approved';
+        }
+
         // 実績ステータスの変更時に予定が承認済であることをバリデーション
         const isActualChange = ['draft', 'confirmed', 'approved', 'actual_rejected'].includes(status);
         if (isActualChange && planStatus !== 'approved') {
@@ -3491,7 +3501,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             reportsUnsubscribe = onSnapshot(q, (querySnapshot) => {
-                allReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allReports = querySnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    const actualStatus = data.actualStatus || (data.status === 'approved' ? 'approved' : data.status === 'confirmed' ? 'submitted' : 'draft');
+                    const planStatus = data.planStatus || 'draft';
+                    if (actualStatus === 'approved' && planStatus !== 'approved') {
+                        console.warn('Auto-correcting planStatus to approved for doc: ' + doc.id);
+                        updateDoc(doc.ref, { 
+                            planStatus: 'approved',
+                            actualStatus: 'approved'
+                        }).catch(err => console.error(err));
+                        return { id: doc.id, ...data, planStatus: 'approved', actualStatus: 'approved' };
+                    }
+                    return { id: doc.id, ...data };
+                });
                 
                 // ステータス変更の検知とトースト通知
                 allReports.forEach(r => {
