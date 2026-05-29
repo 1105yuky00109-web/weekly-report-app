@@ -3899,8 +3899,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const planRejectReason = r.planRejectReason || '';
         const actualRejectReason = r.actualRejectReason || '';
 
-        const getStatusText = (status, rejectReason) => {
-            if (status === 'draft') return '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
+        const getStatusText = (status, rejectReason, isActual = false) => {
+            if (status === 'draft') {
+                return isActual 
+                    ? '<span style="color:#ea580c;font-weight:bold;">未作成</span>' 
+                    : '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
+            }
             if (status === 'submitted') return '<span style="color:#2563eb;font-weight:bold;">提出済 (承認待ち)</span>';
             if (status === 'approved') return '<span style="color:#16a34a;font-weight:bold;">承認済み</span>';
             if (status === 'rejected') {
