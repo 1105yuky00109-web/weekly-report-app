@@ -360,6 +360,7 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     .print-day-table {
         width: 100%;
         border-collapse: collapse;
+        border: none !important;
     }
     .print-day-table th, .print-day-table td {
         border: 1px solid #000;
@@ -367,6 +368,17 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         font-size: 8.5pt;
         vertical-align: middle;
         height: 25px;
+    }
+    .print-day-table tr th:first-child,
+    .print-day-table tr td:first-child {
+        border-left: none !important;
+    }
+    .print-day-table tr th:last-child,
+    .print-day-table tr td:last-child {
+        border-right: none !important;
+    }
+    .print-day-table thead tr:first-child th {
+        border-top: none !important;
     }
     .print-day-table th {
         background: #f1f5f9 !important;
@@ -384,7 +396,7 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     .print-timeline-row {
         display: flex;
         align-items: center;
-        border-top: 1px solid #000;
+        border-top: none !important;
         background: #fff;
         height: 30px;
         box-sizing: border-box;
