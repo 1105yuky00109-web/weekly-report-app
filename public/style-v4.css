@@ -251,9 +251,9 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         display: none !important;
     }
     body.print-weekly-mode .weekly-print-wrapper {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
+        width: calc(100% - 4px) !important;
+        max-width: calc(100% - 4px) !important;
+        margin: 0 auto !important;
         box-sizing: border-box !important;
     }
     body.print-weekly-mode .approval-table {

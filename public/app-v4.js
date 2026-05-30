@@ -5080,9 +5080,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 .weekly-print-wrapper {
-                    width: 100% !important;
-                    min-width: 100% !important;
-                    max-width: 100% !important;
+                    width: calc(100% - 4px) !important;
+                    max-width: calc(100% - 4px) !important;
+                    margin: 0 auto !important;
                     box-sizing: border-box !important;
                 }
                 .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
