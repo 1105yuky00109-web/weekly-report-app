@@ -2114,14 +2114,14 @@ document.addEventListener('DOMContentLoaded', () => {
             badge.parentNode.insertBefore(actualBadge, badge.nextSibling);
         }
 
-        // 警告表示エリア（差し戻し理由）の動的生成
+        // 警告表示エリア（差し戻し理由）の取得と初期化
         let warningEl = document.getElementById('report-reject-warning');
-        if (!warningEl && badge) {
-            warningEl = document.createElement('div');
-            warningEl.id = 'report-reject-warning';
-            warningEl.style = 'margin-top:8px; padding:10px 14px; border-radius:6px; background-color:#fef2f2; border:1px solid #fee2e2; color:#b91c1c; font-size:0.9rem; font-weight:bold; display:none; flex-direction:column; gap:4px;';
-            badge.parentNode.appendChild(warningEl);
-        }
+
+
+
+
+
+
         if (warningEl) warningEl.style.display = 'none';
 
         // ステータス値のロードと互換性処理

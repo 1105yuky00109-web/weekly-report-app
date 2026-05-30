@@ -3,7 +3,7 @@
 <head>
     <script>
         (function() {
-            const RESET_KEY = 'sw_reset_v4';
+            const RESET_KEY = 'sw_reset_v5';
             if (!localStorage.getItem(RESET_KEY)) {
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -34,7 +34,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工事・日報管理システム</title>
-    <link rel="stylesheet" href="style-v4.css?v=20260530-19">
+    <link rel="stylesheet" href="style-v4.css?v=20260530-20">
     <link rel="manifest" href="manifest.json">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -417,11 +417,18 @@
                     <span id="week-display-hint" style="font-size:0.9rem;color:var(--text-muted);"></span>
                     <span id="week-total-hours" style="font-size:0.9rem;font-weight:bold;color:var(--primary);"></span>
                 </div>
-                <button type="button" id="btn-print-weekly-top" class="btn btn-secondary no-print" style="padding:8px 16px;font-size:0.9rem;font-weight:bold;">🖨️ 印刷</button>
             </div>
 
-            <!-- ステータスバッジ -->
-            <div id="report-status-badge" class="status-badge" style="margin-bottom:15px;"></div>
+            <!-- ステータスバッジと印刷ボタンの並び -->
+            <div class="status-print-row no-print" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;flex-wrap:wrap;gap:10px;width:100%;">
+                <div id="badge-flex-container" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="report-status-badge" class="status-badge" style="margin:0;"></span>
+                </div>
+                <button type="button" id="btn-print-weekly-top" class="btn btn-secondary no-print" style="padding:8px 16px;font-size:0.9rem;font-weight:bold;margin:0;">🖨️ 印刷</button>
+            </div>
+
+            <!-- 警告表示エリア（差し戻し理由） -->
+            <div id="report-reject-warning" style="margin-top:8px; padding:10px 14px; border-radius:6px; background-color:#fef2f2; border:1px solid #fee2e2; color:#b91c1c; font-size:0.9rem; font-weight:bold; display:none; flex-direction:column; gap:4px; margin-bottom:15px;"></div>
 
             <form id="report-form">
                 <div class="form-group" style="display:none;">
@@ -800,7 +807,7 @@
 <div id="toast-container" class="toast-container no-print" style="position: fixed; bottom: 20px; right: 20px; z-index: 12000; display: flex; flex-direction: column; gap: 10px;"></div>
 
 <!-- app.js（Firebase v10 モジュール対応） -->
-<script type="module" src="app-v4.js?v=20260530-19"></script>
+<script type="module" src="app-v4.js?v=20260530-20"></script>
 <!-- Service Workerの登録はapp-v4.js側で対応判定を行いながら安全に処理されます -->
 </body>
 </html>
