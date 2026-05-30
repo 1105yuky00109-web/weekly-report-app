@@ -226,17 +226,13 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     }
     body.print-weekly-mode #print-weekly-action-container {
         display: block !important;
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
+        width: max-content !important;
     }
     body.print-weekly-mode #print-active-area {
         display: none !important;
     }
     body.print-weekly-mode .weekly-print-wrapper {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
+        width: max-content !important;
         box-sizing: border-box !important;
     }
     body.print-weekly-mode .approval-table {
