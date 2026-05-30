@@ -4840,20 +4840,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="approval-table">
                     <thead>
                         <tr>
-                            <th>部長</th>
-                            <th>実績承認</th>
-                            <th>予定承認</th>
+                            <th>予定</th>
+                            <th>実績</th>
                             <th>担当者</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td></td>
                             <td>
-                                ${isActualApproved ? `<div class="stamp-approved">済<br><span>${actualApprovedDateStr}</span></div>` : ''}
+                                ${isPlanApproved ? `<div class="stamp-approved">上長<br><span>${planApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td>
-                                ${isPlanApproved ? `<div class="stamp-approved">済<br><span>${planApprovedDateStr}</span></div>` : ''}
+                                ${isActualApproved ? `<div class="stamp-approved">上長<br><span>${actualApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td style="padding: 0; text-align: center; vertical-align: middle;">
                                 <div style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1; margin: 0 auto; display: inline-block;">
@@ -5024,8 +5022,8 @@ document.addEventListener('DOMContentLoaded', () => {
             '.approval-table { border-collapse: collapse; }',
             '.approval-table th { font-size: 6.5pt; padding: 1px 3px; border: 1px solid #000; background: #f1f5f9; text-align: center; width: 42px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.approval-table td { border: 1px solid #000; width: 42px; height: 56px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
-            '.stamp-approved { font-size: 9pt; font-weight: bold; color: #dc2626; border: 2px solid #dc2626; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; }',
-            '.stamp-approved span { font-size: 5.5pt; }',
+            '.stamp-approved { font-size: 7.5pt; font-weight: bold; color: #dc2626; border: 1.8px solid #dc2626; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; line-height: 1.1; }',
+            '.stamp-approved span { font-size: 5.5pt; font-weight: normal; margin-top: 1px; }',
             '.print-day-block { border: 1px solid #000; margin-bottom: 7px; page-break-inside: avoid; }',
             '.print-day-table { width: 100%; border-collapse: collapse; }',
             '.print-day-table th, .print-day-table td { border: 1px solid #000; padding: 3px 5px; font-size: 8.5pt; vertical-align: middle; height: 25px; }',
