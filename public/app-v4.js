@@ -3019,6 +3019,7 @@ document.addEventListener('DOMContentLoaded', () => {
             planStatus = 'submitted';
         } else if (status === 'plan_approved') {
             planStatus = 'approved';
+            reportData.planApprovedAt = new Date().toISOString();
             actualStatus = 'draft'; // 予定が承認されたら実績入力を開始できるようにする
         } else if (status === 'plan_rejected') {
             planStatus = 'rejected';
@@ -3029,6 +3030,7 @@ document.addEventListener('DOMContentLoaded', () => {
             actualStatus = 'submitted';
         } else if (status === 'approved') {
             actualStatus = 'approved';
+            reportData.actualApprovedAt = new Date().toISOString();
             reportData.approvedAt = new Date().toISOString();
             reportData.approvedBy = currentUser.displayName || currentUser.email.split('@')[0];
         } else if (status === 'actual_rejected') {
@@ -3044,6 +3046,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 後方互換性のためのstatusフィールドマッピング
         if (actualStatus === 'approved') {
             reportData.status = 'approved';
+            if (!reportData.actualApprovedAt) {
+                reportData.actualApprovedAt = new Date().toISOString();
+            }
             reportData.approvedAt = new Date().toISOString();
             reportData.approvedBy = currentUser.displayName || currentUser.email.split('@')[0];
         } else if (actualStatus === 'submitted') {
@@ -3509,9 +3514,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.warn('Auto-correcting planStatus to approved for doc: ' + doc.id);
                         updateDoc(doc.ref, { 
                             planStatus: 'approved',
-                            actualStatus: 'approved'
+                            planApprovedAt: data.planApprovedAt || new Date().toISOString(),
+                            actualStatus: 'approved',
+                            actualApprovedAt: data.actualApprovedAt || new Date().toISOString()
                         }).catch(err => console.error(err));
-                        return { id: doc.id, ...data, planStatus: 'approved', actualStatus: 'approved' };
+                        return { 
+                            id: doc.id, 
+                            ...data, 
+                            planStatus: 'approved', 
+                            planApprovedAt: data.planApprovedAt || new Date().toISOString(),
+                            actualStatus: 'approved', 
+                            actualApprovedAt: data.actualApprovedAt || new Date().toISOString() 
+                        };
                     }
                     return { id: doc.id, ...data };
                 });
@@ -4006,6 +4020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnApprovePlan.disabled = true;
                 await updateDoc(doc(db, "reports", r.id), {
                     planStatus: 'approved',
+                    planApprovedAt: new Date().toISOString(),
                     planRejectReason: ''
                 });
                 alert('予定を承認しました。');
@@ -4025,6 +4040,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnApproveActual.disabled = true;
                 await updateDoc(doc(db, "reports", r.id), {
                     actualStatus: 'approved',
+                    actualApprovedAt: new Date().toISOString(),
+                    approvedAt: new Date().toISOString(),
                     actualRejectReason: '',
                     status: 'approved'
                 });
@@ -4274,6 +4291,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             btnApprovePlan.disabled = true;
                             await updateDoc(doc(db, "reports", r.id), {
                                 planStatus: 'approved',
+                                planApprovedAt: new Date().toISOString(),
                                 planRejectReason: ''
                             });
                             alert('予定を承認しました。');
@@ -4293,6 +4311,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             btnApproveActual.disabled = true;
                             await updateDoc(doc(db, "reports", r.id), {
                                 actualStatus: 'approved',
+                                actualApprovedAt: new Date().toISOString(),
+                                approvedAt: new Date().toISOString(),
                                 actualRejectReason: '',
                                 status: 'approved'
                             });
