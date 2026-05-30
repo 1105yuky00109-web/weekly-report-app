@@ -4723,19 +4723,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const weekText = weekInput.options[weekInput.selectedIndex]?.text || '';
         const authorVal = authorInput.value;
         
-        // 承認状態の取得（画面のステータスバッジから判定）
-        const badge = document.getElementById('report-status-badge');
-        const isApproved = badge && (badge.classList.contains('status-approved') || badge.dataset.actualStatus === 'approved');
-        
-        // 承認日付の取得
+        // 承認状態と日付の取得
         const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
-        let approvedDateStr = '';
-        if (isApproved && existingReport && existingReport.approvedAt) {
-            const appDate = new Date(existingReport.approvedAt);
-            approvedDateStr = `${appDate.getMonth() + 1}/${appDate.getDate()}`;
-        } else if (isApproved) {
-            const now = new Date();
-            approvedDateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+        let isPlanApproved = false;
+        let planApprovedDateStr = '';
+        let isActualApproved = false;
+        let actualApprovedDateStr = '';
+
+        if (existingReport) {
+            const pStatus = existingReport.planStatus || (existingReport.status === 'approved' ? 'approved' : 'draft');
+            isPlanApproved = pStatus === 'approved';
+            if (isPlanApproved && existingReport.planApprovedAt) {
+                const pDate = new Date(existingReport.planApprovedAt);
+                planApprovedDateStr = `${pDate.getMonth() + 1}/${pDate.getDate()}`;
+            } else if (isPlanApproved) {
+                const now = new Date();
+                planApprovedDateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+            }
+
+            const aStatus = existingReport.actualStatus || (existingReport.status === 'approved' ? 'approved' : 'draft');
+            isActualApproved = aStatus === 'approved';
+            if (isActualApproved && (existingReport.actualApprovedAt || existingReport.approvedAt)) {
+                const aDate = new Date(existingReport.actualApprovedAt || existingReport.approvedAt);
+                actualApprovedDateStr = `${aDate.getMonth() + 1}/${aDate.getDate()}`;
+            } else if (isActualApproved) {
+                const now = new Date();
+                actualApprovedDateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+            }
         }
         
         // 画面の入力内容を収集
@@ -4827,7 +4841,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <thead>
                         <tr>
                             <th>部長</th>
-                            <th>上長</th>
+                            <th>実績承認</th>
+                            <th>予定承認</th>
                             <th>担当者</th>
                         </tr>
                     </thead>
@@ -4835,10 +4850,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tr>
                             <td></td>
                             <td>
-                                ${isApproved ? `<div class="stamp-approved">済<br><span>${approvedDateStr}</span></div>` : ''}
+                                ${isActualApproved ? `<div class="stamp-approved">済<br><span>${actualApprovedDateStr}</span></div>` : ''}
                             </td>
-                            <td style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; padding: 2px 0; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1;">
-                                ${(authorVal || '').replace(/\s+/g, '').substring(0, 5)}
+                            <td>
+                                ${isPlanApproved ? `<div class="stamp-approved">済<br><span>${planApprovedDateStr}</span></div>` : ''}
+                            </td>
+                            <td style="padding: 0; text-align: center; vertical-align: middle;">
+                                <div style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1; margin: 0 auto; display: inline-block;">
+                                    ${(authorVal || '').replace(/\s+/g, '').substring(0, 5)}
+                                </div>
                             </td>
                         </tr>
                     </tbody>
