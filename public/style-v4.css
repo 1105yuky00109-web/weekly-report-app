@@ -240,7 +240,7 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         align-items: flex-end;
         width: 100%;
         margin-bottom: 4px;
-        height: 76px;
+        height: 90px;
         box-sizing: border-box;
     }
     .weekly-print-title {
@@ -258,14 +258,17 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         border-collapse: collapse;
     }
     .approval-table th {
-        font-size: 6.5pt;
-        padding: 1px 3px;
+        font-size: 7.5pt;
+        font-weight: bold;
+        color: #000 !important;
+        padding: 2px 3px;
         border: 1px solid #000;
         background: #f1f5f9 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         text-align: center;
         width: 42px;
+        white-space: nowrap;
     }
     .approval-table td {
         border: 1px solid #000;
