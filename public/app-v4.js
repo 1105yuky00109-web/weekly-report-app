@@ -5038,7 +5038,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const existingStyle = document.getElementById('print-dynamic-style');
         if (existingStyle) existingStyle.remove();
 
-        // 印刷用のスタイル（A4縦・縮小スタイル）を動的に注入
+        // 印刷用のスタイル（A4縦）を動的に注入
         const style = document.createElement('style');
         style.id = 'print-dynamic-style';
         style.innerHTML = `
@@ -5057,9 +5057,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .weekly-print-wrapper { width: 100% !important; box-sizing: border-box !important; }
                 .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
                 .weekly-print-title { font-size: 13pt !important; font-weight: bold !important; text-align: center !important; letter-spacing: 2px !important; text-decoration: underline !important; text-underline-offset: 3px !important; margin: 0 !important; padding-bottom: 2px !important; white-space: nowrap !important; }
-                .approval-table { border-collapse: collapse !important; }
-                .approval-table th { font-size: 7.5pt !important; font-weight: bold !important; color: #000 !important; padding: 2px 3px !important; border: 1px solid #000 !important; background: #f1f5f9 !important; text-align: center !important; width: 42px !important; white-space: nowrap !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .approval-table td { border: 1px solid #000 !important; width: 42px !important; height: 56px !important; text-align: center !important; vertical-align: middle !important; font-size: 7.5pt !important; padding: 2px !important; }
+                
+                /* 押印欄の横幅引き伸ばしバグの修正（幅を42pxに固定し、自動引き伸ばしを防止） */
+                .approval-table { border-collapse: collapse !important; width: auto !important; margin: 0 !important; table-layout: fixed !important; }
+                .approval-table th { font-size: 7.5pt !important; font-weight: bold !important; color: #000 !important; padding: 2px 3px !important; border: 1px solid #000 !important; background: #f1f5f9 !important; text-align: center !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; white-space: nowrap !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .approval-table td { border: 1px solid #000 !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; height: 56px !important; text-align: center !important; vertical-align: middle !important; font-size: 7.5pt !important; padding: 2px !important; box-sizing: border-box !important; }
+                
                 .stamp-approved { font-size: 7.5pt !important; font-weight: bold !important; color: #dc2626 !important; border: 1.8px solid #dc2626 !important; border-radius: 50% !important; width: 35px !important; height: 35px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-direction: column !important; margin: 0 auto !important; line-height: 1.1 !important; }
                 .stamp-approved span { font-size: 5.5pt !important; font-weight: normal !important; margin-top: 1px !important; }
                 .weekly-print-subheader { display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 7.8pt !important; margin-bottom: 3px !important; font-weight: bold !important; }
@@ -5067,8 +5070,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 .legend-item { display: flex !important; align-items: center !important; gap: 3px !important; }
                 .legend-color { width: 12px !important; height: 12px !important; border: 1px solid #000 !important; display: inline-block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; }
-                .print-day-table { width: 100% !important; border-collapse: collapse !important; }
-                .print-day-table th, .print-day-table td { border: 1px solid #000 !important; padding: 2px 4px !important; font-size: 8pt !important; vertical-align: middle !important; height: 22px !important; }
+                
+                /* 明示的に曜日テーブルの幅を100%に指定 */
+                .print-day-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+                .print-day-table th, .print-day-table td { border: 1px solid #000 !important; padding: 2px 4px !important; font-size: 8pt !important; vertical-align: middle !important; height: 22px !important; box-sizing: border-box !important; }
                 .print-day-table th { background: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 .col-date { width: 12% !important; text-align: center !important; font-weight: bold !important; }
                 .col-project { width: 22% !important; }
@@ -5092,35 +5097,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .print-timeline-cell[data-state="5"] { background: #2563eb !important; }
                 .print-timeline-total { width: 15% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; line-height: 1.2 !important; }
                 
-                /* 自動フィット用縮小クラス群 */
-                .scale-down-1 { font-size: 7.8pt !important; }
-                .scale-down-1 .print-day-table th, .scale-down-1 .print-day-table td { padding: 1.5px 3px !important; font-size: 7.8pt !important; }
-                .scale-down-1 .print-timeline-row { height: 22px !important; }
-                .scale-down-1 .print-timeline-label { font-size: 7pt !important; }
-                .scale-down-1 .print-timeline-total { font-size: 6.8pt !important; }
-                .scale-down-1 .print-day-block { margin-bottom: 3px !important; }
-
-                .scale-down-2 { font-size: 7.2pt !important; }
-                .scale-down-2 .print-day-table th, .scale-down-2 .print-day-table td { padding: 1px 2px !important; font-size: 7.2pt !important; }
-                .scale-down-2 .print-timeline-row { height: 19px !important; }
-                .scale-down-2 .print-timeline-label { font-size: 6.5pt !important; }
-                .scale-down-2 .print-timeline-total { font-size: 6.2pt !important; }
-                .scale-down-2 .print-day-block { margin-bottom: 2px !important; }
-
-                .scale-down-3 { font-size: 6.8pt !important; }
-                .scale-down-3 .print-day-table th, .scale-down-3 .print-day-table td { padding: 0.8px 1.5px !important; font-size: 6.8pt !important; }
-                .scale-down-3 .print-timeline-row { height: 16px !important; }
-                .scale-down-3 .print-timeline-label { font-size: 6pt !important; }
-                .scale-down-3 .print-timeline-total { font-size: 5.8pt !important; }
-                .scale-down-3 .print-day-block { margin-bottom: 1.5px !important; }
-
-                .scale-down-4 { font-size: 6.2pt !important; }
-                .scale-down-4 .print-day-table th, .scale-down-4 .print-day-table td { padding: 0.5px 1px !important; font-size: 6.2pt !important; }
-                .scale-down-4 .print-timeline-row { height: 14px !important; }
-                .scale-down-4 .print-timeline-label { font-size: 5.5pt !important; }
-                .scale-down-4 .print-timeline-total { font-size: 5.2pt !important; }
-                .scale-down-4 .print-day-block { margin-bottom: 1px !important; }
-
                 .print-day-block-slim { margin-bottom: 2px !important; }
                 .print-day-block-slim .print-day-table td, .print-day-block-slim .print-day-table th { height: 16px !important; padding: 1px 4px !important; font-size: 7.8pt !important; }
                 .print-day-block-slim .print-timeline-row { display: none !important; }
@@ -5128,47 +5104,19 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.head.appendChild(style);
 
-        // 自動フィッティングロジック
-        const runAutoFit = () => {
-            try {
-                const maxA4Height = 920; // 印刷可能限界（px）
-                const wrapper = printArea.querySelector('.weekly-print-wrapper');
-                if (wrapper) {
-                    let scaleLevel = 0;
-                    const maxScaleLevel = 4;
-                    document.body.classList.remove('scale-down-1', 'scale-down-2', 'scale-down-3', 'scale-down-4');
-                    // 収まるまでクラスを順次付与して縮小
-                    while (wrapper.offsetHeight > maxA4Height && scaleLevel < maxScaleLevel) {
-                        scaleLevel++;
-                        document.body.classList.add(`scale-down-${scaleLevel}`);
-                    }
-                    console.log(`Auto-fit scaling applied: Level ${scaleLevel} (Height: ${wrapper.offsetHeight}px)`);
-                }
-            } catch (e) {
-                console.error("Auto-fit scaling error:", e);
-            }
-        };
-
         // 印刷モードのクラスを body に追加してスタイルの干渉を防ぐ
         document.body.classList.add('print-weekly-mode');
 
-        // DOMのReflow（描画適用）を待つ
+        // DOMのReflow（描画適用）を待ってから直接印刷を実行（自動縮小の廃止により、常に100%実寸で美しく印刷）
         const forceReflow = printArea.offsetHeight;
 
         setTimeout(() => {
-            runAutoFit();
+            window.print();
             
-            // レイアウト強制計算
-            const finalReflow = printArea.offsetHeight;
-
-            setTimeout(() => {
-                window.print();
-                
-                // 印刷終了後の後処理
-                document.body.classList.remove('print-weekly-mode', 'scale-down-1', 'scale-down-2', 'scale-down-3', 'scale-down-4');
-                printArea.innerHTML = '';
-                if (style) style.remove();
-            }, 100);
+            // 印刷終了後の後処理
+            document.body.classList.remove('print-weekly-mode');
+            printArea.innerHTML = '';
+            if (style) style.remove();
         }, 150);
     };
 
