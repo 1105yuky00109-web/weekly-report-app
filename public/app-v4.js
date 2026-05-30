@@ -4414,7 +4414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 下部の個人別集計表を描画
-        if (Object.keys(authorProjectHours).length > 0 && personalSummary) {
+        if (false && Object.keys(authorProjectHours).length > 0 && personalSummary) {
             let summaryHtml = '<h3 style="padding: 15px; border-bottom: 2px solid var(--border); margin-bottom: 15px;">【月間】個人別 工事稼働時間（集計）</h3><div style="padding: 0 15px 15px 15px; display: flex; gap: 20px; flex-wrap: wrap;">';
             Object.keys(authorProjectHours).sort().forEach(author => {
                 summaryHtml += `<div style="flex: 1; min-width: 300px; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
