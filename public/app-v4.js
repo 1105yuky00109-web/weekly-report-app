@@ -2317,15 +2317,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 await saveReport('plan_withdrawn');
                             }
                         });
-                    } else if (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected')) {
+                    } else if (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected' || actualStatus === 'uncreated')) {
                         actionContainer.innerHTML = `
                             <button type="button" id="btn-save-actual" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">実績を一時保存</button>
-                            <button type="submit" id="btn-submit-actual" class="btn btn-primary btn-large" style="flex: 1;">実績を確定提出する</button>
+                            <button type="button" id="btn-submit-actual" class="btn btn-primary btn-large" style="flex: 1;">実績を確定提出する</button>
                         `;
                         document.getElementById('btn-save-actual').addEventListener('click', () => saveReport('draft'));
-                        // form submit時に saveReport('confirmed') が呼ばれるように、formのsubmitにバインドされています
+                        document.getElementById('btn-submit-actual').addEventListener('click', () => saveReport('confirmed'));
                     } else if (planStatus === 'approved' && actualStatus === 'submitted') {
-                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--primary); width:100%;">⌛ 実績の承認待ちです（編集はロックされています）</div>`;
+                        actionContainer.innerHTML = `
+                            <div style="text-align:center; font-weight:bold; color:var(--primary); width:100%; margin-bottom: 10px;">⌛ 実績の承認待ちです（編集はロックされています）</div>
+                            <button type="button" id="btn-withdraw-actual" class="btn btn-secondary btn-large" style="background-color:#6b7280; color:#ffffff; flex: 1; margin: 0 auto; max-width: 300px;">実績の提出を取り消す</button>
+                        `;
+                        document.getElementById('btn-withdraw-actual').addEventListener('click', async () => {
+                            if (confirm('実績の提出を取り消して、下書き状態に戻しますか？')) {
+                                await saveReport('actual_withdrawn');
+                            }
+                        });
                     } else if (planStatus === 'approved' && actualStatus === 'approved') {
                         actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:#16a34a; width:100%;">✅ 今週の日報はすべて承認済みです</div>`;
                     }
@@ -3004,7 +3012,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 実績ステータスの変更時に予定が承認済であることをバリデーション
-        const isActualChange = ['draft', 'confirmed', 'approved', 'actual_rejected'].includes(status);
+        const isActualChange = ['draft', 'confirmed', 'approved', 'actual_rejected', 'actual_withdrawn'].includes(status);
         if (isActualChange && planStatus !== 'approved') {
             alert('予定が承認されていないため、実績の変更・提出はできません。先に予定を承認してもらってください。');
             return;
@@ -3039,6 +3047,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (status === 'actual_rejected') {
             actualStatus = 'rejected';
             actualRejectReason = rejectReason || '';
+        } else if (status === 'actual_withdrawn') {
+            actualStatus = 'draft';
         }
 
         reportData.planStatus = planStatus;
@@ -3081,6 +3091,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('予定を提出しました！');
             } else if (status === 'plan_withdrawn') {
                 alert('予定の提出を取り消しました（下書き状態に戻しました）。');
+            } else if (status === 'actual_withdrawn') {
+                alert('実績の提出を取り消しました。');
             } else if (status === 'plan') {
                 alert('予定を一時保存しました！');
             } else {
@@ -3094,9 +3106,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (reportForm) {
-        reportForm.addEventListener('submit', async (e) => {
+        reportForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            await saveReport('confirmed');
         });
     }
 
