@@ -224,10 +224,14 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-    body.print-weekly-mode #print-active-area {
+    body.print-weekly-mode #print-weekly-action-container {
+        display: block !important;
         width: 100% !important;
         min-width: 100% !important;
         max-width: 100% !important;
+    }
+    body.print-weekly-mode #print-active-area {
+        display: none !important;
     }
     body.print-weekly-mode .weekly-print-wrapper {
         width: 100% !important;
