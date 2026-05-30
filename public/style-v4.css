@@ -168,6 +168,16 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
 
 /* --- 印刷用スタイル --- */
 @media print {
+    /* html, body を紙の横幅100%に強制し、横幅が半分に縮むのを防止する */
+    html, body {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+
     /* 印刷時は強制的にライトテーマ用の配色変数にリセットし、ダークテーマでの印刷バグを防止する */
     :root, body, body.dark-theme {
         --bg-color: #ffffff !important;

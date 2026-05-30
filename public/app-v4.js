@@ -5042,6 +5042,16 @@ document.addEventListener('DOMContentLoaded', () => {
             @media print {
                 @page { size: A4 portrait !important; margin: 6mm 10mm !important; }
                 
+                /* html, body を紙の横幅100%に強制し、横幅が半分に縮むのを防止する */
+                html, body {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: visible !important;
+                }
+                
                 /* ガントチャート印刷用の一時エリアやメインアプリを完全に非表示にし、さらに幅計算に干渉しないようサイズを0にする */
                 #app-container,
                 #login-container,
@@ -5127,13 +5137,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // 印刷モードのクラスを body に追加してスタイルの干渉を防ぐ
         document.body.classList.add('print-weekly-mode');
 
-        setTimeout(() => {
-            window.print();
-            
-            // 印刷終了後の後処理
+        // 印刷ダイアログが閉じた後のクリーンアップ処理を定義
+        const cleanup = () => {
             document.body.classList.remove('print-weekly-mode');
             if (printContainer) printContainer.innerHTML = '';
             if (style) style.remove();
+            window.removeEventListener('afterprint', cleanup);
+        };
+        // 印刷完了・キャンセルイベントを監視
+        window.addEventListener('afterprint', cleanup);
+
+        setTimeout(() => {
+            window.print();
         }, 150);
     };
 
