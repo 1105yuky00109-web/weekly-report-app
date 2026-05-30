@@ -229,6 +229,26 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         min-width: 100% !important;
         max-width: 100% !important;
     }
+    body.print-weekly-mode .weekly-print-wrapper {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    body.print-weekly-mode .approval-table {
+        width: 126px !important;
+        min-width: 126px !important;
+        max-width: 126px !important;
+        table-layout: fixed !important;
+        border-collapse: collapse !important;
+    }
+    body.print-weekly-mode .approval-table th,
+    body.print-weekly-mode .approval-table td {
+        width: 42px !important;
+        min-width: 42px !important;
+        max-width: 42px !important;
+        box-sizing: border-box !important;
+    }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }

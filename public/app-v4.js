@@ -5044,7 +5044,7 @@ document.addEventListener('DOMContentLoaded', () => {
         style.innerHTML = `
             @media print {
                 @page { size: A4 portrait !important; margin: 6mm 10mm !important; }
-                #print-active-area {
+                body.print-weekly-mode #print-active-area {
                     display: block !important;
                     width: 100% !important;
                     min-width: 100% !important;
@@ -5054,52 +5054,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     color: black !important;
                     font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif !important;
                 }
-                .weekly-print-wrapper { width: 100% !important; box-sizing: border-box !important; }
-                .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
-                .weekly-print-title { font-size: 13pt !important; font-weight: bold !important; text-align: center !important; letter-spacing: 2px !important; text-decoration: underline !important; text-underline-offset: 3px !important; margin: 0 !important; padding-bottom: 2px !important; white-space: nowrap !important; }
+                body.print-weekly-mode .weekly-print-wrapper { width: 100% !important; box-sizing: border-box !important; }
+                body.print-weekly-mode .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
+                body.print-weekly-mode .weekly-print-title { font-size: 13pt !important; font-weight: bold !important; text-align: center !important; letter-spacing: 2px !important; text-decoration: underline !important; text-underline-offset: 3px !important; margin: 0 !important; padding-bottom: 2px !important; white-space: nowrap !important; }
                 
-                /* 押印欄の横幅引き伸ばしバグの修正（幅を42pxに固定し、自動引き伸ばしを防止） */
-                .approval-table { border-collapse: collapse !important; width: auto !important; margin: 0 !important; table-layout: fixed !important; }
-                .approval-table th { font-size: 7.5pt !important; font-weight: bold !important; color: #000 !important; padding: 2px 3px !important; border: 1px solid #000 !important; background: #f1f5f9 !important; text-align: center !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; white-space: nowrap !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .approval-table td { border: 1px solid #000 !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; height: 56px !important; text-align: center !important; vertical-align: middle !important; font-size: 7.5pt !important; padding: 2px !important; box-sizing: border-box !important; }
+                /* 押印欄の横幅引き伸ばしバグの修正（幅を126pxおよびセル42pxに完全固定） */
+                body.print-weekly-mode .approval-table { border-collapse: collapse !important; width: 126px !important; min-width: 126px !important; max-width: 126px !important; margin: 0 0 0 auto !important; table-layout: fixed !important; }
+                body.print-weekly-mode .approval-table th { font-size: 7.5pt !important; font-weight: bold !important; color: #000 !important; padding: 2px 3px !important; border: 1px solid #000 !important; background: #f1f5f9 !important; text-align: center !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; white-space: nowrap !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body.print-weekly-mode .approval-table td { border: 1px solid #000 !important; width: 42px !important; min-width: 42px !important; max-width: 42px !important; height: 56px !important; text-align: center !important; vertical-align: middle !important; font-size: 7.5pt !important; padding: 2px !important; box-sizing: border-box !important; }
                 
-                .stamp-approved { font-size: 7.5pt !important; font-weight: bold !important; color: #dc2626 !important; border: 1.8px solid #dc2626 !important; border-radius: 50% !important; width: 35px !important; height: 35px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-direction: column !important; margin: 0 auto !important; line-height: 1.1 !important; }
-                .stamp-approved span { font-size: 5.5pt !important; font-weight: normal !important; margin-top: 1px !important; }
-                .weekly-print-subheader { display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 7.8pt !important; margin-bottom: 3px !important; font-weight: bold !important; }
-                .legend-box { display: flex !important; gap: 10px !important; align-items: center !important; }
-                .legend-item { display: flex !important; align-items: center !important; gap: 3px !important; }
-                .legend-color { width: 12px !important; height: 12px !important; border: 1px solid #000 !important; display: inline-block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; }
+                body.print-weekly-mode .stamp-approved { font-size: 7.5pt !important; font-weight: bold !important; color: #dc2626 !important; border: 1.8px solid #dc2626 !important; border-radius: 50% !important; width: 35px !important; height: 35px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-direction: column !important; margin: 0 auto !important; line-height: 1.1 !important; }
+                body.print-weekly-mode .stamp-approved span { font-size: 5.5pt !important; font-weight: normal !important; margin-top: 1px !important; }
+                body.print-weekly-mode .weekly-print-subheader { display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 7.8pt !important; margin-bottom: 3px !important; font-weight: bold !important; }
+                body.print-weekly-mode .legend-box { display: flex !important; gap: 10px !important; align-items: center !important; }
+                body.print-weekly-mode .legend-item { display: flex !important; align-items: center !important; gap: 3px !important; }
+                body.print-weekly-mode .legend-color { width: 12px !important; height: 12px !important; border: 1px solid #000 !important; display: inline-block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body.print-weekly-mode .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; }
                 
                 /* 明示的に曜日テーブルの幅を100%に指定 */
-                .print-day-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
-                .print-day-table th, .print-day-table td { border: 1px solid #000 !important; padding: 2px 4px !important; font-size: 8pt !important; vertical-align: middle !important; height: 22px !important; box-sizing: border-box !important; }
-                .print-day-table th { background: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .col-date { width: 12% !important; text-align: center !important; font-weight: bold !important; }
-                .col-project { width: 22% !important; }
-                .col-time { width: 12% !important; text-align: center !important; }
-                .col-direct { width: 12% !important; text-align: center !important; vertical-align: middle !important; }
-                .col-detail { width: 42% !important; }
-                .print-timeline-row { display: flex !important; align-items: stretch !important; border-top: 1px solid #000 !important; background: #fff !important; height: 24px !important; }
-                .print-timeline-label { width: 12% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; border-right: 1px solid #000 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .print-timeline-hours { flex: 1 !important; display: flex !important; flex-direction: column !important; border-right: 1px solid #000 !important; }
-                .print-timeline-header-cells { display: flex !important; justify-content: space-between !important; font-size: 5.5pt !important; height: 10px !important; line-height: 10px !important; border-bottom: 1px solid #000 !important; padding: 0 4px !important; }
-                .print-timeline-hour-cell { width: 0 !important; overflow: visible !important; display: flex !important; justify-content: center !important; font-size: 5.5pt !important; white-space: nowrap !important; }
-                .print-timeline-grid-cells { display: flex !important; height: 12px !important; padding: 0 4px !important; }
-                .print-timeline-cell { flex: 1 !important; border-right: 1px dashed #ccc !important; height: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .print-timeline-cell:nth-child(2n) { border-right: 1px solid #000 !important; }
-                .print-timeline-cell:last-child { border-right: none !important; }
-                .print-timeline-cell[data-state="0"] { background: #fff !important; }
-                .print-timeline-cell[data-state="1"] { background: #000 !important; }
-                .print-timeline-cell[data-state="2"] { background: #ef4444 !important; }
-                .print-timeline-cell[data-state="3"] { background: #16a34a !important; }
-                .print-timeline-cell[data-state="4"] { background: #94a3b8 !important; }
-                .print-timeline-cell[data-state="5"] { background: #2563eb !important; }
-                .print-timeline-total { width: 15% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; line-height: 1.2 !important; }
+                body.print-weekly-mode .print-day-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+                body.print-weekly-mode .print-day-table th, body.print-weekly-mode .print-day-table td { border: 1px solid #000 !important; padding: 2px 4px !important; font-size: 8pt !important; vertical-align: middle !important; height: 22px !important; box-sizing: border-box !important; }
+                body.print-weekly-mode .print-day-table th { background: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body.print-weekly-mode .col-date { width: 12% !important; text-align: center !important; font-weight: bold !important; }
+                body.print-weekly-mode .col-project { width: 22% !important; }
+                body.print-weekly-mode .col-time { width: 12% !important; text-align: center !important; }
+                body.print-weekly-mode .col-direct { width: 12% !important; text-align: center !important; vertical-align: middle !important; }
+                body.print-weekly-mode .col-detail { width: 42% !important; }
+                body.print-weekly-mode .print-timeline-row { display: flex !important; align-items: stretch !important; border-top: 1px solid #000 !important; background: #fff !important; height: 24px !important; }
+                body.print-weekly-mode .print-timeline-label { width: 12% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; border-right: 1px solid #000 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body.print-weekly-mode .print-timeline-hours { flex: 1 !important; display: flex !important; flex-direction: column !important; border-right: 1px solid #000 !important; }
+                body.print-weekly-mode .print-timeline-header-cells { display: flex !important; justify-content: space-between !important; font-size: 5.5pt !important; height: 10px !important; line-height: 10px !important; border-bottom: 1px solid #000 !important; padding: 0 4px !important; }
+                body.print-weekly-mode .print-timeline-hour-cell { width: 0 !important; overflow: visible !important; display: flex !important; justify-content: center !important; font-size: 5.5pt !important; white-space: nowrap !important; }
+                body.print-weekly-mode .print-timeline-grid-cells { display: flex !important; height: 12px !important; padding: 0 4px !important; }
+                body.print-weekly-mode .print-timeline-cell { flex: 1 !important; border-right: 1px dashed #ccc !important; height: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                body.print-weekly-mode .print-timeline-cell:nth-child(2n) { border-right: 1px solid #000 !important; }
+                body.print-weekly-mode .print-timeline-cell:last-child { border-right: none !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="0"] { background: #fff !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="1"] { background: #000 !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="2"] { background: #ef4444 !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="3"] { background: #16a34a !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="4"] { background: #94a3b8 !important; }
+                body.print-weekly-mode .print-timeline-cell[data-state="5"] { background: #2563eb !important; }
+                body.print-weekly-mode .print-timeline-total { width: 15% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; line-height: 1.2 !important; }
                 
-                .print-day-block-slim { margin-bottom: 2px !important; }
-                .print-day-block-slim .print-day-table td, .print-day-block-slim .print-day-table th { height: 16px !important; padding: 1px 4px !important; font-size: 7.8pt !important; }
-                .print-day-block-slim .print-timeline-row { display: none !important; }
+                body.print-weekly-mode .print-day-block-slim { margin-bottom: 2px !important; }
+                body.print-weekly-mode .print-day-block-slim .print-day-table td, body.print-weekly-mode .print-day-block-slim .print-day-table th { height: 16px !important; padding: 1px 4px !important; font-size: 7.8pt !important; }
+                body.print-weekly-mode .print-day-block-slim .print-timeline-row { display: none !important; }
             }
         `;
         document.head.appendChild(style);
