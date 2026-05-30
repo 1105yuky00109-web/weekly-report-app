@@ -5013,7 +5013,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '* { box-sizing: border-box; margin: 0; padding: 0; }',
             'body { font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif; margin: 0; padding: 0; background: #fff; color: #000; font-size: 8pt; }',
             '.weekly-print-wrapper { width: 100%; }',
-            '.weekly-print-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 4px; height: 58px; }',
+            '.weekly-print-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 4px; height: 76px; }',
             '.weekly-print-title { font-size: 13pt; font-weight: bold; text-align: center; letter-spacing: 2px; text-decoration: underline; text-underline-offset: 3px; margin: 0; padding-bottom: 2px; white-space: nowrap; }',
             '.weekly-print-subheader { display: flex; justify-content: space-between; align-items: center; font-size: 7.8pt; margin-bottom: 3px; font-weight: bold; }',
             '.legend-box { display: flex; gap: 10px; align-items: center; }',
