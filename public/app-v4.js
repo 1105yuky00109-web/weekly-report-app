@@ -236,11 +236,11 @@ const setupNotification = async () => {
 
 // 認証状態の監視
 onAuthStateChanged(auth, async (user) => {
-    // 接続判定が完了したため、ローディング表示を非表示にする
     const loadingContainer = document.getElementById('loading-container');
-    if (loadingContainer) {
-        loadingContainer.classList.add('hidden');
-    }
+
+
+
+
 
     if (user) {
         // displayNameがまだ反映されていない場合に備えて再読み込み
@@ -414,11 +414,13 @@ onAuthStateChanged(auth, async (user) => {
                 passModal.style.display = 'none';
             }
             */
+        if (loadingContainer) loadingContainer.classList.add('hidden');
         }
     } else {
         // ログアウト状態
         currentUser = null;
         currentCompany = null;
+        if (loadingContainer) loadingContainer.classList.add('hidden');
         loginContainer.classList.remove('hidden');
         appContainer.classList.add('hidden');
         const roleBadge = document.getElementById('user-role-badge');

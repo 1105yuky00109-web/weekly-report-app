@@ -158,8 +158,8 @@
             </div>
         </div>
         <nav class="tabs">
-            <button class="tab-btn active tab-gantt" data-target="schedule-input-view">工事登録</button>
-            <button class="tab-btn tab-gantt" data-target="gantt-view">工程管理表</button>
+            <button class="tab-btn tab-gantt" data-target="schedule-input-view">工事登録</button>
+            <button class="tab-btn active tab-gantt" data-target="gantt-view">工程管理表</button>
             <button class="tab-btn tab-gantt" data-target="qualifications-view">🏅 資格・担当者管理</button>
             <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
             <button class="tab-btn tab-weekly" data-target="list-view">個人別一覧・レポート</button>
@@ -169,7 +169,7 @@
     </header>
 
     <!-- ======== 工事登録画面 ======== -->
-    <main id="schedule-input-view" class="view active no-print">
+    <main id="schedule-input-view" class="view no-print">
         <div class="form-card">
             <h2 id="schedule-form-title">工事を登録</h2>
             <form id="schedule-form">
@@ -316,7 +316,7 @@
     </main>
 
     <!-- ======== 工程管理表（ガントチャート）======== -->
-    <main id="gantt-view" class="view">
+    <main id="gantt-view" class="view active">
         <div class="list-controls no-print" style="margin-bottom:15px;">
             <div class="filters" style="display:flex;gap:10px;align-items:center;">
                 <label for="gantt-year" style="font-weight:bold;color:var(--text);">対象年度:</label>
