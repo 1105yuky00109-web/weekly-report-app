@@ -2164,7 +2164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 未来の週は予定のみ許可
         if (isFutureWeek) {
-            planStatus = 'draft';
+            // planStatus = 'draft'; // 予定ステータスを維持するためコメントアウト
             actualStatus = 'uncreated';
         }
 
@@ -2265,7 +2265,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentUserName = currentUser.displayName || currentUser.email.split('@')[0];
                 const isAdminViewingOthers = (currentCompany && currentCompany.role === 'admin' && currentAuthor !== currentUserName);
 
-                if (isFutureWeek) {
+                if (isFutureWeek && false) { // 未来の週の特別制限を通常フローに統合
                     actionContainer.innerHTML = `
                         <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定を更新（一時保存）</button>
                     `;
@@ -2301,7 +2301,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             showRejectModal('承認取り消し・実績差し戻し', (reason) => saveReport('actual_rejected', reason));
                         });
                     } else {
-                        actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--text-muted); width:100%;">この週報は現在、社員が入力中または一時保存状態です。</div>`;
+                        if (isFutureWeek && planStatus === 'approved') {
+                            actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:#16a34a; width:100%;">✅ 予定は承認済みです。未来の週のため実績の入力はまだ開始できません。</div>`;
+                        } else {
+                            actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:var(--text-muted); width:100%;">この週報は現在、社員が入力中または一時保存状態です。</div>`;
+                        }
                     }
                 } else {
                     // 社員本人（または管理者が自分の週報を編集している場合）
@@ -2323,12 +2327,16 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     } else if (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected' || actualStatus === 'uncreated')) {
-                        actionContainer.innerHTML = `
-                            <button type="button" id="btn-save-actual" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">実績を一時保存</button>
-                            <button type="button" id="btn-submit-actual" class="btn btn-primary btn-large" style="flex: 1;">実績を確定提出する</button>
-                        `;
-                        document.getElementById('btn-save-actual').addEventListener('click', () => saveReport('draft'));
-                        document.getElementById('btn-submit-actual').addEventListener('click', () => saveReport('confirmed'));
+                        if (isFutureWeek) {
+                            actionContainer.innerHTML = `<div style="text-align:center; font-weight:bold; color:#16a34a; width:100%;">✅ 予定は承認済みです（実績は該当週になってから入力してください）</div>`;
+                        } else {
+                            actionContainer.innerHTML = `
+                                <button type="button" id="btn-save-actual" class="btn btn-secondary btn-large" style="background-color:#ea580c; flex: 1;">実績を一時保存</button>
+                                <button type="button" id="btn-submit-actual" class="btn btn-primary btn-large" style="flex: 1;">実績を確定提出する</button>
+                            `;
+                            document.getElementById('btn-save-actual').addEventListener('click', () => saveReport('draft'));
+                            document.getElementById('btn-submit-actual').addEventListener('click', () => saveReport('confirmed'));
+                        }
                     } else if (planStatus === 'approved' && actualStatus === 'submitted') {
                         actionContainer.innerHTML = `
                             <div style="text-align:center; font-weight:bold; color:var(--primary); width:100%; margin-bottom: 10px;">⌛ 実績の承認待ちです（編集はロックされています）</div>
@@ -2361,7 +2369,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (actionContainer) {
-                if (isFutureWeek) {
+                if (isFutureWeek && false) { // 未来の週でも予定の一時保存と提出の両方を表示
                     actionContainer.innerHTML = `
                         <button type="button" id="btn-save-plan" class="btn btn-secondary btn-large" style="background-color:#ea580c;">予定として一時保存</button>
                     `;
