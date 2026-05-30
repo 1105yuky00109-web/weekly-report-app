@@ -4840,18 +4840,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="approval-table">
                     <thead>
                         <tr>
-                            <th>\u4e88\u5b9a</th>
-                            <th>\u5b9f\u7e3e</th>
-                            <th>\u62c5\u5f53\u8005</th>
+                            <th>&#x4E88;&#x5B9A;</th>
+                            <th>&#x5B9F;&#x7E3E;</th>
+                            <th>&#x62C5;&#x5F53;&#x8005;</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>
-                                ${isPlanApproved ? `<div class="stamp-approved">\u4e0a\u9577<br><span>${planApprovedDateStr}</span></div>` : ''}
+                                ${isPlanApproved ? `<div class="stamp-approved">&#x4E0A;&#x9577;<br><span>${planApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td>
-                                ${isActualApproved ? `<div class="stamp-approved">\u4e0a\u9577<br><span>${actualApprovedDateStr}</span></div>` : ''}
+                                ${isActualApproved ? `<div class="stamp-approved">&#x4E0A;&#x9577;<br><span>${actualApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td style="padding: 0; text-align: center; vertical-align: middle;">
                                 <div style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1; margin: 0 auto; display: inline-block;">
