@@ -180,11 +180,18 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     }
 
     /* 印刷時に不要なコンテナを個別に非表示にする（body > *:notセレクタによる白紙バグの回避） */
+    /* かつ、非表示要素の巨大な横幅がブラウザの印刷自動縮小スケール計算に悪影響を及ぼさないよう、サイズを強制的に0にする */
     #app-container,
     #login-container,
     #loading-container,
     .no-print {
         display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        position: absolute !important;
+        top: -9999px !important;
+        left: -9999px !important;
     }
     
     #print-active-area {
@@ -226,13 +233,17 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
     }
     body.print-weekly-mode #print-weekly-action-container {
         display: block !important;
-        width: max-content !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
     }
     body.print-weekly-mode #print-active-area {
         display: none !important;
     }
     body.print-weekly-mode .weekly-print-wrapper {
-        width: max-content !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
     }
     body.print-weekly-mode .approval-table {

@@ -5042,26 +5042,39 @@ document.addEventListener('DOMContentLoaded', () => {
             @media print {
                 @page { size: A4 portrait !important; margin: 6mm 10mm !important; }
                 
-                /* ガントチャート印刷用の一時エリアやメインアプリを完全に非表示 */
+                /* ガントチャート印刷用の一時エリアやメインアプリを完全に非表示にし、さらに幅計算に干渉しないようサイズを0にする */
                 #app-container,
                 #login-container,
                 #loading-container,
                 #print-active-area,
                 .no-print {
                     display: none !important;
+                    width: 0 !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
+                    position: absolute !important;
+                    top: -9999px !important;
+                    left: -9999px !important;
                 }
                 
-                /* 週報専用のコンテナの幅を max-content にしてブラウザの自動用紙フィットを効かせる */
+                /* 週報専用コンテナの幅は安定した100%に戻す */
                 #print-weekly-action-container {
                     display: block !important;
-                    width: max-content !important;
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
                     position: static !important;
                     background: white !important;
                     color: black !important;
                     font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif !important;
                 }
                 
-                .weekly-print-wrapper { width: max-content !important; box-sizing: border-box !important; }
+                .weekly-print-wrapper {
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    box-sizing: border-box !important;
+                }
                 .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
                 .weekly-print-title { font-size: 13pt !important; font-weight: bold !important; text-align: center !important; letter-spacing: 2px !important; text-decoration: underline !important; text-underline-offset: 3px !important; margin: 0 !important; padding-bottom: 2px !important; white-space: nowrap !important; }
                 
@@ -5076,7 +5089,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .legend-box { display: flex !important; gap: 10px !important; align-items: center !important; }
                 .legend-item { display: flex !important; align-items: center !important; gap: 3px !important; }
                 .legend-color { width: 12px !important; height: 12px !important; border: 1px solid #000 !important; display: inline-block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; width: 100% !important; }
+                .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; }
                 
                 /* 明示的に曜日テーブルの幅を100%に指定 */
                 .print-day-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
@@ -5087,7 +5100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .col-time { width: 12% !important; text-align: center !important; }
                 .col-direct { width: 12% !important; text-align: center !important; vertical-align: middle !important; }
                 .col-detail { width: 42% !important; }
-                .print-timeline-row { display: flex !important; align-items: stretch !important; border-top: 1px solid #000 !important; background: #fff !important; height: 24px !important; width: 100% !important; }
+                .print-timeline-row { display: flex !important; align-items: stretch !important; border-top: 1px solid #000 !important; background: #fff !important; height: 24px !important; }
                 .print-timeline-label { width: 12% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; border-right: 1px solid #000 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 .print-timeline-hours { flex: 1 !important; display: flex !important; flex-direction: column !important; border-right: 1px solid #000 !important; }
                 .print-timeline-header-cells { display: flex !important; justify-content: space-between !important; font-size: 5.5pt !important; height: 10px !important; line-height: 10px !important; border-bottom: 1px solid #000 !important; padding: 0 4px !important; }
