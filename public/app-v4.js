@@ -354,20 +354,23 @@ onAuthStateChanged(auth, async (user) => {
         const empTab = document.getElementById('tab-employee-manage');
         const configTab = document.querySelector('.tab-btn[data-target="qualifications-view"]');
         const registerTab = document.querySelector('.tab-btn[data-target="schedule-input-view"]');
+        const reportListTab = document.querySelector('.tab-btn[data-target="list-view"]');
 
         if (currentCompany && currentCompany.role === 'admin') {
             if (empTab) empTab.style.display = '';
             if (configTab) configTab.style.display = '';
             if (registerTab) registerTab.style.display = '';
+            if (reportListTab) reportListTab.style.display = '';
             setTimeout(() => initEmployeeManagePanel(), 200);
         } else {
             if (empTab) empTab.style.display = 'none';
             if (configTab) configTab.style.display = 'none';
             if (registerTab) registerTab.style.display = 'none';
+            if (reportListTab) reportListTab.style.display = 'none';
 
             // 現在アクティブなタブが管理・登録用のものの場合は、工程管理表に切り替える
             const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab && (activeTab === registerTab || activeTab === configTab || activeTab === empTab)) {
+            if (activeTab && (activeTab === registerTab || activeTab === configTab || activeTab === empTab || activeTab === reportListTab)) {
                 const ganttTab = document.querySelector('.tab-btn[data-target="gantt-view"]');
                 if (ganttTab) ganttTab.click();
             }
