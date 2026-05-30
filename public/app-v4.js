@@ -1907,7 +1907,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // フォーム制御関数 (予定・実績のステータスに応じたきめ細かい制御)
     const setFormLocked = (pStatus, aStatus) => {
         let planStatus = 'draft';
-        let actualStatus = 'draft';
+        let actualStatus = 'uncreated';
 
         if (typeof pStatus === 'boolean') {
             if (pStatus) {
@@ -1915,15 +1915,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 actualStatus = 'approved';
             } else {
                 planStatus = 'draft';
-                actualStatus = 'draft';
+                actualStatus = 'uncreated';
             }
         } else {
             planStatus = pStatus || 'draft';
-            actualStatus = aStatus || 'draft';
+            actualStatus = aStatus || 'uncreated';
         }
 
         const isPlanEditable = (planStatus === 'draft' || planStatus === 'rejected');
-        const isActualEditable = (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected'));
+        const isActualEditable = (planStatus === 'approved' && (actualStatus === 'draft' || actualStatus === 'rejected' || actualStatus === 'uncreated'));
         currentIsPlanEditable = isPlanEditable;
         currentIsActualEditable = isActualEditable;
 
@@ -2127,13 +2127,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // ステータス値のロードと互換性処理
         let planStatus = 'draft';
         let planRejectReason = '';
-        let actualStatus = 'draft';
+        let actualStatus = 'uncreated';
         let actualRejectReason = '';
 
         if (existingReport) {
             planStatus = existingReport.planStatus || 'draft';
             planRejectReason = existingReport.planRejectReason || '';
-            actualStatus = existingReport.actualStatus || 'draft';
+            actualStatus = existingReport.actualStatus || (existingReport.status === 'plan' ? 'uncreated' : 'draft');
             actualRejectReason = existingReport.actualRejectReason || '';
 
             // 互換性処理: 古いデータで status フィールドだけがある場合
@@ -2147,7 +2147,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     actualStatus = 'submitted';
                 } else {
                     planStatus = 'draft';
-                    actualStatus = 'draft';
+                    actualStatus = 'uncreated';
                 }
             }
 
@@ -2160,7 +2160,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 未来の週は予定のみ許可
         if (isFutureWeek) {
             planStatus = 'draft';
-            actualStatus = 'draft';
+            actualStatus = 'uncreated';
         }
 
         // バッジデータセットの更新 (他所での判定用)
@@ -2995,7 +2995,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 既存レポートがある場合のステータス引き継ぎと初期化
         let planStatus = (existingReport && existingReport.planStatus) ? existingReport.planStatus : 'draft';
         let planRejectReason = (existingReport && existingReport.planRejectReason) ? existingReport.planRejectReason : '';
-        let actualStatus = (existingReport && existingReport.actualStatus) ? existingReport.actualStatus : 'draft';
+        let actualStatus = (existingReport && existingReport.actualStatus) ? existingReport.actualStatus : 'uncreated';
         let actualRejectReason = (existingReport && existingReport.actualRejectReason) ? existingReport.actualRejectReason : '';
 
         // 安全ガード: 既に実績が承認済なら、ロード段階で予定も承認済とみなす
@@ -3020,7 +3020,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (status === 'plan_approved') {
             planStatus = 'approved';
             reportData.planApprovedAt = new Date().toISOString();
-            actualStatus = 'draft'; // 予定が承認されたら実績入力を開始できるようにする
+            // 予定が承認された時点では、実績が既に別ステータス（提出済等）でない限り uncreated に保つ
+            if (actualStatus !== 'submitted' && actualStatus !== 'approved' && actualStatus !== 'rejected') {
+                actualStatus = 'uncreated';
+            }
         } else if (status === 'plan_rejected') {
             planStatus = 'rejected';
             planRejectReason = rejectReason || '';
@@ -3508,7 +3511,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reportsUnsubscribe = onSnapshot(q, (querySnapshot) => {
                 allReports = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-                    const actualStatus = data.actualStatus || (data.status === 'approved' ? 'approved' : data.status === 'confirmed' ? 'submitted' : 'draft');
+                    const actualStatus = data.actualStatus || (data.status === 'approved' ? 'approved' : data.status === 'confirmed' ? 'submitted' : data.status === 'plan' ? 'uncreated' : 'draft');
                     const planStatus = data.planStatus || 'draft';
                     if (actualStatus === 'approved' && planStatus !== 'approved') {
                         console.warn('Auto-correcting planStatus to approved for doc: ' + doc.id);
@@ -3538,7 +3541,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const key = `${r.week}`;
                         const prev = prevReportStatuses[key];
                         const currentPlanStatus = r.planStatus || 'draft';
-                        const currentActualStatus = r.actualStatus || 'draft';
+                        const currentActualStatus = r.actualStatus || (r.status === 'plan' ? 'uncreated' : 'draft');
                         
                         if (prev) {
                             const weekRange = formatWeekRange(r.week);
@@ -3747,7 +3750,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (report) {
                 planStatus = report.planStatus || 'draft';
-                actualStatus = report.actualStatus || (report.status === 'approved' ? 'approved' : report.status === 'confirmed' ? 'submitted' : 'draft');
+                actualStatus = report.actualStatus || (report.status === 'approved' ? 'approved' : report.status === 'confirmed' ? 'submitted' : report.status === 'plan' ? 'uncreated' : 'draft');
                 planRejectReason = report.planRejectReason || '';
                 actualRejectReason = report.actualRejectReason || '';
             }
@@ -3800,10 +3803,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                 data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">承認する</button>`;
                 }
                 
-                // 3. それ以外（一時保存や承認済）のときは「詳細」ボタン
-                return `<button type="button" class="btn btn-secondary btn-small btn-view-report" 
-                            style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#64748b;color:#fff;border:none;border-radius:4px;cursor:pointer;"
-                            data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">詳細</button>`;
+                // 3. 承認済のときのみ「詳細」ボタンを表示
+                if (status === 'approved') {
+                    return `<button type="button" class="btn btn-secondary btn-small btn-view-report" 
+                                style="margin-left:auto;padding:2px 8px;font-size:0.75rem;background:#64748b;color:#fff;border:none;border-radius:4px;cursor:pointer;"
+                                data-email="${emp.email}" data-name="${emp.name}" data-week="${targetWeek}">詳細</button>`;
+                }
+                
+                // 4. 一時保存や提出済、差し戻し中はボタン不要
+                return '';
             };
             
             card.innerHTML = `
@@ -3951,7 +3959,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         const planStatus = r.planStatus || 'draft';
-        const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : 'draft');
+        const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : r.status === 'plan' ? 'uncreated' : 'draft');
         const planRejectReason = r.planRejectReason || '';
         const actualRejectReason = r.actualRejectReason || '';
 
@@ -3961,6 +3969,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? '<span style="color:#ea580c;font-weight:bold;">未作成</span>' 
                     : '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
             }
+            if (status === 'uncreated') return '<span style="color:#94a3b8;font-weight:bold;">未作成</span>';
             if (status === 'submitted') return '<span style="color:#2563eb;font-weight:bold;">提出済 (承認待ち)</span>';
             if (status === 'approved') return '<span style="color:#16a34a;font-weight:bold;">承認済み</span>';
             if (status === 'rejected') {
@@ -4223,11 +4232,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const planStatus = r.planStatus || 'draft';
                 const planRejectReason = r.planRejectReason || '';
-                const actualStatus = r.actualStatus || 'draft';
+                const actualStatus = r.actualStatus || (r.status === 'plan' ? 'uncreated' : 'draft');
                 const actualRejectReason = r.actualRejectReason || '';
 
                 const getStatusText = (status, rejectReason) => {
                     if (status === 'draft') return '<span style="color:#ea580c;font-weight:bold;">一時保存</span>';
+                    if (status === 'uncreated') return '<span style="color:#94a3b8;font-weight:bold;">未作成</span>';
                     if (status === 'submitted') return '<span style="color:#2563eb;font-weight:bold;">提出済 (承認待ち)</span>';
                     if (status === 'approved') return '<span style="color:#16a34a;font-weight:bold;">承認済み</span>';
                     if (status === 'rejected') {
