@@ -4901,7 +4901,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const reportText = dayObj.reportText;
             const dateObj = dates ? dates[idx] : null;
             
-            html += `<div class="print-day-block">`;
+            const isWeekend = day === '土' || day === '日';
+            const isSlimDay = isWeekend && tasks.length === 0 && !reportText;
+            const blockClass = isSlimDay ? 'print-day-block print-day-block-slim' : 'print-day-block';
+            html += `<div class="${blockClass}">`;
             
             // テーブル
             html += `
@@ -5048,7 +5051,34 @@ document.addEventListener('DOMContentLoaded', () => {
             '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
             '.print-timeline-cell[data-state="4"] { background: #94a3b8; }',
             '.print-timeline-cell[data-state="5"] { background: #2563eb; }',
-            '.print-timeline-total { width: 15%; font-size: 7.2pt; text-align: center; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }'
+            '.print-timeline-total { width: 15%; font-size: 7.2pt; text-align: center; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }',
+            '.scale-down-1 { font-size: 7.8pt !important; }',
+            '.scale-down-1 .print-day-table th, .scale-down-1 .print-day-table td { padding: 2px 4px !important; font-size: 7.8pt !important; }',
+            '.scale-down-1 .print-timeline-row { height: 23px !important; }',
+            '.scale-down-1 .print-timeline-label { font-size: 7pt !important; }',
+            '.scale-down-1 .print-timeline-total { font-size: 6.8pt !important; }',
+            '.scale-down-1 .print-day-block { margin-bottom: 5px !important; }',
+            '.scale-down-2 { font-size: 7.2pt !important; }',
+            '.scale-down-2 .print-day-table th, .scale-down-2 .print-day-table td { padding: 1.5px 3px !important; font-size: 7.2pt !important; }',
+            '.scale-down-2 .print-timeline-row { height: 20px !important; }',
+            '.scale-down-2 .print-timeline-label { font-size: 6.5pt !important; }',
+            '.scale-down-2 .print-timeline-total { font-size: 6.2pt !important; }',
+            '.scale-down-2 .print-day-block { margin-bottom: 3px !important; }',
+            '.scale-down-3 { font-size: 6.8pt !important; }',
+            '.scale-down-3 .print-day-table th, .scale-down-3 .print-day-table td { padding: 1px 2px !important; font-size: 6.8pt !important; }',
+            '.scale-down-3 .print-timeline-row { height: 18px !important; }',
+            '.scale-down-3 .print-timeline-label { font-size: 6pt !important; }',
+            '.scale-down-3 .print-timeline-total { font-size: 5.8pt !important; }',
+            '.scale-down-3 .print-day-block { margin-bottom: 2px !important; }',
+            '.scale-down-4 { font-size: 6.2pt !important; }',
+            '.scale-down-4 .print-day-table th, .scale-down-4 .print-day-table td { padding: 0.5px 1.5px !important; font-size: 6.2pt !important; }',
+            '.scale-down-4 .print-timeline-row { height: 15px !important; }',
+            '.scale-down-4 .print-timeline-label { font-size: 5.5pt !important; }',
+            '.scale-down-4 .print-timeline-total { font-size: 5.2pt !important; }',
+            '.scale-down-4 .print-day-block { margin-bottom: 1px !important; }',
+            '.print-day-block-slim { margin-bottom: 3px !important; }',
+            '.print-day-block-slim .print-day-table td, .print-day-block-slim .print-day-table th { height: 18px !important; padding: 1px 5px !important; font-size: 8pt !important; }',
+            '.print-day-block-slim .print-timeline-row { display: none !important; }'
         ].join('\n');
 
         var fullDoc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>週間行動予定表</title><style>' + printCSS + '</style></head><body>' + html + '</body></html>';
@@ -5056,11 +5086,38 @@ document.addEventListener('DOMContentLoaded', () => {
         printWin.document.write(fullDoc);
         printWin.document.close();
 
-        printWin.onload = function() { printWin.focus(); printWin.print(); };
-        printWin.onafterprint = function() { printWin.close(); };
+        // ロード完了時に自動フィッティングを実行
+        const runAutoFit = () => {
+            try {
+                const maxA4Height = 1040; // A4縦の印刷可能限界の高さ（px）
+                const wrapper = printWin.document.querySelector('.weekly-print-wrapper');
+                if (wrapper) {
+                    let scaleLevel = 0;
+                    const maxScaleLevel = 4;
+                    // 収まるまでクラスを順次付与して縮小
+                    while (wrapper.offsetHeight > maxA4Height && scaleLevel < maxScaleLevel) {
+                        scaleLevel++;
+                        printWin.document.body.className = `scale-down-${scaleLevel}`;
+                    }
+                    console.log(`Auto-fit scaling applied: Level ${scaleLevel} (Height: ${wrapper.offsetHeight}px)`);
+                }
+            } catch (e) {
+                console.error("Auto-fit scaling error:", e);
+            }
+        };
+
+        // DOMのレンダリングが落ち着いた段階で実行し、その後印刷ダイアログを開く
         setTimeout(function() {
-            try { if (!printWin.closed) { printWin.focus(); printWin.print(); } } catch(e) {}
-        }, 500);
+            try {
+                if (!printWin.closed) {
+                    runAutoFit();
+                    printWin.focus();
+                    printWin.print();
+                }
+            } catch(e) {}
+        }, 300);
+
+        printWin.onafterprint = function() { printWin.close(); };
     };
 
     const btnPrintWeekly = document.getElementById('btn-print-weekly-top');
