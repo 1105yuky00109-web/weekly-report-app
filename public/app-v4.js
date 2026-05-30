@@ -4837,8 +4837,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>
                                 ${isApproved ? `<div class="stamp-approved">済<br><span>${approvedDateStr}</span></div>` : ''}
                             </td>
-                            <td style="font-weight: bold; font-size: 9pt; writing-mode: vertical-rl; text-align: center; padding: 5px 0; letter-spacing: 2px;">
-                                ${authorVal.substring(0, 6)}
+                            <td style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; padding: 2px 0; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1;">
+                                ${(authorVal || '').replace(/\s+/g, '').substring(0, 5)}
                             </td>
                         </tr>
                     </tbody>
@@ -5003,7 +5003,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '.legend-color { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.approval-table { border-collapse: collapse; }',
             '.approval-table th { font-size: 6.5pt; padding: 1px 3px; border: 1px solid #000; background: #f1f5f9; text-align: center; width: 42px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.approval-table td { border: 1px solid #000; width: 42px; height: 44px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
+            '.approval-table td { border: 1px solid #000; width: 42px; height: 56px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
             '.stamp-approved { font-size: 9pt; font-weight: bold; color: #dc2626; border: 2px solid #dc2626; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; }',
             '.stamp-approved span { font-size: 5.5pt; }',
             '.print-day-block { border: 1px solid #000; margin-bottom: 7px; page-break-inside: avoid; }',
