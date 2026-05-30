@@ -5025,100 +5025,122 @@ document.addEventListener('DOMContentLoaded', () => {
         
         html += `</div>`; // .weekly-print-wrapper
         
-        // 印刷専用ウィンドウ（現在のページのDOMに一切干渉しない→フリーズ防止）
-        var printWin = window.open('', '_blank', 'width=' + screen.width + ',height=' + screen.height + ',left=0,top=0');
-        if (!printWin) {
-            alert('ポップアップがブロックされました。ブラウザの設定でこのサイトのポップアップを許可してください。');
-            return;
+        // 印刷用一時エリアを取得または作成
+        let printArea = document.getElementById('print-active-area');
+        if (!printArea) {
+            printArea = document.createElement('div');
+            printArea.id = 'print-active-area';
+            document.body.appendChild(printArea);
         }
+        printArea.innerHTML = html;
 
-        var printCSS = [
-            '@page { size: A4 portrait; margin: 6mm 10mm; }',
-            '* { box-sizing: border-box; margin: 0; padding: 0; }',
-            'body { font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif; margin: 0; padding: 0; background: #fff; color: #000; font-size: 8pt; }',
-            '.weekly-print-wrapper { width: 100%; }',
-            '.weekly-print-header { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 4px; height: 90px; }',
-            '.weekly-print-title { font-size: 13pt; font-weight: bold; text-align: center; letter-spacing: 2px; text-decoration: underline; text-underline-offset: 3px; margin: 0; padding-bottom: 2px; white-space: nowrap; }',
-            '.weekly-print-subheader { display: flex; justify-content: space-between; align-items: center; font-size: 7.8pt; margin-bottom: 3px; font-weight: bold; }',
-            '.legend-box { display: flex; gap: 10px; align-items: center; }',
-            '.legend-item { display: flex; align-items: center; gap: 3px; }',
-            '.legend-color { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.approval-table { border-collapse: collapse; }',
-            '.approval-table th { font-size: 7.5pt; font-weight: bold; color: #000 !important; padding: 2px 3px; border: 1px solid #000; background: #f1f5f9 !important; text-align: center; width: 42px; white-space: nowrap; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.approval-table td { border: 1px solid #000; width: 42px; height: 56px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
-            '.stamp-approved { font-size: 7.5pt; font-weight: bold; color: #dc2626; border: 1.8px solid #dc2626; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; line-height: 1.1; }',
-            '.stamp-approved span { font-size: 5.5pt; font-weight: normal; margin-top: 1px; }',
-            '.print-day-block { border: 1px solid #000; margin-bottom: 4px; page-break-inside: avoid; }',
-            '.print-day-table { width: 100%; border-collapse: collapse; }',
-            '.print-day-table th, .print-day-table td { border: 1px solid #000; padding: 2px 4px; font-size: 8pt; vertical-align: middle; height: 22px; }',
-            '.print-day-table th { background: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.col-date { width: 12%; text-align: center; font-weight: bold; }',
-            '.col-project { width: 22%; }',
-            '.col-time { width: 12%; text-align: center; }',
-            '.col-direct { width: 12%; text-align: center; vertical-align: middle; }',
-            '.col-detail { width: 42%; }',
-            '.print-timeline-row { display: flex; align-items: stretch; border-top: 1px solid #000; background: #fff; height: 24px; }',
-            '.print-timeline-label { width: 12%; font-size: 7.2pt; text-align: center; font-weight: bold; border-right: 1px solid #000; display: flex; align-items: center; justify-content: center; background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.print-timeline-hours { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #000; }',
-            '.print-timeline-header-cells { display: flex; justify-content: space-between; font-size: 5.5pt; height: 10px; line-height: 10px; border-bottom: 1px solid #000; padding: 0 4px; }',
-            '.print-timeline-hour-cell { width: 0; overflow: visible; display: flex; justify-content: center; font-size: 5.5pt; white-space: nowrap; }',
-            '.print-timeline-grid-cells { display: flex; height: 12px; padding: 0 4px; }',
-            '.print-timeline-cell { flex: 1; border-right: 1px dashed #ccc; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
-            '.print-timeline-cell:nth-child(2n) { border-right: 1px solid #000; }',
-            '.print-timeline-cell:last-child { border-right: none; }',
-            '.print-timeline-cell[data-state="0"] { background: #fff; }',
-            '.print-timeline-cell[data-state="1"] { background: #000; }',
-            '.print-timeline-cell[data-state="2"] { background: #ef4444; }',
-            '.print-timeline-cell[data-state="3"] { background: #16a34a; }',
-            '.print-timeline-cell[data-state="4"] { background: #94a3b8; }',
-            '.print-timeline-cell[data-state="5"] { background: #2563eb; }',
-            '.print-timeline-total { width: 15%; font-size: 7.2pt; text-align: center; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }',
-            '.scale-down-1 { font-size: 7.8pt !important; }',
-            '.scale-down-1 .print-day-table th, .scale-down-1 .print-day-table td { padding: 2px 4px !important; font-size: 7.8pt !important; }',
-            '.scale-down-1 .print-timeline-row { height: 23px !important; }',
-            '.scale-down-1 .print-timeline-label { font-size: 7pt !important; }',
-            '.scale-down-1 .print-timeline-total { font-size: 6.8pt !important; }',
-            '.scale-down-1 .print-day-block { margin-bottom: 5px !important; }',
-            '.scale-down-2 { font-size: 7.2pt !important; }',
-            '.scale-down-2 .print-day-table th, .scale-down-2 .print-day-table td { padding: 1.5px 3px !important; font-size: 7.2pt !important; }',
-            '.scale-down-2 .print-timeline-row { height: 20px !important; }',
-            '.scale-down-2 .print-timeline-label { font-size: 6.5pt !important; }',
-            '.scale-down-2 .print-timeline-total { font-size: 6.2pt !important; }',
-            '.scale-down-2 .print-day-block { margin-bottom: 3px !important; }',
-            '.scale-down-3 { font-size: 6.8pt !important; }',
-            '.scale-down-3 .print-day-table th, .scale-down-3 .print-day-table td { padding: 1px 2px !important; font-size: 6.8pt !important; }',
-            '.scale-down-3 .print-timeline-row { height: 18px !important; }',
-            '.scale-down-3 .print-timeline-label { font-size: 6pt !important; }',
-            '.scale-down-3 .print-timeline-total { font-size: 5.8pt !important; }',
-            '.scale-down-3 .print-day-block { margin-bottom: 2px !important; }',
-            '.scale-down-4 { font-size: 6.2pt !important; }',
-            '.scale-down-4 .print-day-table th, .scale-down-4 .print-day-table td { padding: 0.5px 1.5px !important; font-size: 6.2pt !important; }',
-            '.scale-down-4 .print-timeline-row { height: 15px !important; }',
-            '.scale-down-4 .print-timeline-label { font-size: 5.5pt !important; }',
-            '.scale-down-4 .print-timeline-total { font-size: 5.2pt !important; }',
-            '.scale-down-4 .print-day-block { margin-bottom: 1px !important; }',
-            '.print-day-block-slim { margin-bottom: 3px !important; }',
-            '.print-day-block-slim .print-day-table td, .print-day-block-slim .print-day-table th { height: 18px !important; padding: 1px 5px !important; font-size: 8pt !important; }',
-            '.print-day-block-slim .print-timeline-row { display: none !important; }'
-        ].join('\n');
+        // 既存の動的スタイルを削除
+        const existingStyle = document.getElementById('print-dynamic-style');
+        if (existingStyle) existingStyle.remove();
 
-        var fullDoc = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>週間行動予定表</title><style>' + printCSS + '</style></head><body>' + html + '</body></html>';
+        // 印刷用のスタイル（A4縦・縮小スタイル）を動的に注入
+        const style = document.createElement('style');
+        style.id = 'print-dynamic-style';
+        style.innerHTML = `
+            @media print {
+                @page { size: A4 portrait !important; margin: 6mm 10mm !important; }
+                #print-active-area {
+                    display: block !important;
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    position: static !important;
+                    background: white !important;
+                    color: black !important;
+                    font-family: "Hiragino Kaku Gothic ProN", "MS Gothic", sans-serif !important;
+                }
+                .weekly-print-wrapper { width: 100% !important; box-sizing: border-box !important; }
+                .weekly-print-header { display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; margin-bottom: 4px !important; height: 90px !important; box-sizing: border-box !important; }
+                .weekly-print-title { font-size: 13pt !important; font-weight: bold !important; text-align: center !important; letter-spacing: 2px !important; text-decoration: underline !important; text-underline-offset: 3px !important; margin: 0 !important; padding-bottom: 2px !important; white-space: nowrap !important; }
+                .approval-table { border-collapse: collapse !important; }
+                .approval-table th { font-size: 7.5pt !important; font-weight: bold !important; color: #000 !important; padding: 2px 3px !important; border: 1px solid #000 !important; background: #f1f5f9 !important; text-align: center !important; width: 42px !important; white-space: nowrap !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .approval-table td { border: 1px solid #000 !important; width: 42px !important; height: 56px !important; text-align: center !important; vertical-align: middle !important; font-size: 7.5pt !important; padding: 2px !important; }
+                .stamp-approved { font-size: 7.5pt !important; font-weight: bold !important; color: #dc2626 !important; border: 1.8px solid #dc2626 !important; border-radius: 50% !important; width: 35px !important; height: 35px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-direction: column !important; margin: 0 auto !important; line-height: 1.1 !important; }
+                .stamp-approved span { font-size: 5.5pt !important; font-weight: normal !important; margin-top: 1px !important; }
+                .weekly-print-subheader { display: flex !important; justify-content: space-between !important; align-items: center !important; font-size: 7.8pt !important; margin-bottom: 3px !important; font-weight: bold !important; }
+                .legend-box { display: flex !important; gap: 10px !important; align-items: center !important; }
+                .legend-item { display: flex !important; align-items: center !important; gap: 3px !important; }
+                .legend-color { width: 12px !important; height: 12px !important; border: 1px solid #000 !important; display: inline-block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .print-day-block { border: 1px solid #000 !important; margin-bottom: 4px !important; page-break-inside: avoid !important; }
+                .print-day-table { width: 100% !important; border-collapse: collapse !important; }
+                .print-day-table th, .print-day-table td { border: 1px solid #000 !important; padding: 2px 4px !important; font-size: 8pt !important; vertical-align: middle !important; height: 22px !important; }
+                .print-day-table th { background: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .col-date { width: 12% !important; text-align: center !important; font-weight: bold !important; }
+                .col-project { width: 22% !important; }
+                .col-time { width: 12% !important; text-align: center !important; }
+                .col-direct { width: 12% !important; text-align: center !important; vertical-align: middle !important; }
+                .col-detail { width: 42% !important; }
+                .print-timeline-row { display: flex !important; align-items: stretch !important; border-top: 1px solid #000 !important; background: #fff !important; height: 24px !important; }
+                .print-timeline-label { width: 12% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; border-right: 1px solid #000 !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #f8fafc !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .print-timeline-hours { flex: 1 !important; display: flex !important; flex-direction: column !important; border-right: 1px solid #000 !important; }
+                .print-timeline-header-cells { display: flex !important; justify-content: space-between !important; font-size: 5.5pt !important; height: 10px !important; line-height: 10px !important; border-bottom: 1px solid #000 !important; padding: 0 4px !important; }
+                .print-timeline-hour-cell { width: 0 !important; overflow: visible !important; display: flex !important; justify-content: center !important; font-size: 5.5pt !important; white-space: nowrap !important; }
+                .print-timeline-grid-cells { display: flex !important; height: 12px !important; padding: 0 4px !important; }
+                .print-timeline-cell { flex: 1 !important; border-right: 1px dashed #ccc !important; height: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                .print-timeline-cell:nth-child(2n) { border-right: 1px solid #000 !important; }
+                .print-timeline-cell:last-child { border-right: none !important; }
+                .print-timeline-cell[data-state="0"] { background: #fff !important; }
+                .print-timeline-cell[data-state="1"] { background: #000 !important; }
+                .print-timeline-cell[data-state="2"] { background: #ef4444 !important; }
+                .print-timeline-cell[data-state="3"] { background: #16a34a !important; }
+                .print-timeline-cell[data-state="4"] { background: #94a3b8 !important; }
+                .print-timeline-cell[data-state="5"] { background: #2563eb !important; }
+                .print-timeline-total { width: 15% !important; font-size: 7.2pt !important; text-align: center !important; font-weight: bold !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; line-height: 1.2 !important; }
+                
+                /* 自動フィット用縮小クラス群 */
+                .scale-down-1 { font-size: 7.8pt !important; }
+                .scale-down-1 .print-day-table th, .scale-down-1 .print-day-table td { padding: 1.5px 3px !important; font-size: 7.8pt !important; }
+                .scale-down-1 .print-timeline-row { height: 22px !important; }
+                .scale-down-1 .print-timeline-label { font-size: 7pt !important; }
+                .scale-down-1 .print-timeline-total { font-size: 6.8pt !important; }
+                .scale-down-1 .print-day-block { margin-bottom: 3px !important; }
 
-        printWin.document.write(fullDoc);
-        printWin.document.close();
+                .scale-down-2 { font-size: 7.2pt !important; }
+                .scale-down-2 .print-day-table th, .scale-down-2 .print-day-table td { padding: 1px 2px !important; font-size: 7.2pt !important; }
+                .scale-down-2 .print-timeline-row { height: 19px !important; }
+                .scale-down-2 .print-timeline-label { font-size: 6.5pt !important; }
+                .scale-down-2 .print-timeline-total { font-size: 6.2pt !important; }
+                .scale-down-2 .print-day-block { margin-bottom: 2px !important; }
 
-        // ロード完了時に自動フィッティングを実行
+                .scale-down-3 { font-size: 6.8pt !important; }
+                .scale-down-3 .print-day-table th, .scale-down-3 .print-day-table td { padding: 0.8px 1.5px !important; font-size: 6.8pt !important; }
+                .scale-down-3 .print-timeline-row { height: 16px !important; }
+                .scale-down-3 .print-timeline-label { font-size: 6pt !important; }
+                .scale-down-3 .print-timeline-total { font-size: 5.8pt !important; }
+                .scale-down-3 .print-day-block { margin-bottom: 1.5px !important; }
+
+                .scale-down-4 { font-size: 6.2pt !important; }
+                .scale-down-4 .print-day-table th, .scale-down-4 .print-day-table td { padding: 0.5px 1px !important; font-size: 6.2pt !important; }
+                .scale-down-4 .print-timeline-row { height: 14px !important; }
+                .scale-down-4 .print-timeline-label { font-size: 5.5pt !important; }
+                .scale-down-4 .print-timeline-total { font-size: 5.2pt !important; }
+                .scale-down-4 .print-day-block { margin-bottom: 1px !important; }
+
+                .print-day-block-slim { margin-bottom: 2px !important; }
+                .print-day-block-slim .print-day-table td, .print-day-block-slim .print-day-table th { height: 16px !important; padding: 1px 4px !important; font-size: 7.8pt !important; }
+                .print-day-block-slim .print-timeline-row { display: none !important; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 自動フィッティングロジック
         const runAutoFit = () => {
             try {
-                const maxA4Height = 920; // A4縦の印刷可能限界の高さ（px）
-                const wrapper = printWin.document.querySelector('.weekly-print-wrapper');
+                const maxA4Height = 920; // 印刷可能限界（px）
+                const wrapper = printArea.querySelector('.weekly-print-wrapper');
                 if (wrapper) {
                     let scaleLevel = 0;
                     const maxScaleLevel = 4;
+                    document.body.classList.remove('scale-down-1', 'scale-down-2', 'scale-down-3', 'scale-down-4');
                     // 収まるまでクラスを順次付与して縮小
                     while (wrapper.offsetHeight > maxA4Height && scaleLevel < maxScaleLevel) {
                         scaleLevel++;
-                        printWin.document.body.className = `scale-down-${scaleLevel}`;
+                        document.body.classList.add(`scale-down-${scaleLevel}`);
                     }
                     console.log(`Auto-fit scaling applied: Level ${scaleLevel} (Height: ${wrapper.offsetHeight}px)`);
                 }
@@ -5127,18 +5149,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // DOMのレンダリングが落ち着いた段階で実行し、その後印刷ダイアログを開く
-        setTimeout(function() {
-            try {
-                if (!printWin.closed) {
-                    runAutoFit();
-                    printWin.focus();
-                    printWin.print();
-                }
-            } catch(e) {}
-        }, 600);
+        // 印刷モードのクラスを body に追加してスタイルの干渉を防ぐ
+        document.body.classList.add('print-weekly-mode');
 
-        printWin.onafterprint = function() { printWin.close(); };
+        // DOMのReflow（描画適用）を待つ
+        const forceReflow = printArea.offsetHeight;
+
+        setTimeout(() => {
+            runAutoFit();
+            
+            // レイアウト強制計算
+            const finalReflow = printArea.offsetHeight;
+
+            setTimeout(() => {
+                window.print();
+                
+                // 印刷終了後の後処理
+                document.body.classList.remove('print-weekly-mode', 'scale-down-1', 'scale-down-2', 'scale-down-3', 'scale-down-4');
+                printArea.innerHTML = '';
+                if (style) style.remove();
+            }, 100);
+        }, 150);
     };
 
     const btnPrintWeekly = document.getElementById('btn-print-weekly-top');

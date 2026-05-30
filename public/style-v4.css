@@ -224,6 +224,11 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
+    body.print-weekly-mode #print-active-area {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
     .print-report-card { border: 2px solid #000; margin-bottom: 20px; page-break-inside: avoid; }
     .print-report-header { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 10px; font-weight: bold; border-bottom: 2px solid #000; font-size: 1.1rem; }
     .print-report-body { padding: 15px; font-size: 10pt; }
