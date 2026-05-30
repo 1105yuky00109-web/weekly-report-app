@@ -4840,18 +4840,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="approval-table">
                     <thead>
                         <tr>
-                            <th>予定</th>
-                            <th>実績</th>
-                            <th>担当者</th>
+                            <th>\u4e88\u5b9a</th>
+                            <th>\u5b9f\u7e3e</th>
+                            <th>\u62c5\u5f53\u8005</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td>
-                                ${isPlanApproved ? `<div class="stamp-approved">上長<br><span>${planApprovedDateStr}</span></div>` : ''}
+                                ${isPlanApproved ? `<div class="stamp-approved">\u4e0a\u9577<br><span>${planApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td>
-                                ${isActualApproved ? `<div class="stamp-approved">上長<br><span>${actualApprovedDateStr}</span></div>` : ''}
+                                ${isActualApproved ? `<div class="stamp-approved">\u4e0a\u9577<br><span>${actualApprovedDateStr}</span></div>` : ''}
                             </td>
                             <td style="padding: 0; text-align: center; vertical-align: middle;">
                                 <div style="font-weight: bold; font-size: 8pt; writing-mode: vertical-rl; text-align: center; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.1; margin: 0 auto; display: inline-block;">
@@ -5020,7 +5020,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '.legend-item { display: flex; align-items: center; gap: 3px; }',
             '.legend-color { width: 12px; height: 12px; border: 1px solid #000; display: inline-block; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.approval-table { border-collapse: collapse; }',
-            '.approval-table th { font-size: 6.5pt; padding: 1px 3px; border: 1px solid #000; background: #f1f5f9; text-align: center; width: 42px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
+            '.approval-table th { font-size: 8pt; font-weight: bold; color: #000 !important; padding: 2px 3px; border: 1px solid #000; background: #f1f5f9 !important; text-align: center; width: 42px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.approval-table td { border: 1px solid #000; width: 42px; height: 56px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
             '.stamp-approved { font-size: 7.5pt; font-weight: bold; color: #dc2626; border: 1.8px solid #dc2626; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; line-height: 1.1; }',
             '.stamp-approved span { font-size: 5.5pt; font-weight: normal; margin-top: 1px; }',
