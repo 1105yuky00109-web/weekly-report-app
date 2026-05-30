@@ -5048,21 +5048,21 @@ document.addEventListener('DOMContentLoaded', () => {
             '.approval-table td { border: 1px solid #000; width: 42px; height: 56px; text-align: center; vertical-align: middle; font-size: 7.5pt; padding: 2px; }',
             '.stamp-approved { font-size: 7.5pt; font-weight: bold; color: #dc2626; border: 1.8px solid #dc2626; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto; line-height: 1.1; }',
             '.stamp-approved span { font-size: 5.5pt; font-weight: normal; margin-top: 1px; }',
-            '.print-day-block { border: 1px solid #000; margin-bottom: 7px; page-break-inside: avoid; }',
+            '.print-day-block { border: 1px solid #000; margin-bottom: 4px; page-break-inside: avoid; }',
             '.print-day-table { width: 100%; border-collapse: collapse; }',
-            '.print-day-table th, .print-day-table td { border: 1px solid #000; padding: 3px 5px; font-size: 8.5pt; vertical-align: middle; height: 25px; }',
+            '.print-day-table th, .print-day-table td { border: 1px solid #000; padding: 2px 4px; font-size: 8pt; vertical-align: middle; height: 22px; }',
             '.print-day-table th { background: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.col-date { width: 12%; text-align: center; font-weight: bold; }',
             '.col-project { width: 22%; }',
             '.col-time { width: 12%; text-align: center; }',
             '.col-direct { width: 12%; text-align: center; vertical-align: middle; }',
             '.col-detail { width: 42%; }',
-            '.print-timeline-row { display: flex; align-items: stretch; border-top: 1px solid #000; background: #fff; height: 27px; }',
+            '.print-timeline-row { display: flex; align-items: stretch; border-top: 1px solid #000; background: #fff; height: 24px; }',
             '.print-timeline-label { width: 12%; font-size: 7.2pt; text-align: center; font-weight: bold; border-right: 1px solid #000; display: flex; align-items: center; justify-content: center; background: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.print-timeline-hours { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #000; }',
             '.print-timeline-header-cells { display: flex; justify-content: space-between; font-size: 5.5pt; height: 10px; line-height: 10px; border-bottom: 1px solid #000; padding: 0 4px; }',
             '.print-timeline-hour-cell { width: 0; overflow: visible; display: flex; justify-content: center; font-size: 5.5pt; white-space: nowrap; }',
-            '.print-timeline-grid-cells { display: flex; height: 15px; padding: 0 4px; }',
+            '.print-timeline-grid-cells { display: flex; height: 12px; padding: 0 4px; }',
             '.print-timeline-cell { flex: 1; border-right: 1px dashed #ccc; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }',
             '.print-timeline-cell:nth-child(2n) { border-right: 1px solid #000; }',
             '.print-timeline-cell:last-child { border-right: none; }',
@@ -5110,7 +5110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ロード完了時に自動フィッティングを実行
         const runAutoFit = () => {
             try {
-                const maxA4Height = 1040; // A4縦の印刷可能限界の高さ（px）
+                const maxA4Height = 920; // A4縦の印刷可能限界の高さ（px）
                 const wrapper = printWin.document.querySelector('.weekly-print-wrapper');
                 if (wrapper) {
                     let scaleLevel = 0;
@@ -5136,7 +5136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     printWin.print();
                 }
             } catch(e) {}
-        }, 300);
+        }, 600);
 
         printWin.onafterprint = function() { printWin.close(); };
     };
