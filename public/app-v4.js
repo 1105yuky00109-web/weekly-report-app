@@ -706,8 +706,8 @@ function initEmployeeManagePanel() {
             const bg = idx % 2 ? '#f8fafc' : '#fff';
             return `
                 <tr style="background: ${bg}; border-bottom: 1px solid var(--border);">
-                    <td style="padding: 12px; font-weight: bold; color: var(--text);">${emp.name}</td>
-                    <td style="padding: 12px; color: var(--text-muted); font-family: monospace;">${emp.email}</td>
+                    <td style="padding: 12px; font-weight: bold; color: var(--text);">${emp.name || ''}</td>
+                    <td style="padding: 12px; color: var(--text-muted); font-family: monospace;">${emp.email || '未設定'}</td>
                     <td style="padding: 12px; color: var(--text);">${emp.branch || '未設定'}</td>
                     <td style="padding: 12px;"></td>
                 </tr>
@@ -748,7 +748,8 @@ function initEmployeeManagePanel() {
                         adminEmail: currentUser.email,
                         adminUid: currentUser.uid,
                         employeeName: name,
-                        employeeEmail: email
+                        employeeEmail: email,
+                        employeeBranch: branch // 支店情報も同時に送信
                     }),
                 });
 
@@ -757,22 +758,11 @@ function initEmployeeManagePanel() {
                     throw new Error(data.error || '通信エラーが発生しました。');
                 }
 
-                // API呼出成功直後に、Firestoreの会社ドキュメント内のemployees配列にbranchを紐付ける
+                // API側で登録が完結するため、最新の会社情報を再読み込みするだけで完了
                 await loadLatestCompanyInfo();
-                const employees = currentCompany.employees || [];
-                const updatedEmployees = employees.map(emp => {
-                    if (emp.email === email) {
-                        return { ...emp, branch: branch };
-                    }
-                    return emp;
-                });
-                
-                const compDocRef = doc(db, "companies", currentCompany.companyId);
-                await updateDoc(compDocRef, { employees: updatedEmployees });
-                currentCompany.employees = updatedEmployees;
 
                 empAddMsg.className = 'message success';
-                empAddMsg.textContent = `社員「${name}」のアカウントを正常に追加しました！本人宛てに仮パスワードと再設定案内のメールを送信しました。`;
+                empAddMsg.textContent = `社員「${name}」のアカウントを正常に追加しました！本人宛てにメール案内を送信しました。【初期仮パスワード: ${data.tempPassword}】(メール遅延時は直接本人へお伝えください)`;
                 empAddForm.reset();
 
                 renderEmployeeList();

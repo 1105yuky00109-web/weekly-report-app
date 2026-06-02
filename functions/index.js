@@ -228,10 +228,11 @@ exports.addEmployee = functions.https.onRequest(async (req, res) => {
     adminEmail,
     adminUid,
     employeeName,
-    employeeEmail
+    employeeEmail,
+    employeeBranch
   } = req.body;
 
-  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail) {
+  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch) {
     return res.status(400).json({ error: '必須項目が不足しています。' });
   }
 
@@ -289,6 +290,7 @@ exports.addEmployee = functions.https.onRequest(async (req, res) => {
         uid: employeeUid,
         name: employeeName,
         email: employeeEmail,
+        branch: employeeBranch,
         createdAt: new Date().toISOString(),
         mustChangePassword: true
       })
@@ -353,7 +355,7 @@ ${tempPassword}
       console.error('メール送信処理中にエラーが発生しました:', mailErr);
     }
 
-    res.json({ success: true, uid: employeeUid });
+    res.json({ success: true, uid: employeeUid, tempPassword: tempPassword });
   } catch (err) {
     console.error('addEmployee error', err);
     res.status(500).json({ error: err.message });
@@ -514,6 +516,61 @@ exports.onReportWrite = functions.firestore
           }
         } catch (err) {
           console.error('Error sending FCM to admin:', err);
+        }
+      }
+
+      // 1.5. 社員から提出があった場合、管理者にメール通知を送る
+      const adminEmails = companyData.adminEmails || [];
+      if (adminEmails.length > 0) {
+        try {
+          const nodemailer = require('nodemailer');
+          const smtpUser = 'areva.noreply@gmail.com';
+          const smtpPass = process.env.SMTP_PASS;
+          const loginUrl = `${process.env.HOST_URL || 'https://weekly-report-93e5f.web.app'}/index.html`;
+
+          let subject = '';
+          if (isPlanSubmitted && isActualSubmitted) {
+            subject = `【週報提出】${authorName}さんが「予定」および「実績」を提出しました`;
+          } else if (isPlanSubmitted) {
+            subject = `【週報提出】${authorName}さんが「予定」を提出しました`;
+          } else {
+            subject = `【週報提出】${authorName}さんが「実績」を提出しました`;
+          }
+
+          const mailOptions = {
+            from: `週次日報＆予定管理システム <${smtpUser}>`,
+            to: adminEmails.join(','),
+            subject: subject,
+            text: `管理者 様
+いつもお疲れ様です。社員より週報の提出がありましたのでお知らせいたします。
+
+社員名： ${authorName}
+対象週： ${formattedWeek}
+
+以下のログインURLよりシステムにアクセスし、確認・承認を行ってください。
+
+----------------------------------------
+■ ログインURL
+${loginUrl}
+----------------------------------------
+
+本メールはシステムより自動送信されています。
+`
+          };
+
+          if (smtpPass) {
+            const transporter = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: smtpUser,
+                pass: smtpPass
+              }
+            });
+            await transporter.sendMail(mailOptions);
+            console.log(`Sent submission notification email to admin(s): ${adminEmails.join(',')}`);
+          }
+        } catch (mailErr) {
+          console.error('Error sending submission email to admin:', mailErr);
         }
       }
     }
@@ -702,4 +759,200 @@ ${loginUrl}
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// 祝日データを取得するヘルパー
+const https = require('https');
+function fetchHolidays() {
+  return new Promise((resolve, reject) => {
+    https.get('https://holidays-jp.github.io/api/v1/date.json', (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+// 日付からISO週番号 (例: 2026-W22) を計算する
+function getISOWeek(date) {
+  const tempDate = new Date(date.valueOf());
+  tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+  const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((tempDate - yearStart) / 86400000) + 1) / 7);
+  const year = tempDate.getFullYear();
+  return `${year}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+// 前週のISO週表記を計算する
+function getPrevWeekISO(weekStr) {
+  const [yearStr, weekNumStr] = weekStr.split('-W');
+  let year = parseInt(yearStr, 10);
+  let week = parseInt(weekNumStr, 10);
+  week--;
+  if (week <= 0) {
+    year--;
+    const dec28 = new Date(year, 11, 28);
+    const tempDate = new Date(dec28.valueOf());
+    tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+    const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+    week = Math.ceil((((tempDate - yearStart) / 86400000) + 1) / 7);
+  }
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+// 毎週月曜（祝日の場合は平日の最初の曜日）の朝9時・11時に未提出者へ自動催促メールを送信
+exports.scheduledWeeklyRemind = functions.pubsub
+  .schedule('0 9,11 * * 1-5') // 月曜〜金曜の9:00と11:00 (JST)
+  .timeZone('Asia/Tokyo')
+  .onRun(async (context) => {
+    const now = new Date();
+    // 日本時間 (JST) での日付をパース
+    const jstDate = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+    const y = jstDate.getFullYear();
+    const m = String(jstDate.getMonth() + 1).padStart(2, '0');
+    const d = String(jstDate.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    let holidays = {};
+    try {
+      holidays = await fetchHolidays();
+    } catch (e) {
+      console.error('祝日データの取得に失敗しました。リマインド処理は継続します:', e);
+    }
+
+    // 1. 今日が祝日の場合はスキップ
+    if (holidays[todayStr]) {
+      console.log(`今日は祝日 (${holidays[todayStr]}) のため、自動リマインドをスキップします。`);
+      return null;
+    }
+
+    // 2. 今日が週の「最初の営業日」であるか判定
+    const dayOfWeek = jstDate.getDay(); // 1:月, 2:火, 3:水, 4:木, 5:金
+    let hasPrevBusinessDayInWeek = false;
+    for (let i = 1; i < dayOfWeek; i++) {
+      const prevDate = new Date(jstDate);
+      prevDate.setDate(jstDate.getDate() - (dayOfWeek - i));
+      const py = prevDate.getFullYear();
+      const pm = String(prevDate.getMonth() + 1).padStart(2, '0');
+      const pd = String(prevDate.getDate()).padStart(2, '0');
+      const prevStr = `${py}-${pm}-${pd}`;
+      if (!holidays[prevStr]) {
+        hasPrevBusinessDayInWeek = true;
+        break;
+      }
+    }
+
+    if (hasPrevBusinessDayInWeek) {
+      console.log("今週の最初の営業日ではないため、自動リマインドをスキップします。");
+      return null;
+    }
+
+    console.log(`今週の最初の営業日 (${todayStr}) の自動リマインド処理を開始します。`);
+
+    // 今週と先週の週表記を取得
+    const thisWeek = getISOWeek(jstDate);
+    const lastWeek = getPrevWeekISO(thisWeek);
+    const thisWeekFormatted = formatWeekString(thisWeek);
+    const lastWeekFormatted = formatWeekString(lastWeek);
+
+    const nodemailer = require('nodemailer');
+    const smtpUser = 'areva.noreply@gmail.com';
+    const smtpPass = process.env.SMTP_PASS;
+    const loginUrl = `${process.env.HOST_URL || 'https://weekly-report-93e5f.web.app'}/index.html`;
+
+    if (!smtpPass) {
+      console.log('SMTP_PASS が設定されていないため、メール送信をシミュレートします。');
+    }
+
+    // 全ての会社ドキュメントを取得
+    const companiesSnapshot = await db.collection('companies').get();
+    for (const companyDoc of companiesSnapshot.docs) {
+      const companyId = companyDoc.id;
+      const companyData = companyDoc.data();
+      const employees = companyData.employees || [];
+
+      if (employees.length === 0) continue;
+
+      // この会社のレポートドキュメント（今週と先週分）を取得
+      const reportsSnapshot = await companyDoc.ref.collection('reports')
+        .where('week', 'in', [thisWeek, lastWeek])
+        .get();
+
+      const reports = reportsSnapshot.docs.map(doc => doc.data());
+
+      for (const employee of employees) {
+        // 管理者アカウントは除外（roleがadminである場合、またはadminEmailsに含まれるメールアドレスは除外）
+        const isAdmin = companyData.adminEmails && companyData.adminEmails.includes(employee.email);
+        if (isAdmin) continue;
+
+        // 今週の予定レポートを取得
+        const thisWeekReport = reports.find(r => r.author === employee.name && r.week === thisWeek);
+        // 先週の実績レポートを取得
+        const lastWeekReport = reports.find(r => r.author === employee.name && r.week === lastWeek);
+
+        // 未提出項目の確認
+        const needPlan = !thisWeekReport || (thisWeekReport.planStatus !== 'submitted' && thisWeekReport.planStatus !== 'approved');
+        const needActual = !lastWeekReport || (lastWeekReport.actualStatus !== 'submitted' && lastWeekReport.actualStatus !== 'approved');
+
+        if (needPlan || needActual) {
+          // リマインドメール送信
+          let unsubmittedList = [];
+          if (needPlan) unsubmittedList.push(`・今週の予定 (${thisWeekFormatted})`);
+          if (needActual) unsubmittedList.push(`・先週の実績 (${lastWeekFormatted})`);
+
+          const mailOptions = {
+            from: `週次日報＆予定管理システム <${smtpUser}>`,
+            to: employee.email,
+            subject: '【自動通知】週報（予定・実績）未提出のお知らせ',
+            text: `${employee.name} 様
+
+いつもお疲れ様です。
+システムによる週報自動チェックの結果、以下の提出が確認できておりません。
+
+【未提出の項目】
+${unsubmittedList.join('\n')}
+
+以下のログインURLよりシステムにアクセスし、至急ご提出をお願いいたします。
+
+----------------------------------------
+■ ログインURL
+${loginUrl}
+----------------------------------------
+
+※すでに提出済みの場合は、行き違いですので何卒ご容赦ください。
+本メールはシステムより自動送信されています。
+`
+          };
+
+          if (smtpPass) {
+            try {
+              const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: smtpUser,
+                  pass: smtpPass
+                }
+              });
+              await transporter.sendMail(mailOptions);
+              console.log(`[Auto Remind] Sent remind email to ${employee.email} for company ${companyId}`);
+            } catch (mailErr) {
+              console.error(`[Auto Remind] Failed to send email to ${employee.email}:`, mailErr);
+            }
+          } else {
+            console.log(`[Simulated Auto Remind] Send email to: ${employee.email}, Subject: ${mailOptions.subject}, Content:\n${mailOptions.text}`);
+          }
+        }
+      }
+    }
+
+    return null;
+  });
 
