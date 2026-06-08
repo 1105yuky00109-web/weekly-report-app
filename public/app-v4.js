@@ -3263,6 +3263,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const schedMemoQty = document.getElementById('sched-memo-qty');
+    if (schedMemoQty) {
+        schedMemoQty.addEventListener('input', () => {
+            let val = toHalfWidth(schedMemoQty.value);
+            val = val.replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
+            }
+            schedMemoQty.value = val;
+        });
+    }
+
     const schedCancelBtn = document.getElementById('sched-cancel-btn');
     if (schedCancelBtn) {
         schedCancelBtn.addEventListener('click', () => {
@@ -6755,6 +6768,19 @@ function openEditModal(sched) {
             e.preventDefault();
         }
     });
+
+    const editMemoQty = document.getElementById('edit-memo-qty');
+    if (editMemoQty) {
+        editMemoQty.addEventListener('input', () => {
+            let val = toHalfWidth(editMemoQty.value);
+            val = val.replace(/[^0-9.]/g, '');
+            const parts = val.split('.');
+            if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
+            }
+            editMemoQty.value = val;
+        });
+    }
 
     // オーバーレイ背景クリックで閉じる
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
