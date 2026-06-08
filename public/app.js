@@ -1670,6 +1670,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
+        const qtyVal = document.getElementById('sched-memo-qty').value.trim();
+        const qtyHalf = toHalfWidth(qtyVal);
+        if (qtyHalf && !/^[0-9]+(\.[0-9]+)?$/.test(qtyHalf)) {
+            alert('数量は数字で入力してください。（例: 150）');
+            return false;
+        }
+
         const schedData = {
             companyId,
             project: projectVal,
@@ -1743,18 +1750,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const schedMemoQty = document.getElementById('sched-memo-qty');
-    if (schedMemoQty) {
-        schedMemoQty.addEventListener('input', () => {
-            let val = toHalfWidth(schedMemoQty.value);
-            val = val.replace(/[^0-9.]/g, '');
-            const parts = val.split('.');
-            if (parts.length > 2) {
-                val = parts[0] + '.' + parts.slice(1).join('');
-            }
-            schedMemoQty.value = val;
-        });
-    }
+
 
     const schedCancelBtn = document.getElementById('sched-cancel-btn');
     if (schedCancelBtn) {
@@ -3947,18 +3943,7 @@ function openEditModal(sched) {
         }
     });
 
-    const editMemoQty = document.getElementById('edit-memo-qty');
-    if (editMemoQty) {
-        editMemoQty.addEventListener('input', () => {
-            let val = toHalfWidth(editMemoQty.value);
-            val = val.replace(/[^0-9.]/g, '');
-            const parts = val.split('.');
-            if (parts.length > 2) {
-                val = parts[0] + '.' + parts.slice(1).join('');
-            }
-            editMemoQty.value = val;
-        });
-    }
+
 
     // オーバーレイ背景クリックで閉じる
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
@@ -3994,6 +3979,12 @@ function openEditModal(sched) {
             notes: document.getElementById('edit-notes').value.trim(),
         };
 
+        if (updatedData.memoQty && !/^[0-9]+(\.[0-9]+)?$/.test(updatedData.memoQty)) {
+            alert('数量は数字で入力してください。（例: 150）');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 保存する';
+            return;
+        }
         if (!updatedData.project || !updatedData.start || !updatedData.end) {
             alert('工事名・開始日・終了日は必須です。');
             saveBtn.disabled = false;
