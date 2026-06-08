@@ -2184,6 +2184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     document.body.classList.remove('print-a3-landscape');
                     if (btn.dataset.target === 'list-view') loadReports(false);
+                    if (btn.dataset.target === 'schedule-input-view') resetScheduleEditMode();
                 }
             };
 
