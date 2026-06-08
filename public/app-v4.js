@@ -5323,7 +5323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const style = document.createElement('style');
         style.id = 'print-dynamic-style';
         if (isLandscape) {
-            style.innerHTML = '@media print { @page { size: A3 landscape !important; margin: 10mm !important; } }';
+            style.innerHTML = '@media print { @page { size: A3 portrait !important; margin: 10mm !important; } }';
         } else {
             style.innerHTML = '@media print { @page { size: A4 portrait !important; margin: 10mm !important; } }';
         }
@@ -6161,8 +6161,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return 'FF' + hex.replace('#', '').toUpperCase();
             };
 
-            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化、新12列)
-            const leftWidths = [15, 12, 15, 18, 8, 8, 8, 8, 8, 8, 8, 5];
+            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化、全16列分に対応)
+            const leftWidths = [18, 12, 15, 8, 8, 8, 8, 8, 10, 8, 10, 10, 10, 10, 10, 6];
             sheet.columns = [
                 ...leftWidths.map(w => ({ width: w })),
                 ...dateList.map(() => ({ width: 0.8 })) // タイムライン列をさらに極細化
