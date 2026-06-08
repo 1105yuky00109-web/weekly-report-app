@@ -3646,6 +3646,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // 過去データの古い仕入先 (supplier1, supplier2, supplier3) を引き継いで表示
+        const oldSuppliers = [s.supplier1, s.supplier2, s.supplier3]
+            .map(val => typeof val === 'string' ? val.trim() : '')
+            .filter(Boolean);
+        if (oldSuppliers.length > 0) {
+            lines.push(`旧仕入: ${oldSuppliers.join(', ')}`);
+        }
+
         return lines;
     };
 
@@ -3776,7 +3784,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 1; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0px; z-index: 25;">工事名</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 2; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 100px; z-index: 25;">元請</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 3; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 180px; z-index: 25;">住所</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 260px; z-index: 25;">仕入</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 260px; z-index: 25;">施工体制</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 5; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 330px; z-index: 25;">数量</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 6; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 375px; z-index: 25;">営業</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 7; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 420px; z-index: 25;">技術者</div>
@@ -3822,7 +3830,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const supplierHtml = supplierLines.length > 0 
                 ? supplierLines.map(line => `<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; line-height: 1.2;">${line}</div>`).join('')
                 : '-';
-            const supplierTitle = supplierLines.length > 0 ? `仕入:\n${supplierLines.join('\n')}` : '仕入: -';
+            const supplierTitle = supplierLines.length > 0 ? `施工体制:\n${supplierLines.join('\n')}` : '施工体制: -';
 
             html += `
                 <!-- 1. 工事名 -->
@@ -6159,7 +6167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row6.height = 20;
 
             const leftHeaders = [
-                "工事名", "元請", "現場住所", "仕入先", 
+                "工事名", "元請", "現場住所", "施工体制", 
                 "管理補助", "数量メモ", "営業担当", "工務担当", "現場担当", "主任技術者", "専任区分", "完了"
             ];
             
