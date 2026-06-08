@@ -5801,28 +5801,111 @@ document.addEventListener('DOMContentLoaded', () => {
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet(`${selectedYear}年度 工程管理表`);
 
+            // 印刷設定（A3縦、横幅を1ページに収める自動縮小設定）
+            sheet.pageSetup = {
+                paperSize: 8, // A3
+                orientation: 'portrait', // 縦
+                fitToPage: true,
+                fitToWidth: 1, // 横幅を1ページに収める
+                fitToHeight: 0 // 縦幅は自動で複数ページ許可
+            };
+            sheet.views = [
+                { state: 'normal', showGridLines: true } // グリッド線を表示
+            ];
+
             // カラーコード変換ヘルパー
             const hexToARGB = (hex) => {
                 if (!hex) return 'FF16A34A';
                 return 'FF' + hex.replace('#', '').toUpperCase();
             };
 
-            // 列幅の設定
-            const leftWidths = [22, 16, 22, 14, 14, 14, 14, 16, 12, 12, 12, 12, 10, 8];
+            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化)
+            const leftWidths = [15, 12, 15, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 5];
             sheet.columns = [
                 ...leftWidths.map(w => ({ width: w })),
-                ...dateList.map(() => ({ width: 1.2 })) // タイムライン列は極細
+                ...dateList.map(() => ({ width: 0.8 })) // タイムライン列をさらに極細化
             ];
 
+            // 資格者サマリーの抽出と構築（現在選択中の支店フィルターと連動）
+            const selectedBranch = ganttBranchFilter ? ganttBranchFilter.value : '';
+            const branchFilteredMembers = selectedBranch 
+                ? allMembers.filter(m => m.branch === selectedBranch)
+                : allMembers;
+
+            const list1stConst = [];
+            const list1stCivil = [];
+            const list2ndConstBody = [];
+            const listPractical = [];
+
+            branchFilteredMembers.forEach(m => {
+                const name = m.name || '';
+                const quals = m.qualifications || [];
+                
+                let nameWithDed = name;
+                if (m.isDedicated === 'branch') {
+                    nameWithDed += '（支店専任）';
+                } else if (m.isDedicated === 'non_dedicated') {
+                    nameWithDed += '（非専任）';
+                }
+
+                if (quals.includes('q1b')) list1stConst.push(nameWithDed);
+                if (quals.includes('q1c')) list1stCivil.push(nameWithDed);
+                if (quals.includes('q2b_躯体')) list2ndConstBody.push(nameWithDed);
+                if (quals.includes('exp')) listPractical.push(nameWithDed);
+            });
+
+            const totalCols = 14 + dateList.length;
+
             // ----------------------------------------
-            // 行1: 月ヘッダー
+            // 行1: タイトル
             // ----------------------------------------
-            const row1 = sheet.getRow(1);
-            row1.height = 25;
+            const rowT = sheet.getRow(1);
+            rowT.height = 35;
+            sheet.mergeCells(1, 1, 1, totalCols);
+            const titleCell = rowT.getCell(1);
+            titleCell.value = `工程管理表　${selectedYear}年度`;
+            titleCell.font = { name: 'MS Gothic', size: 16, bold: true };
+            titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+            // ----------------------------------------
+            // 行2: 資格者サマリー1
+            // ----------------------------------------
+            const rowS1 = sheet.getRow(2);
+            rowS1.height = 18;
+            sheet.mergeCells(2, 1, 2, totalCols);
+            const s1Cell = rowS1.getCell(1);
+            s1Cell.value = ` 🏅 資格保有者サマリー： ≪1級建築≫ ${list1stConst.join('・') || '-'} (${list1stConst.length}名)  /  ≪1級土木≫ ${list1stCivil.join('・') || '-'} (${list1stCivil.length}名)`;
+            s1Cell.font = { name: 'MS Gothic', size: 9, bold: true, color: { argb: 'FF1E3A8A' } };
+            s1Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } };
+            s1Cell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+            // ----------------------------------------
+            // 行3: 資格者サマリー2
+            // ----------------------------------------
+            const rowS2 = sheet.getRow(3);
+            rowS2.height = 18;
+            sheet.mergeCells(3, 1, 3, totalCols);
+            const s2Cell = rowS2.getCell(1);
+            s2Cell.value = `                      ≪2級躯体≫ ${list2ndConstBody.join('・') || '-'} (${list2ndConstBody.length}名)  /  ≪実務経験≫ ${listPractical.join('・') || '-'} (${listPractical.length}名)   【主任技術者の専任配置の要件：請負4500万円以上】`;
+            s2Cell.font = { name: 'MS Gothic', size: 9, bold: true, color: { argb: 'FF1E3A8A' } };
+            s2Cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F2FE' } };
+            s2Cell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+            // ----------------------------------------
+            // 行4: 空行 (余白)
+            // ----------------------------------------
+            const rowSpacer = sheet.getRow(4);
+            rowSpacer.height = 10;
+
+            // ----------------------------------------
+            // 行5: 月ヘッダー (元の行1が4行シフト)
+            // ----------------------------------------
+            const row5 = sheet.getRow(5);
+            row5.height = 25;
             
             // 左側結合
-            sheet.mergeCells(1, 1, 1, 14);
-            const detailHeaderCell = row1.getCell(1);
+            sheet.mergeCells(5, 1, 5, 14);
+            const detailHeaderCell = row5.getCell(1);
             detailHeaderCell.value = '工程詳細情報';
             detailHeaderCell.font = { name: 'MS Gothic', size: 10, bold: true };
             detailHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -5840,8 +5923,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (isLastDay) {
                     const endCol = idx + 15; // 1-indexed column index
-                    sheet.mergeCells(1, startCol, 1, endCol);
-                    const mCell = row1.getCell(startCol);
+                    sheet.mergeCells(5, startCol, 5, endCol);
+                    const mCell = row5.getCell(startCol);
                     mCell.value = `${m}月`;
                     mCell.font = { name: 'MS Gothic', size: 10, bold: true };
                     mCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -5859,18 +5942,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // ----------------------------------------
-            // 行2: 詳細項目ヘッダー ＆ カレンダー日ヘッダー
+            // 行6: 詳細項目ヘッダー ＆ カレンダー日ヘッダー (元の行2が4行シフト)
             // ----------------------------------------
-            const row2 = sheet.getRow(2);
-            row2.height = 20;
+            const row6 = sheet.getRow(6);
+            row6.height = 20;
 
             const leftHeaders = [
                 "工事名", "元請", "現場住所", "仕入先①(柱脚)", "仕入先②(製作1)", "仕入先③(製作2)", 
-                "管理補助", "数量メモ", "営業担当", "工務担当", "工事担当", "主任技術者", "専任区分", "完了"
+                "管理補助", "数量メモ", "営業担当", "工務担当", "現場担当", "主任技術者", "専任区分", "完了"
             ];
             
             leftHeaders.forEach((lh, idx) => {
-                const cell = row2.getCell(idx + 1);
+                const cell = row6.getCell(idx + 1);
                 cell.value = lh;
                 cell.font = { name: 'MS Gothic', size: 9, bold: true };
                 cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -5885,7 +5968,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dateList.forEach((d, idx) => {
                 const colIdx = idx + 15;
-                const cell = row2.getCell(colIdx);
+                const cell = row6.getCell(colIdx);
                 const day = d.getDay();
                 const isSat = day === 6;
                 const isSun = day === 0;
@@ -5913,7 +5996,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // データ行レンダリング
             // ----------------------------------------
             targetSchedules.forEach((s, index) => {
-                const rowIndex = index + 3;
+                const rowIndex = index + 7;
                 const row = sheet.getRow(rowIndex);
                 row.height = 24;
 
@@ -6041,7 +6124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 右側の最後の列の右境界線を太線にする
             const leftColCount = 14;
             const lastColIdx = leftColCount + dateList.length;
-            for (let r = 1; r <= targetSchedules.length + 2; r++) {
+            for (let r = 5; r <= targetSchedules.length + 6; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);
                 cell.border = {
                     ...cell.border,
@@ -6049,8 +6132,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
             // 最終行の下境界線を太線にする
-            const lastRowIdx = targetSchedules.length + 2;
-            if (lastRowIdx > 2) {
+            const lastRowIdx = targetSchedules.length + 6;
+            if (lastRowIdx > 6) {
                 const lastRow = sheet.getRow(lastRowIdx);
                 for (let c = 1; c <= lastColIdx; c++) {
                     const cell = lastRow.getCell(c);
