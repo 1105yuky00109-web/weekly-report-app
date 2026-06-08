@@ -588,6 +588,18 @@
                             <option value="">選択してください</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="emp-role">担当 <span style="color:red">*</span></label>
+                        <select id="emp-role" required>
+                            <option value="">選択してください</option>
+                            <option value="管理">管理</option>
+                            <option value="営業">営業</option>
+                            <option value="業務">業務</option>
+                            <option value="工務">工務</option>
+                            <option value="設計">設計</option>
+                            <option value="現場">現場</option>
+                        </select>
+                    </div>
                 </div>
                 <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">※ 仮パスワードは自動生成され、登録したメールアドレスへ送信されます。初回ログイン時にパスワード変更が必要です。</p>
                 <button type="submit" id="emp-add-btn" class="btn btn-primary">社員を追加</button>
@@ -602,6 +614,7 @@
                             <th>氏名</th>
                             <th>メール</th>
                             <th>所属支店</th>
+                            <th>担当</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -826,6 +839,19 @@
                 <label for="edit-emp-branch" style="display:block;margin-bottom:5px;font-weight:600;color:var(--text);">所属支店 <span style="color:red">*</span></label>
                 <select id="edit-emp-branch" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);box-sizing:border-box;height:42px;">
                     <option value="">選択してください</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom:20px;text-align:left;">
+                <label for="edit-emp-role" style="display:block;margin-bottom:5px;font-weight:600;color:var(--text);">担当 <span style="color:red">*</span></label>
+                <select id="edit-emp-role" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);box-sizing:border-box;height:42px;">
+                    <option value="">選択してください</option>
+                    <option value="管理">管理</option>
+                    <option value="営業">営業</option>
+                    <option value="業務">業務</option>
+                    <option value="工務">工務</option>
+                    <option value="設計">設計</option>
+                    <option value="現場">現場</option>
                 </select>
             </div>
             

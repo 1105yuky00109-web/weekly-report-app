@@ -714,8 +714,9 @@ function initEmployeeManagePanel() {
                     <td style="padding: 12px; font-weight: bold; color: var(--text);">${emp.name || ''}</td>
                     <td style="padding: 12px; color: var(--text-muted); font-family: monospace;">${emp.email || '未設定'}</td>
                     <td style="padding: 12px; color: var(--text);">${emp.branch || '未設定'}</td>
+                    <td style="padding: 12px; color: var(--text);">${emp.role || '未設定'}</td>
                     <td style="padding: 12px; text-align: center;">
-                        <button type="button" class="btn btn-small btn-edit-emp" data-uid="${emp.uid}" data-name="${emp.name}" data-email="${emp.email}" data-branch="${emp.branch || ''}" style="background-color: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;">編集</button>
+                        <button type="button" class="btn btn-small btn-edit-emp" data-uid="${emp.uid}" data-name="${emp.name}" data-email="${emp.email}" data-branch="${emp.branch || ''}" data-role="${emp.role || ''}" style="background-color: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;">編集</button>
                         ${deleteBtnHtml}
                     </td>
                 </tr>
@@ -782,6 +783,7 @@ function initEmployeeManagePanel() {
                 const name = btn.dataset.name;
                 const email = btn.dataset.email;
                 const branch = btn.dataset.branch;
+                const role = btn.dataset.role;
 
                 const modal = document.getElementById('edit-employee-modal-overlay');
                 if (!modal) return;
@@ -800,6 +802,12 @@ function initEmployeeManagePanel() {
                         branchSelect.innerHTML += `<option value="${b}">${b}</option>`;
                     });
                     branchSelect.value = branch;
+                }
+
+                // 担当初期値のセット
+                const roleSelect = document.getElementById('edit-emp-role');
+                if (roleSelect) {
+                    roleSelect.value = role || '';
                 }
 
                 const msg = document.getElementById('edit-emp-message');
@@ -832,6 +840,7 @@ function initEmployeeManagePanel() {
             const name = document.getElementById('edit-emp-name').value.trim();
             const email = document.getElementById('edit-emp-email').value.trim();
             const branch = document.getElementById('edit-emp-branch').value;
+            const role = document.getElementById('edit-emp-role').value; // 追加
             const msg = document.getElementById('edit-emp-message');
             const saveBtn = document.getElementById('btn-save-edit-emp');
 
@@ -845,6 +854,10 @@ function initEmployeeManagePanel() {
             }
             if (!branch) {
                 alert("所属支店を選択してください。");
+                return;
+            }
+            if (!role) {
+                alert("担当を選択してください。");
                 return;
             }
 
@@ -875,7 +888,8 @@ function initEmployeeManagePanel() {
                         oldName: oldName, // uid/emailが無い場合のキーとして送信
                         employeeName: name,
                         employeeEmail: email,
-                        employeeBranch: branch
+                        employeeBranch: branch,
+                        employeeRole: role // 追加
                     }),
                 });
 
@@ -897,7 +911,8 @@ function initEmployeeManagePanel() {
                                 ...emp,
                                 name: name,
                                 email: email,
-                                branch: branch
+                                branch: branch,
+                                role: role // 追加
                             };
                         }
                         return emp;
@@ -944,11 +959,12 @@ function initEmployeeManagePanel() {
             const name = document.getElementById('emp-name').value.trim();
             const email = document.getElementById('emp-email').value.trim();
             const branch = document.getElementById('emp-branch').value;
+            const role = document.getElementById('emp-role').value; // 追加
 
             // JS側での厳密なバリデーションチェックの強化
-            if (!name || !email || !branch) {
+            if (!name || !email || !branch || !role) {
                 empAddMsg.className = 'message error';
-                empAddMsg.textContent = '登録に失敗しました: 氏名、メールアドレス、所属支店はすべて必須入力項目です。';
+                empAddMsg.textContent = '登録に失敗しました: 氏名、メールアドレス、所属支店、担当はすべて必須入力項目です。';
                 return;
             }
 
@@ -965,7 +981,8 @@ function initEmployeeManagePanel() {
                         adminUid: currentUser.uid,
                         employeeName: name,
                         employeeEmail: email,
-                        employeeBranch: branch // 支店情報も同時に送信
+                        employeeBranch: branch, // 支店情報も同時に送信
+                        employeeRole: role // 担当情報も同時に送信
                     }),
                 });
 

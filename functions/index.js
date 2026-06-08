@@ -229,10 +229,11 @@ exports.addEmployee = functions.https.onRequest(async (req, res) => {
     adminUid,
     employeeName,
     employeeEmail,
-    employeeBranch
+    employeeBranch,
+    employeeRole // 追加
   } = req.body;
 
-  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch) {
+  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch || !employeeRole) {
     return res.status(400).json({ error: '必須項目が不足しています。' });
   }
 
@@ -291,6 +292,7 @@ exports.addEmployee = functions.https.onRequest(async (req, res) => {
         name: employeeName,
         email: employeeEmail,
         branch: employeeBranch,
+        role: employeeRole, // 追加
         createdAt: new Date().toISOString(),
         mustChangePassword: true
       })
@@ -1050,13 +1052,14 @@ exports.updateEmployee = functions.https.onRequest(async (req, res) => {
     adminUid,
     employeeUid,
     oldEmail,
-    oldName, // 追加
+    oldName,
     employeeName,
     employeeEmail,
-    employeeBranch
+    employeeBranch,
+    employeeRole // 追加
   } = req.body;
 
-  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch) {
+  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch || !employeeRole) {
     return res.status(400).json({ error: '必須項目が不足しています。' });
   }
 
@@ -1137,7 +1140,8 @@ exports.updateEmployee = functions.https.onRequest(async (req, res) => {
           ...emp,
           name: employeeName,
           email: employeeEmail,
-          branch: employeeBranch
+          branch: employeeBranch,
+          role: employeeRole // 追加
         };
         if (finalUid) updated.uid = finalUid;
         if (tempPassword) {
