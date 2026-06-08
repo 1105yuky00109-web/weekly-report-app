@@ -1683,7 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
             supplier2: document.getElementById('sched-supplier2').value.trim(),
             supplier3: document.getElementById('sched-supplier3').value.trim(),
             subcontractor: document.getElementById('sched-subcontractor').value.trim(),
-            memoQty: document.getElementById('sched-memo-qty').value.trim(),
+            memoQty: toHalfWidth(document.getElementById('sched-memo-qty').value.trim()),
             salesRep: document.getElementById('sched-sales-rep').value,
             constRep: document.getElementById('sched-const-rep').value,
             siteRep: document.getElementById('sched-site-rep').value,
@@ -2048,7 +2048,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const patternClass = s.barPattern === 'stripe' ? 'pattern-stripe' : '';
                 const completedClass = s.completed ? 'completed-bar' : '';
 
-                const barText = `${s.completed ? '[完了] ' : ''}${s.notes || ''}`;
+                const barText = '';
 
                 html += `<div class="gantt-bar ${patternClass} ${completedClass}" data-id="${s.id}" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; background-color: ${color};" title="【${s.project}】\n期間: ${s.start} 〜 ${s.end}\n備考: ${s.notes || 'なし'}">
                             ${barText}
@@ -3365,7 +3365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 結合後の代表セル（開始セル）にラベルをセット
                     const mergedStartCell = row.getCell(barStartCol);
-                    mergedStartCell.value = `${s.completed ? '[完了] ' : ''}${s.notes || ''}`;
+                    mergedStartCell.value = '';
                     mergedStartCell.alignment = { 
                         horizontal: 'center', 
                         vertical: 'middle',
@@ -3512,6 +3512,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 全角英数字・全角スペースを半角に変換するヘルパー関数
+function toHalfWidth(str) {
+    if (!str) return '';
+    let result = str.replace(/　/g, ' ');
+    return result.replace(/[０-９ａ-ｚＡ-Ｚ]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+    });
+}
+
 // --- 予定・工程入力フォーム未保存監視ヘルパー (グローバル定義) ---
 function getScheduleFormDataString() {
     const projectEl = document.getElementById('sched-project');
@@ -3526,7 +3535,7 @@ function getScheduleFormDataString() {
         supplier2: document.getElementById('sched-supplier2')?.value.trim() || '',
         supplier3: document.getElementById('sched-supplier3')?.value.trim() || '',
         subcontractor: document.getElementById('sched-subcontractor')?.value.trim() || '',
-        memoQty: document.getElementById('sched-memo-qty')?.value.trim() || '',
+        memoQty: toHalfWidth(document.getElementById('sched-memo-qty')?.value.trim() || ''),
         salesRep: document.getElementById('sched-sales-rep')?.value || '',
         constRep: document.getElementById('sched-const-rep')?.value || '',
         siteRep: document.getElementById('sched-site-rep')?.value || '',
@@ -3934,7 +3943,7 @@ function openEditModal(sched) {
             supplier2: document.getElementById('edit-supplier2').value.trim(),
             supplier3: document.getElementById('edit-supplier3').value.trim(),
             subcontractor: document.getElementById('edit-subcontractor').value.trim(),
-            memoQty: document.getElementById('edit-memo-qty').value.trim(),
+            memoQty: toHalfWidth(document.getElementById('edit-memo-qty').value.trim()),
             salesRep: document.getElementById('edit-sales-rep').value,
             constRep: document.getElementById('edit-const-rep').value,
             siteRep: document.getElementById('edit-site-rep').value,
