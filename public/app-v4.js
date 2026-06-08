@@ -3947,19 +3947,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${s.salesRep || '-'}
                 </div>
                 <!-- 11. 技術者 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 12; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 585px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 12; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 600px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
                     ${s.chiefTech || '-'}
                 </div>
                 <!-- 12. 工務 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 13; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 620px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 13; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 660px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
                     ${s.constRep || '-'}
                 </div>
                 <!-- 13. 補助 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 14; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 655px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 14; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 720px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
                     ${s.subcontractor || '-'}
                 </div>
                 <!-- 14. 現場 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 15; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 705px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 15; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 785px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
                     ${s.siteRep || '-'}
                 </div>
             `;
@@ -5391,7 +5391,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-                    gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '3px').replace(/1fr/g, '3px');
+                    gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '2px').replace(/1fr/g, '2px');
                 }
             }
             
