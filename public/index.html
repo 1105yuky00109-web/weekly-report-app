@@ -31,6 +31,64 @@
             }
         })();
     </script>
+    <script>
+        // クライアントサイドのエラーをキャッチして画面に赤枠で表示するデバッグスクリプト
+        window.onerror = function(message, source, lineno, colno, error) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.background = '#dc2626';
+            div.style.color = 'white';
+            div.style.zIndex = '99999';
+            div.style.padding = '20px';
+            div.style.fontSize = '1rem';
+            div.style.fontFamily = 'monospace';
+            div.style.overflow = 'auto';
+            div.style.boxSizing = 'border-box';
+            div.innerHTML = '<h1 style="font-size:1.5rem;margin-bottom:15px;">🚨 JavaScript エラー検知 (デバッグ画面)</h1>' +
+                            '<p><strong>エラーメッセージ:</strong> ' + message + '</p>' +
+                            '<p><strong>ソースファイル:</strong> ' + source + '</p>' +
+                            '<p><strong>行番号 / 列番号:</strong> ' + lineno + ' 行目 / ' + colno + ' 列目</p>' +
+                            '<p><strong>スタックトレース:</strong></p>' +
+                            '<pre style="background:#7f1d1d;padding:15px;border-radius:6px;overflow-x:auto;">' + (error ? error.stack : 'なし') + '</pre>' +
+                            '<p style="margin-top:20px;font-size:0.9rem;opacity:0.8;">※この画面のスクリーンショットを開発者へお送りください。</p>';
+            if (document.body) {
+                document.body.appendChild(div);
+            } else {
+                window.addEventListener('DOMContentLoaded', () => document.body.appendChild(div));
+            }
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.background = '#991b1b';
+            div.style.color = 'white';
+            div.style.zIndex = '99999';
+            div.style.padding = '20px';
+            div.style.fontSize = '1rem';
+            div.style.fontFamily = 'monospace';
+            div.style.overflow = 'auto';
+            div.style.boxSizing = 'border-box';
+            div.innerHTML = '<h1 style="font-size:1.5rem;margin-bottom:15px;">🚨 未処理のPromise拒否 (Unhandled Rejection)</h1>' +
+                            '<p><strong>理由 (Reason):</strong> ' + event.reason + '</p>' +
+                            '<p><strong>スタックトレース:</strong></p>' +
+                            '<pre style="background:#7f1d1d;padding:15px;border-radius:6px;overflow-x:auto;">' + (event.reason && event.reason.stack ? event.reason.stack : 'なし') + '</pre>' +
+                            '<p style="margin-top:20px;font-size:0.9rem;opacity:0.8;">※この画面のスクリーンショットを開発者へお送りください。</p>';
+            if (document.body) {
+                document.body.appendChild(div);
+            } else {
+                window.addEventListener('DOMContentLoaded', () => document.body.appendChild(div));
+            }
+        });
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>工事・日報管理システム</title>
