@@ -3839,27 +3839,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 列定義: 左側詳細テーブル（14カラム、合計855px） + 右側カレンダー各日(1frで画面幅に収める)
-        let html = qualSummaryHtml + `<div class="gantt-grid" style="grid-template-columns: 100px 80px 80px 55px 55px 75px 65px 60px 45px 45px 45px 45px 60px 45px repeat(${dateList.length}, 1fr); width: 100%;">`;
+        let html = qualSummaryHtml + `<div class="gantt-grid" style="grid-template-columns: 90px 70px 70px 45px 45px 60px 50px 50px 35px 35px 35px 35px 50px 35px repeat(${dateList.length}, minmax(2px, 1fr)); width: max-content; min-width: 100%;">`;
 
         // ==========================================
         // 行1: ヘッダー (左側：14個の詳細カラムヘッダー、右側：各月)
         // ==========================================
         // 左側のテーブル情報ヘッダーエリア（縦割り、sticky固定、並び替え版）
         html += `
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 1; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0px; z-index: 25;">工事名</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 2; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 100px; z-index: 25;">元請</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 3; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 180px; z-index: 25;">住所</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 260px; z-index: 25;">柱脚</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 5; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 315px; z-index: 25;">製作</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 6; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 370px; z-index: 25;">建て方本締め</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 7; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 445px; z-index: 25;">床スタッド</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 8; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 510px; z-index: 25;">現場溶接</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 9; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 570px; z-index: 25;">数量</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 10; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 615px; z-index: 25;">営業</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 11; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 660px; z-index: 25;">技術者</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 12; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 705px; z-index: 25;">工務</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 13; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 750px; z-index: 25;">補助</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 14; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; border-right: 2px solid var(--border) !important; position: sticky; left: 810px; z-index: 25;">現場</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 1; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0px; z-index: 25;">工事名</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 2; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 90px; z-index: 25;">元請</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 3; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 160px; z-index: 25;">住所</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 230px; z-index: 25;">柱脚</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 5; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 275px; z-index: 25;">製作</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 6; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 320px; z-index: 25;">建て方本締め</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 7; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 380px; z-index: 25;">床スタッド</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 8; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 430px; z-index: 25;">現場溶接</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 9; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 480px; z-index: 25;">数量</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 10; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 515px; z-index: 25;">営業</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 11; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 550px; z-index: 25;">技術者</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 12; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 585px; z-index: 25;">工務</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 13; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 620px; z-index: 25;">補助</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 14; font-size: 0.72rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; border-right: 2px solid var(--border) !important; position: sticky; left: 670px; z-index: 25;">現場</div>
         `;
 
         // カレンダー部 月ヘッダー (左側14列の次なので 15列目から開始)
