@@ -956,3 +956,263 @@ ${loginUrl}
     return null;
   });
 
+// ------------------------------------------------------------
+// 7. deleteEmployee (管理者による社員削除API)
+// ------------------------------------------------------------
+exports.deleteEmployee = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    return res.status(204).send('');
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  const { companyId, adminEmail, adminUid, employeeUid, employeeEmail, employeeName } = req.body;
+
+  if (!companyId || !adminEmail || !adminUid || !employeeName) {
+    return res.status(400).json({ error: '必須項目が不足しています。' });
+  }
+
+  try {
+    const companyRef = db.collection('companies').doc(companyId);
+    const companyDoc = await companyRef.get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: '指定された会社が見つかりません。' });
+    }
+
+    const companyData = companyDoc.data();
+    const isAdmin = companyData.ownerUid === adminUid || (companyData.adminEmails && companyData.adminEmails.includes(adminEmail));
+    if (!isAdmin) {
+      return res.status(403).json({ error: '社員を削除する権限がありません。' });
+    }
+
+    const targetEmail = (employeeEmail && employeeEmail !== 'undefined') ? employeeEmail : null;
+    const targetUid = (employeeUid && employeeUid !== 'undefined') ? employeeUid : null;
+
+    // Firebase Auth ユーザーの削除（uidが存在する場合のみ）
+    if (targetUid) {
+      try {
+        await admin.auth().deleteUser(targetUid);
+      } catch (authErr) {
+        console.warn(`Auth user delete failed or user not found: ${targetUid}`, authErr);
+      }
+    }
+
+    // Firestore から社員を削除
+    const updatedMemberEmails = targetEmail
+      ? (companyData.memberEmails || []).filter(e => e !== targetEmail)
+      : (companyData.memberEmails || []);
+
+    const updatedEmployees = (companyData.employees || []).filter(emp => {
+      if (targetUid && emp.uid === targetUid) return false;
+      if (targetEmail && emp.email === targetEmail) return false;
+      if ((!emp.uid || emp.uid === 'undefined') && (!emp.email || emp.email === 'undefined') && emp.name === employeeName) return false;
+      return true;
+    });
+
+    await companyRef.update({
+      memberEmails: updatedMemberEmails,
+      employees: updatedEmployees
+    });
+
+    console.log(`Employee ${employeeName} (${employeeEmail}) successfully deleted from company ${companyId}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('deleteEmployee error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ------------------------------------------------------------
+// 8. updateEmployee (管理者による社員編集API)
+// ------------------------------------------------------------
+exports.updateEmployee = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    return res.status(204).send('');
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  const {
+    companyId,
+    adminEmail,
+    adminUid,
+    employeeUid,
+    oldEmail,
+    oldName, // 追加
+    employeeName,
+    employeeEmail,
+    employeeBranch
+  } = req.body;
+
+  if (!companyId || !adminEmail || !adminUid || !employeeName || !employeeEmail || !employeeBranch) {
+    return res.status(400).json({ error: '必須項目が不足しています。' });
+  }
+
+  try {
+    const companyRef = db.collection('companies').doc(companyId);
+    const companyDoc = await companyRef.get();
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: '指定された会社が見つかりません。' });
+    }
+
+    const companyData = companyDoc.data();
+    const isAdmin = companyData.ownerUid === adminUid || (companyData.adminEmails && companyData.adminEmails.includes(adminEmail));
+    if (!isAdmin) {
+      return res.status(403).json({ error: '社員を編集する権限がありません。' });
+    }
+
+    const targetUid = (employeeUid && employeeUid !== 'undefined') ? employeeUid : null;
+    const targetOldEmail = (oldEmail && oldEmail !== 'undefined') ? oldEmail : null;
+    const targetOldName = (oldName && oldName !== 'undefined') ? oldName : null;
+
+    let finalUid = targetUid;
+    let tempPassword = '';
+
+    if (targetUid) {
+      // 1. Firebase Auth ユーザー情報の更新
+      try {
+        await admin.auth().updateUser(targetUid, {
+          email: employeeEmail,
+          displayName: employeeName
+        });
+      } catch (authErr) {
+        console.error('Auth user update failed', authErr);
+        if (authErr.code === 'auth/email-already-exists') {
+          return res.status(400).json({ error: 'このメールアドレスはすでに他のアカウントで使用されています。' });
+        }
+        return res.status(500).json({ error: `Authユーザーの更新に失敗しました: ${authErr.message}` });
+      }
+    } else {
+      // 2. uidが存在しない旧データに対し、新しくAuthアカウントを作成（メールアドレスが有効な場合）
+      if (employeeEmail && employeeEmail !== 'undefined') {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$';
+        for (let i = 0; i < 12; i++) {
+          tempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        try {
+          const userRecord = await admin.auth().createUser({
+            email: employeeEmail,
+            password: tempPassword,
+            displayName: employeeName
+          });
+          finalUid = userRecord.uid;
+        } catch (authErr) {
+          console.error('Auth user creation during edit failed', authErr);
+          if (authErr.code === 'auth/email-already-exists') {
+            return res.status(400).json({ error: 'このメールアドレスはすでに他のアカウントで使用されています。' });
+          }
+          return res.status(500).json({ error: `Authユーザーの新規登録に失敗しました: ${authErr.message}` });
+        }
+      }
+    }
+
+    // 3. Firestore の更新
+    // memberEmailsの更新 (古いメールを除去、新しいメールを追加)
+    const updatedMemberEmails = (companyData.memberEmails || []).filter(e => e !== targetOldEmail);
+    if (employeeEmail && !updatedMemberEmails.includes(employeeEmail)) {
+      updatedMemberEmails.push(employeeEmail);
+    }
+
+    const updatedEmployees = (companyData.employees || []).map(emp => {
+      let isTarget = false;
+      if (targetUid && emp.uid === targetUid) isTarget = true;
+      else if (targetOldEmail && emp.email === targetOldEmail) isTarget = true;
+      else if ((!emp.uid || emp.uid === 'undefined') && (!emp.email || emp.email === 'undefined') && emp.name === targetOldName) isTarget = true;
+
+      if (isTarget) {
+        const updated = {
+          ...emp,
+          name: employeeName,
+          email: employeeEmail,
+          branch: employeeBranch
+        };
+        if (finalUid) updated.uid = finalUid;
+        if (tempPassword) {
+          updated.mustChangePassword = true;
+          updated.createdAt = new Date().toISOString();
+        }
+        return updated;
+      }
+      return emp;
+    });
+
+    await companyRef.update({
+      memberEmails: updatedMemberEmails,
+      employees: updatedEmployees
+    });
+
+    // 4. アカウントが新規作成された場合、案内メールを送信
+    if (tempPassword) {
+      try {
+        const nodemailer = require('nodemailer');
+        const smtpUser = 'areva.noreply@gmail.com';
+        const smtpPass = process.env.SMTP_PASS;
+        const loginUrl = `${process.env.HOST_URL || 'https://weekly-report-93e5f.web.app'}/index.html`;
+
+        const mailOptions = {
+          from: `週次日報アプリ管理部 <${smtpUser}>`,
+          to: employeeEmail,
+          subject: '【重要】週次日報＆予定管理システム アカウント登録完了のお知らせ',
+          text: `${employeeName} 様
+
+いつもシステムをご利用いただき、ありがとうございます。
+管理者様により、あなたのアカウントがシステムに登録されました。
+
+以下のログイン情報および手順に従って、システムをご利用ください。
+
+----------------------------------------
+■ ログインURL
+${loginUrl}
+
+■ ログイン用メールアドレス
+${employeeEmail}
+
+■ 初期仮パスワード
+${tempPassword}
+----------------------------------------
+
+【重要】セキュリティ向上のため、初めてログインされた直後にご自身で新しいパスワードを設定する画面が表示されます。
+メールに記載された上記の仮パスワードでログインし、画面の指示に従って新しいパスワードを設定してください。
+
+本メールはシステムより自動送信されています。
+`,
+        };
+
+        if (smtpPass) {
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+          });
+          await transporter.sendMail(mailOptions);
+          console.log(`[Email] 新規作成された社員宛て登録案内メールを ${employeeEmail} 宛に送信しました。`);
+        }
+      } catch (mailErr) {
+        console.error('メール送信処理中にエラーが発生しました:', mailErr);
+      }
+    }
+
+    console.log(`Employee successfully updated to ${employeeEmail} / ${employeeName} / ${employeeBranch}`);
+    res.json({ success: true, tempPassword: tempPassword || null });
+  } catch (err) {
+    console.error('updateEmployee error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+

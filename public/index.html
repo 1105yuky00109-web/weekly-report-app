@@ -3,7 +3,7 @@
 <head>
     <script>
         (function() {
-            const RESET_KEY = 'sw_reset_v5';
+            const RESET_KEY = 'sw_reset_v5_force';
             if (!localStorage.getItem(RESET_KEY)) {
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -800,6 +800,42 @@
         <div id="modal-report-body" style="color: var(--text);">
             <!-- ここに週報プレビューと承認パネルが動的に流し込まれる -->
         </div>
+    </div>
+</div>
+
+<!-- ======== 社員編集モーダル ======== -->
+<div id="edit-employee-modal-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10000;overflow-y:auto;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:var(--card-bg);max-width:500px;width:90%;padding:30px;border-radius:12px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);border:1px solid var(--border);">
+        <h3 style="margin-top:0;margin-bottom:20px;display:flex;align-items:center;gap:8px;color:var(--text);font-size:1.2rem;">👥 社員情報を編集</h3>
+        <form id="edit-employee-form">
+            <input type="hidden" id="edit-emp-uid" value="">
+            <input type="hidden" id="edit-emp-old-email" value="">
+            <input type="hidden" id="edit-emp-old-name" value="">
+            
+            <div class="form-group" style="margin-bottom:15px;text-align:left;">
+                <label for="edit-emp-name" style="display:block;margin-bottom:5px;font-weight:600;color:var(--text);">氏名 <span style="color:red">*</span></label>
+                <input type="text" id="edit-emp-name" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);box-sizing:border-box;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom:15px;text-align:left;">
+                <label for="edit-emp-email" style="display:block;margin-bottom:5px;font-weight:600;color:var(--text);">メールアドレス <span style="color:red">*</span></label>
+                <input type="email" id="edit-emp-email" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);box-sizing:border-box;">
+            </div>
+            
+            <div class="form-group" style="margin-bottom:20px;text-align:left;">
+                <label for="edit-emp-branch" style="display:block;margin-bottom:5px;font-weight:600;color:var(--text);">所属支店 <span style="color:red">*</span></label>
+                <select id="edit-emp-branch" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;background:var(--card-bg);color:var(--text);box-sizing:border-box;height:42px;">
+                    <option value="">選択してください</option>
+                </select>
+            </div>
+            
+            <div id="edit-emp-message" class="message hidden" style="margin-bottom:15px;padding:10px;border-radius:6px;font-size:0.9rem;"></div>
+            
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" id="btn-cancel-edit-emp" class="btn btn-secondary" style="padding:10px 20px;font-size:0.9rem;">キャンセル</button>
+                <button type="submit" id="btn-save-edit-emp" class="btn btn-primary" style="padding:10px 20px;font-size:0.9rem;">保存</button>
+            </div>
+        </form>
     </div>
 </div>
 

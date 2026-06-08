@@ -704,16 +704,225 @@ function initEmployeeManagePanel() {
         const sorted = [...employees].sort((a, b) => (b.createdAt || '') > (a.createdAt || '') ? 1 : -1);
         empListTbody.innerHTML = sorted.map((emp, idx) => {
             const bg = idx % 2 ? '#f8fafc' : '#fff';
+            const isSelf = emp.email === currentUser.email || emp.uid === currentUser.uid;
+            const deleteBtnHtml = isSelf
+                ? `<span style="color: var(--text-muted); font-size: 0.85rem;">(自分自身)</span>`
+                : `<button type="button" class="btn btn-small btn-delete-emp" data-uid="${emp.uid}" data-name="${emp.name}" data-email="${emp.email}" style="background-color: #dc2626; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; margin-left: 5px;">削除</button>`;
+
             return `
                 <tr style="background: ${bg}; border-bottom: 1px solid var(--border);">
                     <td style="padding: 12px; font-weight: bold; color: var(--text);">${emp.name || ''}</td>
                     <td style="padding: 12px; color: var(--text-muted); font-family: monospace;">${emp.email || '未設定'}</td>
                     <td style="padding: 12px; color: var(--text);">${emp.branch || '未設定'}</td>
-                    <td style="padding: 12px;"></td>
+                    <td style="padding: 12px; text-align: center;">
+                        <button type="button" class="btn btn-small btn-edit-emp" data-uid="${emp.uid}" data-name="${emp.name}" data-email="${emp.email}" data-branch="${emp.branch || ''}" style="background-color: #0284c7; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer;">編集</button>
+                        ${deleteBtnHtml}
+                    </td>
                 </tr>
             `;
         }).join('');
+
+        // 削除ボタンのイベントリスナー
+        empListTbody.querySelectorAll('.btn-delete-emp').forEach(btn => {
+            btn.onclick = async () => {
+                const uid = btn.dataset.uid;
+                const name = btn.dataset.name;
+                const email = btn.dataset.email;
+                if (!confirm(`本当に社員「${name} (${email})」を削除しますか？\nこの社員のアカウントは削除され、ログインできなくなります。\n※過去に提出された予定や実績は削除されません。`)) {
+                    return;
+                }
+
+                try {
+                    showToast("社員アカウントを削除中...", "info");
+                    const response = await fetch('/delete-employee', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            companyId: currentCompany.companyId,
+                            adminEmail: currentUser.email,
+                            adminUid: currentUser.uid,
+                            employeeUid: uid,
+                            employeeEmail: email,
+                            employeeName: name // uid/emailが無い場合のキーとして送信
+                        }),
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.error || '通信エラーが発生しました。');
+                    }
+
+                    // ローカルデータを即時に更新してUIへリアルタイム反映（uid/email未設定の場合もnameで特定）
+                    if (currentCompany && currentCompany.employees) {
+                        currentCompany.employees = currentCompany.employees.filter(emp => {
+                            if (uid && uid !== 'undefined' && emp.uid === uid) return false;
+                            if (email && email !== 'undefined' && emp.email === email) return false;
+                            if ((!emp.uid || emp.uid === 'undefined') && (!emp.email || emp.email === 'undefined') && emp.name === name) return false;
+                            return true;
+                        });
+                    }
+                    showToast(`社員「${name}」のアカウントを削除しました。`, "success");
+                    renderEmployeeList();
+
+                    // バックグラウンドで最新データをロード
+                    loadLatestCompanyInfo();
+                } catch (err) {
+                    console.error(err);
+                    alert(`削除に失敗しました: ${err.message}`);
+                }
+            };
+        });
+
+        // 編集ボタンのイベントリスナー
+        empListTbody.querySelectorAll('.btn-edit-emp').forEach(btn => {
+            btn.onclick = () => {
+                const uid = btn.dataset.uid;
+                const name = btn.dataset.name;
+                const email = btn.dataset.email;
+                const branch = btn.dataset.branch;
+
+                const modal = document.getElementById('edit-employee-modal-overlay');
+                if (!modal) return;
+
+                document.getElementById('edit-emp-uid').value = uid;
+                document.getElementById('edit-emp-old-email').value = email;
+                document.getElementById('edit-emp-old-name').value = name; // 追加
+                document.getElementById('edit-emp-name').value = name;
+                document.getElementById('edit-emp-email').value = email;
+
+                const branchSelect = document.getElementById('edit-emp-branch');
+                if (branchSelect) {
+                    branchSelect.innerHTML = '<option value="">選択してください</option>';
+                    const branches = currentCompany.branches || [];
+                    branches.forEach(b => {
+                        branchSelect.innerHTML += `<option value="${b}">${b}</option>`;
+                    });
+                    branchSelect.value = branch;
+                }
+
+                const msg = document.getElementById('edit-emp-message');
+                if (msg) {
+                    msg.className = 'message hidden';
+                    msg.textContent = '';
+                }
+
+                modal.style.display = 'flex';
+            };
+        });
     };
+
+    // 編集モーダルの保存処理およびキャンセル処理のバインド
+    const editCancelBtn = document.getElementById('btn-cancel-edit-emp');
+    if (editCancelBtn) {
+        editCancelBtn.onclick = () => {
+            const modal = document.getElementById('edit-employee-modal-overlay');
+            if (modal) modal.style.display = 'none';
+        };
+    }
+
+    const editEmpForm = document.getElementById('edit-employee-form');
+    if (editEmpForm) {
+        editEmpForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const uid = document.getElementById('edit-emp-uid').value;
+            const oldEmail = document.getElementById('edit-emp-old-email').value;
+            const oldName = document.getElementById('edit-emp-old-name').value; // 追加
+            const name = document.getElementById('edit-emp-name').value.trim();
+            const email = document.getElementById('edit-emp-email').value.trim();
+            const branch = document.getElementById('edit-emp-branch').value;
+            const msg = document.getElementById('edit-emp-message');
+            const saveBtn = document.getElementById('btn-save-edit-emp');
+
+            if (!name) {
+                alert("氏名を入力してください。");
+                return;
+            }
+            if (!email) {
+                alert("メールアドレスを入力してください。");
+                return;
+            }
+            if (!branch) {
+                alert("所属支店を選択してください。");
+                return;
+            }
+
+            if (!confirm(`社員「${name}」の情報を更新しますか？`)) {
+                return;
+            }
+
+            try {
+                saveBtn.disabled = true;
+                saveBtn.textContent = '保存中...';
+                if (msg) {
+                    msg.className = 'message';
+                    msg.textContent = '更新中...';
+                    msg.classList.remove('hidden');
+                }
+
+                const response = await fetch('/update-employee', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        companyId: currentCompany.companyId,
+                        adminEmail: currentUser.email,
+                        adminUid: currentUser.uid,
+                        employeeUid: uid,
+                        oldEmail: oldEmail,
+                        oldName: oldName, // uid/emailが無い場合のキーとして送信
+                        employeeName: name,
+                        employeeEmail: email,
+                        employeeBranch: branch
+                    }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || '更新に失敗しました。');
+                }
+
+                // ローカルデータを即時に更新してUIへリアルタイム反映（uid/emailが未設定の場合もoldNameで特定）
+                if (currentCompany && currentCompany.employees) {
+                    currentCompany.employees = currentCompany.employees.map(emp => {
+                        let isTarget = false;
+                        if (uid && uid !== 'undefined' && emp.uid === uid) isTarget = true;
+                        else if (oldEmail && oldEmail !== 'undefined' && emp.email === oldEmail) isTarget = true;
+                        else if ((!emp.uid || emp.uid === 'undefined') && (!emp.email || emp.email === 'undefined') && emp.name === oldName) isTarget = true;
+
+                        if (isTarget) {
+                            return {
+                                ...emp,
+                                name: name,
+                                email: email,
+                                branch: branch
+                            };
+                        }
+                        return emp;
+                    });
+                }
+                showToast(`社員「${name}」の情報を更新しました。`, 'success');
+                const modal = document.getElementById('edit-employee-modal-overlay');
+                if (modal) modal.style.display = 'none';
+
+                renderEmployeeList();
+
+                // バックグラウンドで最新データをロード
+                loadLatestCompanyInfo();
+            } catch (err) {
+                console.error(err);
+                if (msg) {
+                    msg.className = 'message error';
+                    msg.textContent = `更新に失敗しました: ${err.message}`;
+                }
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '保存';
+            }
+        };
+    }
 
     // タブクリック時の追加処理
     tab.addEventListener('click', () => {
@@ -735,6 +944,13 @@ function initEmployeeManagePanel() {
             const name = document.getElementById('emp-name').value.trim();
             const email = document.getElementById('emp-email').value.trim();
             const branch = document.getElementById('emp-branch').value;
+
+            // JS側での厳密なバリデーションチェックの強化
+            if (!name || !email || !branch) {
+                empAddMsg.className = 'message error';
+                empAddMsg.textContent = '登録に失敗しました: 氏名、メールアドレス、所属支店はすべて必須入力項目です。';
+                return;
+            }
 
             try {
                 // Cloud Functions API (addEmployee) の呼び出し

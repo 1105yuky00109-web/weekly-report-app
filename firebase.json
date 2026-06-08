@@ -35,6 +35,14 @@
         "function": "addEmployee"
       },
       {
+        "source": "/delete-employee",
+        "function": "deleteEmployee"
+      },
+      {
+        "source": "/update-employee",
+        "function": "updateEmployee"
+      },
+      {
         "source": "/check-email",
         "function": "checkEmailRegistered"
       }
