@@ -2184,7 +2184,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     document.body.classList.remove('print-a3-landscape');
                     if (btn.dataset.target === 'list-view') loadReports(false);
-                    if (btn.dataset.target === 'schedule-input-view') resetScheduleEditMode();
+                    if (btn.dataset.target === 'schedule-input-view') {
+                        const idInput = document.getElementById('sched-id');
+                        if (!idInput || !idInput.value) {
+                            resetScheduleEditMode();
+                        }
+                    }
                 }
             };
 
@@ -3657,6 +3662,66 @@ document.addEventListener('DOMContentLoaded', () => {
         return lines;
     };
 
+    const getGanttSupplierValues = (s) => {
+        const resolveItems = (items) => {
+            const vals = [];
+            items.forEach(item => {
+                if (item.sep) {
+                    vals.push('別途');
+                } else if (item.val && item.val.trim() !== '') {
+                    vals.push(item.val.trim());
+                }
+            });
+            return [...new Set(vals)].join('\n');
+        };
+
+        // 1. 柱脚
+        let pedestal = resolveItems([
+            { val: s.constPedestal1, sep: s.constPedestal1Separate },
+            { val: s.constPedestal2, sep: s.constPedestal2Separate }
+        ]);
+        if (!pedestal && s.supplier1) {
+            pedestal = s.supplier1.trim();
+        }
+
+        // 2. 製作
+        let fab = resolveItems([
+            { val: s.constFab1, sep: s.constFab1Separate },
+            { val: s.constFab2, sep: s.constFab2Separate }
+        ]);
+        if (!fab) {
+            const oldFabs = [s.supplier2, s.supplier3].map(v => v ? v.trim() : '').filter(Boolean);
+            if (oldFabs.length > 0) {
+                fab = [...new Set(oldFabs)].join('\n');
+            }
+        }
+
+        // 3. 建て方本締め
+        const erectionBolting = resolveItems([
+            { val: s.constErection, sep: s.constErectionSeparate },
+            { val: s.constBolting, sep: s.constBoltingSeparate }
+        ]);
+
+        // 4. 床スタッド
+        const deckStud = resolveItems([
+            { val: s.constDeck, sep: s.constDeckSeparate },
+            { val: s.constStud, sep: s.constStudSeparate }
+        ]);
+
+        // 5. 現場溶接
+        const welding = resolveItems([
+            { val: s.constWelding, sep: s.constWeldingSeparate }
+        ]);
+
+        return {
+            pedestal: pedestal || '-',
+            fab: fab || '-',
+            erectionBolting: erectionBolting || '-',
+            deckStud: deckStud || '-',
+            welding: welding || '-'
+        };
+    };
+
     const renderGanttChart = () => {
         const container = document.getElementById('gantt-container');
         if (!container || !ganttYearSelect) return;
@@ -3773,35 +3838,39 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        // 列定義: 左側詳細テーブル（10カラム、合計615pxに縮小） + 右側カレンダー各日(1frで画面幅に収める)
-        let html = qualSummaryHtml + `<div class="gantt-grid" style="grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(${dateList.length}, 1fr); width: 100%;">`;
+        // 列定義: 左側詳細テーブル（14カラム、合計855px） + 右側カレンダー各日(1frで画面幅に収める)
+        let html = qualSummaryHtml + `<div class="gantt-grid" style="grid-template-columns: 100px 80px 80px 55px 55px 75px 65px 60px 45px 45px 45px 45px 60px 45px repeat(${dateList.length}, 1fr); width: 100%;">`;
 
         // ==========================================
-        // 行1: ヘッダー (左側：10個の詳細カラムヘッダー、右側：各月)
+        // 行1: ヘッダー (左側：14個の詳細カラムヘッダー、右側：各月)
         // ==========================================
         // 左側のテーブル情報ヘッダーエリア（縦割り、sticky固定、並び替え版）
         html += `
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 1; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 0px; z-index: 25;">工事名</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 2; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 100px; z-index: 25;">元請</div>
             <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 3; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 180px; z-index: 25;">住所</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 260px; z-index: 25;">施工体制</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 5; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 330px; z-index: 25;">数量</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 6; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 375px; z-index: 25;">営業</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 7; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 420px; z-index: 25;">技術者</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 8; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 465px; z-index: 25;">工務</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 9; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 510px; z-index: 25;">補助</div>
-            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 10; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; border-right: 2px solid var(--border) !important; position: sticky; left: 570px; z-index: 25;">現場</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 4; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 260px; z-index: 25;">柱脚</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 5; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 315px; z-index: 25;">製作</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 6; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 370px; z-index: 25;">建て方本締め</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 7; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 445px; z-index: 25;">床スタッド</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 8; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 510px; z-index: 25;">現場溶接</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 9; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 570px; z-index: 25;">数量</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 10; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 615px; z-index: 25;">営業</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 11; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 660px; z-index: 25;">技術者</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 12; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 705px; z-index: 25;">工務</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 13; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; position: sticky; left: 750px; z-index: 25;">補助</div>
+            <div class="gantt-cell gantt-header-cell" style="grid-row: 1; grid-column: 14; font-size: 0.74rem; font-weight: bold; height: 35px; border-bottom: 2px solid #cbd5e1; border-right: 2px solid var(--border) !important; position: sticky; left: 810px; z-index: 25;">現場</div>
         `;
 
-        // カレンダー部 月ヘッダー (左側10列の次なので 11列目から開始)
-        let startCol = 11;
+        // カレンダー部 月ヘッダー (左側14列の次なので 15列目から開始)
+        let startCol = 15;
         dateList.forEach((d, idx) => {
             const m = d.getMonth() + 1;
             const nextDate = dateList[idx + 1];
             const isLastDayOfMonth = !nextDate || nextDate.getMonth() !== d.getMonth();
 
             if (isLastDayOfMonth) {
-                const endCol = idx + 12;
+                const endCol = idx + 16;
                 const boundaryClass = !nextDate ? '' : 'month-boundary';
                 html += `<div class="gantt-cell gantt-header-cell ${boundaryClass}" style="grid-row: 1; grid-column: ${startCol} / ${endCol}; font-weight: bold; font-size: 0.85rem; height: 35px; border-bottom: 2px solid #cbd5e1;">${m}月</div>`;
                 startCol = endCol;
@@ -3825,12 +3894,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 住所に作業所住所を設定
             const displayAddress = s.workAddress || s.address || '-';
 
-            // 仕入のグループ化改行表示
-            const supplierLines = getSupplierGroupText(s);
-            const supplierHtml = supplierLines.length > 0 
-                ? supplierLines.map(line => `<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; line-height: 1.2;">${line}</div>`).join('')
-                : '-';
-            const supplierTitle = supplierLines.length > 0 ? `施工体制:\n${supplierLines.join('\n')}` : '施工体制: -';
+            // 施工体制の5グループを解決
+            const supVals = getGanttSupplierValues(s);
 
             html += `
                 <!-- 1. 工事名 -->
@@ -3842,39 +3907,55 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${editBtnHtml}
                 </div>
                 <!-- 2. 元請 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 2; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--primary); font-weight: bold; border-bottom: 1px solid var(--border); position: sticky; left: 100px; z-index: 15; background: var(--card-bg);" title="${s.client || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 2; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.72rem; white-space: normal; word-break: break-all; line-height: 1.15; color: var(--primary); font-weight: bold; border-bottom: 1px solid var(--border); position: sticky; left: 90px; z-index: 15; background: var(--card-bg);" title="${s.client || ''}">
                     ${s.client || '-'}
                 </div>
                 <!-- 3. 住所 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; border-bottom: 1px solid var(--border); position: sticky; left: 180px; z-index: 15; background: var(--card-bg);" title="住所: ${displayAddress}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; border-bottom: 1px solid var(--border); position: sticky; left: 160px; z-index: 15; background: var(--card-bg);" title="住所: ${displayAddress}">
                     ${displayAddress}
                 </div>
-                <!-- 4. 仕入 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 4; text-align: left; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 4px 2px; font-size: 0.7rem; border-bottom: 1px solid var(--border); position: sticky; left: 260px; z-index: 15; background: var(--card-bg);" title="${supplierTitle}">
-                    ${supplierHtml}
+                <!-- 4. 柱脚 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 4; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: pre-line; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 230px; z-index: 15; background: var(--card-bg);" title="柱脚: &#10;${supVals.pedestal}">
+                    ${supVals.pedestal}
                 </div>
-                <!-- 5. 数量 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 5; text-align: right; justify-content: flex-end; padding: 6px 2px; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 330px; z-index: 15; background: var(--card-bg);" title="数量: ${s.memoQty || '-'}">
+                <!-- 5. 製作 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 5; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: pre-line; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 275px; z-index: 15; background: var(--card-bg);" title="製作: &#10;${supVals.fab}">
+                    ${supVals.fab}
+                </div>
+                <!-- 6. 建て方本締め -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 6; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: pre-line; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 320px; z-index: 15; background: var(--card-bg);" title="建て方本締め: &#10;${supVals.erectionBolting}">
+                    ${supVals.erectionBolting}
+                </div>
+                <!-- 7. 床スタッド -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 7; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: pre-line; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 380px; z-index: 15; background: var(--card-bg);" title="床スタッド: &#10;${supVals.deckStud}">
+                    ${supVals.deckStud}
+                </div>
+                <!-- 8. 現場溶接 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 8; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: pre-line; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 430px; z-index: 15; background: var(--card-bg);" title="現場溶接: &#10;${supVals.welding}">
+                    ${supVals.welding}
+                </div>
+                <!-- 9. 数量 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 9; text-align: right; justify-content: flex-end; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 480px; z-index: 15; background: var(--card-bg);" title="数量: ${s.memoQty || '-'}">
                     ${s.memoQty || '-'}
                 </div>
-                <!-- 6. 営業 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 6; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 375px; z-index: 15; background: var(--card-bg);" title="${s.salesRep || ''}">
+                <!-- 10. 営業 -->
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 10; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 515px; z-index: 15; background: var(--card-bg);" title="${s.salesRep || ''}">
                     ${s.salesRep || '-'}
                 </div>
-                <!-- 7. 技術者 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 7; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 420px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
+                <!-- 11. 技術者 -->
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 11; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 550px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
                     ${s.chiefTech || '-'}
                 </div>
-                <!-- 8. 工務 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 8; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 465px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
+                <!-- 12. 工務 -->
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 12; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 585px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
                     ${s.constRep || '-'}
                 </div>
-                <!-- 9. 補助 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 9; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 510px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
+                <!-- 13. 補助 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 13; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 620px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
                     ${s.subcontractor || '-'}
                 </div>
-                <!-- 10. 現場 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 10; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 570px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
+                <!-- 14. 現場 -->
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 14; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 670px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
                     ${s.siteRep || '-'}
                 </div>
             `;
@@ -3888,7 +3969,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
                 const boundaryClass = isLastDay ? 'month-boundary' : '';
 
-                html += `<div class="gantt-bar-bg-cell ${isSat} ${isSun} ${boundaryClass}" style="grid-row: ${rowIndex}; grid-column: ${idx + 11};"></div>`;
+                html += `<div class="gantt-bar-bg-cell ${isSat} ${isSun} ${boundaryClass}" style="grid-row: ${rowIndex}; grid-column: ${idx + 15};"></div>`;
             });
 
             // 工程バーの計算（文字列比較で安全に行い、日付のズレを防ぐ）
@@ -3935,8 +4016,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const endIdx = dateList.findIndex(d => formatDateLocal(d) === drawEndStr);
 
                 if (startIdx !== -1 && endIdx !== -1) {
-                    const gridStart = startIdx + 11;
-                    const gridEnd = endIdx + 12;
+                    const gridStart = startIdx + 15;
+                    const gridEnd = endIdx + 16;
 
                     const color = getBarColorForSiteRep(s.siteRep);
                     const patternClass = s.barPattern === 'stripe' ? 'pattern-stripe' : '';
@@ -5268,7 +5349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gridEl.style.width = 'max-content';
                 const origCols = gridEl.style.gridTemplateColumns;
                 if (origCols) {
-                    gridEl.style.gridTemplateColumns = origCols.replace(/1fr/g, '3px');
+                    gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '3px').replace(/1fr/g, '3px');
                 }
             }
             
@@ -6073,7 +6154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (quals.includes('exp')) listPractical.push(nameWithDed);
             });
 
-            const totalCols = 12 + dateList.length;
+            const totalCols = 16 + dateList.length;
 
             // ----------------------------------------
             // 行1: タイトル
@@ -6123,7 +6204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row5.height = 25;
             
             // 左側結合
-            sheet.mergeCells(5, 1, 5, 12);
+            sheet.mergeCells(5, 1, 5, 16);
             const detailHeaderCell = row5.getCell(1);
             detailHeaderCell.value = '工程詳細情報';
             detailHeaderCell.font = { name: 'MS Gothic', size: 10, bold: true };
@@ -6134,14 +6215,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // 右側月ヘッダー結合
-            let startCol = 13;
+            let startCol = 17;
             dateList.forEach((d, idx) => {
                 const m = d.getMonth() + 1;
                 const nextDate = dateList[idx + 1];
                 const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
 
                 if (isLastDay) {
-                    const endCol = idx + 13; // 1-indexed column index
+                    const endCol = idx + 17; // 1-indexed column index
                     sheet.mergeCells(5, startCol, 5, endCol);
                     const mCell = row5.getCell(startCol);
                     mCell.value = `${m}月`;
@@ -6153,7 +6234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mCell.border = {
                         top: { style: 'medium' },
                         bottom: { style: 'thin' },
-                        left: { style: startCol === 13 ? 'thin' : 'none' },
+                        left: { style: startCol === 17 ? 'thin' : 'none' },
                         right: { style: !nextDate ? 'medium' : 'medium' }
                     };
                     startCol = endCol + 1;
@@ -6167,7 +6248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row6.height = 20;
 
             const leftHeaders = [
-                "工事名", "元請", "現場住所", "施工体制", 
+                "工事名", "元請", "現場住所", "柱脚", "製作", "建て方本締め", "床スタッド", "現場溶接", 
                 "管理補助", "数量メモ", "営業担当", "工務担当", "現場担当", "主任技術者", "専任区分", "完了"
             ];
             
@@ -6186,7 +6267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dateList.forEach((d, idx) => {
-                const colIdx = idx + 13;
+                const colIdx = idx + 17;
                 const cell = row6.getCell(colIdx);
                 const day = d.getDay();
                 const isSat = day === 6;
@@ -6225,12 +6306,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 住所に作業所住所を設定
                 const displayAddress = s.workAddress || s.address || '-';
 
-                // 仕入のグループ化改行表示
-                const supplierLines = getSupplierGroupText(s);
-                const displaySupplier = supplierLines.length > 0 ? supplierLines.join('\n') : '-';
+                // 施工体制の5グループを解決
+                const supVals = getGanttSupplierValues(s);
 
                 const leftValues = [
-                    s.project || '', s.client || '-', displayAddress, displaySupplier,
+                    s.project || '', s.client || '-', displayAddress,
+                    supVals.pedestal, supVals.fab, supVals.erectionBolting, supVals.deckStud, supVals.welding,
                     s.subcontractor || '-', s.memoQty || '-', s.salesRep || '-', s.constRep || '-', s.siteRep || '-', s.chiefTech || '-',
                     displayAssign, displayCompleted
                 ];
@@ -6240,9 +6321,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.value = val;
                     cell.font = { name: 'MS Gothic', size: 9 };
                     cell.alignment = { 
-                        horizontal: (idx >= 10) ? 'center' : 'left',
+                        horizontal: (idx >= 14) ? 'center' : 'left',
                         vertical: 'middle',
-                        wrapText: (idx === 2 || idx === 3) ? true : false
+                        wrapText: (idx === 2 || (idx >= 3 && idx <= 7)) ? true : false
                     };
                     cell.border = {
                         top: { style: 'thin' },
@@ -6251,14 +6332,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         right: { style: 'thin' }
                     };
                     // 完了かつ完了カラムなら緑色太字
-                    if (idx === 11 && s.completed) {
+                    if (idx === 15 && s.completed) {
                         cell.font = { name: 'MS Gothic', size: 9, bold: true, color: { argb: 'FF16A34A' } };
                     }
                 });
 
                 // カレンダー背景セルの初期化 (土日・月境界の描画)
                 dateList.forEach((d, idx) => {
-                    const colIdx = idx + 13;
+                    const colIdx = idx + 17;
                     const cell = row.getCell(colIdx);
                     const day = d.getDay();
                     const isSat = day === 6;
@@ -6316,8 +6397,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
 
                     if (startIdx !== -1 && endIdx !== -1) {
-                        const barStartCol = startIdx + 13;
-                        const barEndCol = endIdx + 13;
+                        const barStartCol = startIdx + 17;
+                        const barEndCol = endIdx + 17;
 
                         // バーに該当する各セルにスタイルを適用
                         const colorARGB = hexToARGB(getBarColorForSiteRep(s.siteRep));
