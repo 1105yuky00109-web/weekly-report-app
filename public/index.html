@@ -230,19 +230,19 @@
     <main id="schedule-input-view" class="view no-print">
         <div class="form-card">
             <h2 id="schedule-form-title">工事を登録</h2>
-            <form id="schedule-form">
+            <form id="schedule-form" autocomplete="off">
                 <input type="hidden" id="sched-id" value="">
 
                 <!-- 1. 工事名 & 2. 元請 & 担当支店 -->
                 <div class="form-row">
                     <div class="form-group" style="flex:2;">
                         <label for="sched-project">工事名 <span style="color:red">*</span></label>
-                        <input type="text" id="sched-project" placeholder="例: ○○ビル新築工事" required list="project-list">
+                        <input type="text" id="sched-project" placeholder="例: ○○ビル新築工事" required list="project-list" autocomplete="off">
                         <datalist id="project-list"></datalist>
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label for="sched-client">元請</label>
-                        <input type="text" id="sched-client" placeholder="例: 西武建設">
+                        <input type="text" id="sched-client" placeholder="例: 西武建設" autocomplete="off">
                     </div>
                     <div class="form-group" style="flex:1; display:none;">
                         <label for="sched-branch">担当支店</label>
@@ -256,7 +256,7 @@
                 <div class="form-row">
                     <div class="form-group" style="flex:2;">
                         <label for="sched-address">現場住所</label>
-                        <input type="text" id="sched-address" placeholder="例: 東京都新宿区○○">
+                        <input type="text" id="sched-address" placeholder="例: 東京都新宿区○○" autocomplete="off">
                     </div>
                 </div>
 
@@ -264,7 +264,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sched-start">開始日 <span style="color:red">*</span></label>
-                        <input type="date" id="sched-start" required>
+                        <input type="date" id="sched-start" required autocomplete="off">
                         <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
                             <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="today">今日</button>
                             <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="tomorrow">明日</button>
@@ -273,7 +273,7 @@
                     </div>
                     <div class="form-group">
                         <label for="sched-end">終了日 <span style="color:red">*</span></label>
-                        <input type="date" id="sched-end" required>
+                        <input type="date" id="sched-end" required autocomplete="off">
                     </div>
                 </div>
 
@@ -281,15 +281,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sched-supplier1">仕入（仕入先①）</label>
-                        <input type="text" id="sched-supplier1" placeholder="例: センクシア">
+                        <input type="text" id="sched-supplier1" placeholder="例: センクシア" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="sched-supplier2">製作工場①（仕入先②）</label>
-                        <input type="text" id="sched-supplier2" placeholder="例: たかね工業">
+                        <input type="text" id="sched-supplier2" placeholder="例: たかね工業" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="sched-supplier3">製作工場②（仕入先③）</label>
-                        <input type="text" id="sched-supplier3" placeholder="例: 大建工業">
+                        <input type="text" id="sched-supplier3" placeholder="例: 大建工業" autocomplete="off">
                     </div>
                 </div>
 
@@ -297,7 +297,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sched-memo-qty">数量（ｔ、㎡）</label>
-                        <input type="text" id="sched-memo-qty" placeholder="例: 10t / 150㎡ / 200">
+                        <input type="text" id="sched-memo-qty" placeholder="例: 10t / 150㎡ / 200" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="sched-sales-rep">営業担当</label>
@@ -327,7 +327,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="sched-subcontractor">管理補助</label>
-                        <input type="text" id="sched-subcontractor" placeholder="例: 斎藤組">
+                        <input type="text" id="sched-subcontractor" placeholder="例: 斎藤組" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label for="sched-site-rep">現場担当</label>
@@ -341,7 +341,7 @@
                 <div class="form-row">
                     <div class="form-group" style="flex:3;">
                         <label for="sched-notes">作業内容・備考</label>
-                        <input type="text" id="sched-notes" placeholder="主な作業内容などの自由メモ">
+                        <input type="text" id="sched-notes" placeholder="主な作業内容などの自由メモ" autocomplete="off">
                     </div>
                     <div class="form-group" style="flex:1;">
                         <label for="sched-bar-pattern">バーの模様</label>
@@ -358,7 +358,7 @@
 
                 <div class="form-group" style="display:none;">
                     <label for="sched-author">登録者（氏名）:</label>
-                    <input type="text" id="sched-author" readonly>
+                    <input type="text" id="sched-author" readonly autocomplete="off">
                 </div>
 
                 <div style="display:flex;gap:10px;">

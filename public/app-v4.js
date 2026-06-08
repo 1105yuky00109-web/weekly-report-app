@@ -3256,6 +3256,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+        schedForm.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                e.preventDefault();
+            }
+        });
     }
 
     const schedCancelBtn = document.getElementById('sched-cancel-btn');
@@ -6742,6 +6747,14 @@ function openEditModal(sched) {
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+
+    // オートコンプリートの無効化とEnterキー送信防止
+    modal.querySelectorAll('input').forEach(inp => inp.setAttribute('autocomplete', 'off'));
+    modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            e.preventDefault();
+        }
+    });
 
     // オーバーレイ背景クリックで閉じる
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
