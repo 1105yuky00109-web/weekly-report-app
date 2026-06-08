@@ -1524,7 +1524,8 @@ body.dark-theme .gantt-qual-panel strong {
 
 /* ガントチャート内の工事名の自動改行対応 */
 .gantt-cell.gantt-proj-cell,
-.gantt-proj-cell .proj-card-project {
+.gantt-proj-cell .proj-card-project,
+.gantt-cell {
     white-space: normal !important;
     word-break: break-all !important;
     overflow: visible !important;
