@@ -3873,7 +3873,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isLastDayOfMonth) {
                 const endCol = idx + 17;
                 const boundaryClass = !nextDate ? '' : 'month-boundary';
-                html += `<div class="gantt-cell gantt-header-cell ${boundaryClass}" style="grid-row: 1; grid-column: ${startCol} / ${endCol}; font-weight: bold; font-size: 0.85rem; height: 35px; border-bottom: 2px solid #cbd5e1;">${m}月</div>`;
+                html += `<div class="gantt-cell gantt-header-cell ${boundaryClass}" style="grid-row: 1; grid-column: ${startCol} / ${endCol}; font-weight: bold; font-size: 0.72rem; height: 35px; border-bottom: 2px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center; line-height: 1.1; padding: 2px;">${m}<br>月</div>`;
                 startCol = endCol;
             }
         });
