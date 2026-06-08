@@ -3232,6 +3232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // 右側の最後の列の右境界線を太線にする
+            const leftColCount = 14;
             const lastColIdx = leftColCount + dateList.length;
             for (let r = 1; r <= targetSchedules.length + 2; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);

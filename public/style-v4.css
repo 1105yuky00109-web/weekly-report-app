@@ -1522,6 +1522,16 @@ body.dark-theme .gantt-qual-panel strong {
     color: #93c5fd;
 }
 
+/* ガントチャート内の工事名の自動改行対応 */
+.gantt-cell.gantt-proj-cell,
+.gantt-proj-cell .proj-card-project {
+    white-space: normal !important;
+    word-break: break-all !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    line-height: 1.15 !important;
+}
+
 @media print {
     .gantt-qual-panel {
         background-color: #d9e1f2 !important;
@@ -1532,6 +1542,15 @@ body.dark-theme .gantt-qual-panel strong {
     }
     .gantt-qual-panel strong {
         color: #1f4e79 !important;
+    }
+    /* 印刷時の工事名横の「編集」ボタン非表示 */
+    .btn-edit-schedule-v4 {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
     }
 }
 

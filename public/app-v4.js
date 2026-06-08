@@ -134,6 +134,32 @@ function populateBranchDropdowns() {
     });
 }
 
+// 社員名を資格者登録の氏名ドロップダウンに反映する関数
+function populateEmployeeNameDropdown() {
+    const memberNameSelect = document.getElementById('member-name');
+    if (!memberNameSelect) return;
+
+    const employees = (currentCompany && currentCompany.employees) ? currentCompany.employees : [];
+    
+    // 氏名（name）でソート
+    const sortedEmployees = [...employees].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+    
+    const currentVal = memberNameSelect.value;
+    
+    memberNameSelect.innerHTML = '<option value="">社員を選択してください</option>';
+    sortedEmployees.forEach(emp => {
+        if (!emp.name) return;
+        const opt = document.createElement('option');
+        opt.value = emp.name;
+        opt.textContent = `${emp.name} (${emp.employeeRole || emp.role || '担当未設定'})`;
+        memberNameSelect.appendChild(opt);
+    });
+
+    if (currentVal && sortedEmployees.some(emp => emp.name === currentVal)) {
+        memberNameSelect.value = currentVal;
+    }
+}
+
 // 担当者または社員の所属支店を特定するヘルパー関数
 function getAuthorBranch(authorName) {
     if (!authorName) return '';
@@ -308,6 +334,7 @@ onAuthStateChanged(auth, async (user) => {
         // データ初期読み込み（DOMContentLoaded後に確実に実行されるよう安全に呼び出す）
         await loadMembers();
         populateBranchDropdowns();
+        populateEmployeeNameDropdown();
 
 
 
@@ -819,6 +846,7 @@ function initEmployeeManagePanel() {
                 modal.style.display = 'flex';
             };
         });
+        populateEmployeeNameDropdown();
     };
 
     // 編集モーダルの保存処理およびキャンセル処理のバインド
@@ -1134,8 +1162,21 @@ function renderMemberList() {
     tbody.innerHTML = allMembers.map((m, idx) => {
         const bg = idx % 2 ? '#f8fafc' : '#fff';
         
-        // 役割の日本語表示
-        const rolesText = (m.roles || []).map(r => ROLE_MAP[r] || r).join(', ');
+        // 役割の表示 (社員データの「担当」から動的にマッピング)
+        let rolesText = '';
+        if (currentCompany && currentCompany.employees) {
+            const emp = currentCompany.employees.find(e => e.name === m.name);
+            if (emp) {
+                rolesText = emp.employeeRole || emp.role || '';
+            }
+        }
+        if (!rolesText) {
+            if (m.roles && m.roles.length > 0) {
+                rolesText = m.roles.map(r => ROLE_MAP[r] || r).join(', ');
+            } else {
+                rolesText = '未設定 (社員未登録)';
+            }
+        }
         
         // 資格の日本語表示
         const qualList = (m.qualifications || []).map(q => QUAL_MAP[q] || q);
@@ -1275,22 +1316,55 @@ function populateMemberDropdowns() {
     initSelect(siteSelect);
     initSelect(chiefSelect);
 
-    // メンバーを役割ごとに分類して追加
-    allMembers.forEach(m => {
-        const roles = m.roles || [];
-        const isSales = roles.includes('sales');
-        const isConst = roles.includes('const');
-        const isSite = roles.includes('site');
-        // 主任技術者は資格（標準またはカスタム）を保有しているメンバー全員を対象とする
-        const isChiefEligible = (m.qualifications && m.qualifications.length > 0) || (m.customQualifications && m.customQualifications.trim() !== "");
+    const employees = (currentCompany && currentCompany.employees) ? currentCompany.employees : [];
 
-        const optHtml = `<option value="${m.name}">${m.name}</option>`;
-
-        if (isSales) salesSelect.innerHTML += optHtml;
-        if (isConst) constSelect.innerHTML += optHtml;
-        if (isSite) siteSelect.innerHTML += optHtml;
-        if (isChiefEligible) chiefSelect.innerHTML += optHtml;
+    // 1. 営業担当の追加（社員登録から、営業のみ）
+    const salesEmployees = employees.filter(emp => (emp.employeeRole || emp.role) === '営業');
+    salesEmployees.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+    salesEmployees.forEach(emp => {
+        if (!emp.name) return;
+        salesSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
     });
+
+    // 2. 工務担当の追加（社員登録から、工務のみ）
+    const constEmployees = employees.filter(emp => (emp.employeeRole || emp.role) === '工務');
+    constEmployees.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+    constEmployees.forEach(emp => {
+        if (!emp.name) return;
+        constSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+    });
+
+    // 3. 現場担当の追加（社員登録から、現場のみ）
+    const siteEmployees = employees.filter(emp => (emp.employeeRole || emp.role) === '現場');
+    siteEmployees.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+    siteEmployees.forEach(emp => {
+        if (!emp.name) return;
+        siteSelect.innerHTML += `<option value="${emp.name}">${emp.name}</option>`;
+    });
+
+    // 4. 主任技術者の追加（資格登録した人間 = allMembers で資格保有）
+    const eligibleChiefs = allMembers.filter(m => 
+        (m.qualifications && m.qualifications.length > 0) || 
+        (m.customQualifications && m.customQualifications.trim() !== "")
+    );
+    eligibleChiefs.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+    eligibleChiefs.forEach(m => {
+        chiefSelect.innerHTML += `<option value="${m.name}">${m.name}</option>`;
+    });
+
+    // 現在選択されている値が選択肢になければ追加する（データ整合性フォールバック）
+    const addIfMissing = (select, val) => {
+        if (val && !Array.from(select.options).some(opt => opt.value === val)) {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val;
+            select.appendChild(opt);
+        }
+    };
+    addIfMissing(salesSelect, curSales);
+    addIfMissing(constSelect, curConst);
+    addIfMissing(siteSelect, curSite);
+    addIfMissing(chiefSelect, curChief);
 
     // 選択値を復元
     salesSelect.value = curSales;
@@ -1381,7 +1455,6 @@ function openMemberEditModal(memberId) {
         box-sizing: border-box;
     `;
 
-    const isRole = (r) => (member.roles || []).includes(r) ? 'checked' : '';
     const isQual = (q) => (member.qualifications || []).includes(q) ? 'checked' : '';
 
     modal.innerHTML = `
@@ -1390,18 +1463,8 @@ function openMemberEditModal(memberId) {
         </h3>
         
         <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">氏名 <span style="color:red">*</span></label>
-            <input type="text" id="edit-member-name" value="${(member.name || '').replace(/"/g, '&quot;')}" required
-                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">担当役割 <span style="color:red">*</span></label>
-            <div style="display:flex; flex-direction:column; gap:5px; padding-top:5px;">
-                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="sales" ${isRole('sales')} required> 営業担当</label>
-                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="const" ${isRole('const')}> 工務担当</label>
-                <label style="font-weight:normal; display:flex; align-items:center; gap:5px;"><input type="radio" name="edit-member-role" value="site" ${isRole('site')}> 工事（現場）担当</label>
-            </div>
+            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">氏名</label>
+            <span id="edit-member-name-text" style="font-weight:bold; font-size:1.1rem; color:#1e293b;">${member.name}</span>
         </div>
 
         <div style="margin-bottom: 20px;">
@@ -1431,17 +1494,23 @@ function openMemberEditModal(memberId) {
 
     // 保存ボタン
     document.getElementById('btn-edit-member-save').addEventListener('click', async () => {
-        const name = document.getElementById('edit-member-name').value.trim();
-        if (!name) {
-            alert('氏名を入力してください。');
-            return;
-        }
+        const name = member.name;
 
-        const roleEl = document.querySelector('input[name="edit-member-role"]:checked');
-        const roles = roleEl ? [roleEl.value] : [];
-        if (roles.length === 0) {
-            alert('担当役割を選択してください。');
-            return;
+        // 社員データから役割（担当）を自動で引き継ぎ、なければ元の値を維持
+        let roles = [];
+        let resolved = false;
+        if (currentCompany && currentCompany.employees) {
+            const emp = currentCompany.employees.find(e => e.name === name);
+            if (emp) {
+                const empRole = emp.employeeRole || emp.role;
+                const roleMap = { '営業': 'sales', '工務': 'const', '現場': 'site' };
+                const r = roleMap[empRole];
+                if (r) roles = [r];
+                resolved = true;
+            }
+        }
+        if (!resolved) {
+            roles = member.roles || [];
         }
 
         const qualifications = [];
@@ -1481,6 +1550,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const name = document.getElementById('member-name').value.trim();
+            if (!name) {
+                alert('登録する社員を選択してください。');
+                if (memberMsg) memberMsg.classList.add('hidden');
+                return;
+            }
+
+            // 重複登録のチェック
+            const exists = allMembers.some(m => m.name === name);
+            if (exists) {
+                alert('この社員は既に資格者として登録されています。');
+                if (memberMsg) memberMsg.classList.add('hidden');
+                return;
+            }
+
             let resolvedBranch = '';
             const myEmpInfo = currentCompany && currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid || e.email === currentUser.email) : null;
             if (myEmpInfo && myEmpInfo.branch) {
@@ -1493,21 +1576,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const dedication = "none";
             const customQual = "";
 
-            // 役割ラジオボタン (単一選択)
-            const roleEl = document.querySelector('input[name="member-role"]:checked');
-            const roles = roleEl ? [roleEl.value] : [];
+            // 社員データから役割（担当）を自動取得・マッピング
+            let roles = [];
+            if (currentCompany && currentCompany.employees) {
+                const emp = currentCompany.employees.find(e => e.name === name);
+                if (emp) {
+                    const empRole = emp.employeeRole || emp.role;
+                    const roleMap = { '営業': 'sales', '工務': 'const', '現場': 'site' };
+                    const r = roleMap[empRole];
+                    if (r) roles = [r];
+                }
+            }
 
             // 資格チェックボックス
             const qualifications = [];
             document.querySelectorAll('input[name="member-qual"]:checked').forEach(cb => {
                 qualifications.push(cb.value);
             });
-
-            if (roles.length === 0) {
-                alert('担当役割は少なくとも1つ選択してください。');
-                if (memberMsg) memberMsg.classList.add('hidden');
-                return;
-            }
 
             try {
                 await addMember(name, roles, qualifications, customQual, dedication, branch);
@@ -3072,6 +3157,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 resolvedBranch = ganttFilter ? ganttFilter.value : '';
             }
 
+            const startVal = document.getElementById('sched-start').value;
+            const endVal = document.getElementById('sched-end').value;
+            if (startVal && endVal && startVal > endVal) {
+                alert('終了日は開始日より後の日付にしてください。');
+                return;
+            }
+
             const schedData = {
                 companyId,
                 project: document.getElementById('sched-project').value.trim(),
@@ -3114,6 +3206,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // ガントチャートを再読み込み
                 await loadSchedules();
+
+                // 自動で工程管理表（gantt-view）タブへ切り替える
+                const ganttTabBtn = document.querySelector('.tab-btn[data-target="gantt-view"]');
+                if (ganttTabBtn) {
+                    ganttTabBtn.click();
+                }
                 
                 setTimeout(() => msg.classList.add('hidden'), 3000);
             } catch (error) {
@@ -3127,6 +3225,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (schedCancelBtn) {
         schedCancelBtn.addEventListener('click', () => {
             resetScheduleEditMode();
+            // 自動で工程管理表（gantt-view）タブへ切り替える
+            const ganttTabBtn = document.querySelector('.tab-btn[data-target="gantt-view"]');
+            if (ganttTabBtn) {
+                ganttTabBtn.click();
+            }
         });
     }
 
@@ -3393,8 +3496,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 年度と重なるスケジュールを抽出
         const targetSchedules = filteredSchedules.filter(s => s.start <= endStr && s.end >= startStr);
-        // 表示順は開始日の早い順、その次は工事名順とする
-        targetSchedules.sort((a, b) => (a.start || '') > (b.start || '') ? 1 : ((a.start || '') < (b.start || '') ? -1 : ((a.project || '') > (b.project || '') ? 1 : -1)));
+        
+        // 並び替え処理
+        const ganttSortSelect = document.getElementById('gantt-sort');
+        const sortType = ganttSortSelect ? ganttSortSelect.value : 'start-asc';
+
+        if (sortType === 'start-asc') {
+            targetSchedules.sort((a, b) => (a.start || '') > (b.start || '') ? 1 : ((a.start || '') < (b.start || '') ? -1 : ((a.project || '') > (b.project || '') ? 1 : -1)));
+        } else if (sortType === 'start-desc') {
+            targetSchedules.sort((a, b) => (a.start || '') < (b.start || '') ? 1 : ((a.start || '') > (b.start || '') ? -1 : ((a.project || '') > (b.project || '') ? 1 : -1)));
+        } else if (sortType === 'project-asc') {
+            targetSchedules.sort((a, b) => (a.project || '').localeCompare(b.project || '', 'ja'));
+        } else if (sortType === 'client-asc') {
+            targetSchedules.sort((a, b) => (a.client || '').localeCompare(b.client || '', 'ja'));
+        } else if (sortType === 'sales-asc') {
+            targetSchedules.sort((a, b) => (a.salesRep || '').localeCompare(b.salesRep || '', 'ja'));
+        } else if (sortType === 'tech-asc') {
+            targetSchedules.sort((a, b) => (a.chiefTech || '').localeCompare(b.chiefTech || '', 'ja'));
+        } else if (sortType === 'const-asc') {
+            targetSchedules.sort((a, b) => (a.constRep || '').localeCompare(b.constRep || '', 'ja'));
+        } else if (sortType === 'site-asc') {
+            targetSchedules.sort((a, b) => (a.siteRep || '').localeCompare(b.siteRep || '', 'ja'));
+        } else if (sortType === 'createdAt-desc') {
+            targetSchedules.sort((a, b) => (b.timestamp || b.createdAt || '') > (a.timestamp || a.createdAt || '') ? 1 : -1);
+        }
 
         // 画面表示用に幅を設定し、PCでは画面幅に収め、スマホでは詳細幅があるため自動的にスクロール可能にします。
         container.style.width = '100%';
@@ -3513,10 +3638,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const supplierTitle = supplierParts.length > 0 ? `仕入: ${supplierParts.join(', ')}` : '仕入: -';
             html += `
                 <!-- 1. 工事名 -->
-                <div class="gantt-cell gantt-proj-cell" style="grid-row: ${rowIndex}; grid-column: 1; text-align: left; justify-content: space-between; padding: 6px 2px; font-size: 0.74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 0px; z-index: 15; background: var(--card-bg);" title="${s.project || ''}">
-                    <div style="display:flex; align-items:center; overflow:hidden; flex:1; text-align: left; margin-right: 1px;">
+                <div class="gantt-cell gantt-proj-cell" style="grid-row: ${rowIndex}; grid-column: 1; text-align: left; justify-content: space-between; padding: 6px 4px; font-size: 0.72rem; border-bottom: 1px solid var(--border); position: sticky; left: 0px; z-index: 15; background: var(--card-bg);" title="${s.project || ''}">
+                    <div style="display:flex; align-items:center; flex:1; text-align: left; margin-right: 1px;">
                         ${completedBadge}
-                        <span class="proj-card-project" style="font-weight: bold; color: var(--text-main); font-size: 0.74rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.project || ''}</span>
+                        <span class="proj-card-project" style="font-weight: bold; color: var(--text-main); font-size: 0.72rem; text-align: left;">${s.project || ''}</span>
                     </div>
                     ${editBtnHtml}
                 </div>
@@ -3537,23 +3662,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${s.memoQty || '-'}
                 </div>
                 <!-- 6. 営業 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 6; text-align: center; justify-content: center; padding: 6px 1px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 375px; z-index: 15; background: var(--card-bg);" title="${s.salesRep || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 6; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 375px; z-index: 15; background: var(--card-bg);" title="${s.salesRep || ''}">
                     ${s.salesRep || '-'}
                 </div>
                 <!-- 7. 技術者 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 7; text-align: center; justify-content: center; padding: 6px 1px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 420px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 7; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 420px; z-index: 15; background: var(--card-bg);" title="${s.chiefTech || ''}">
                     ${s.chiefTech || '-'}
                 </div>
                 <!-- 8. 工務 -->
-                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 8; text-align: center; justify-content: center; padding: 6px 1px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 465px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
+                <div class="gantt-cell" style="grid-row: ${rowIndex}; grid-column: 8; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 465px; z-index: 15; background: var(--card-bg);" title="${s.constRep || ''}">
                     ${s.constRep || '-'}
                 </div>
                 <!-- 9. 補助 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 9; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); position: sticky; left: 510px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 9; text-align: left; justify-content: flex-start; padding: 4px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); position: sticky; left: 510px; z-index: 15; background: var(--card-bg);" title="補助: ${s.subcontractor || '-'}">
                     ${s.subcontractor || '-'}
                 </div>
                 <!-- 10. 現場 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 10; text-align: center; justify-content: center; padding: 6px 1px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 570px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 10; text-align: center; justify-content: center; padding: 4px 1px; font-size: 0.7rem; white-space: normal; word-break: break-all; line-height: 1.15; border-bottom: 1px solid var(--border); border-right: 2px solid var(--border) !important; position: sticky; left: 570px; z-index: 15; background: var(--card-bg);" title="${s.siteRep || ''}">
                     ${s.siteRep || '-'}
                 </div>
             `;
@@ -3636,6 +3761,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ganttBranchFilter = document.getElementById('gantt-branch-filter');
     if (ganttBranchFilter) {
         ganttBranchFilter.addEventListener('change', renderGanttChart);
+    }
+    const ganttSortSelect = document.getElementById('gantt-sort');
+    if (ganttSortSelect) {
+        ganttSortSelect.addEventListener('change', renderGanttChart);
     }
 
     // 工事名サジェスト（Datalist）の更新
@@ -5910,6 +6039,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // 右側の最後の列の右境界線を太線にする
+            const leftColCount = 14;
             const lastColIdx = leftColCount + dateList.length;
             for (let r = 1; r <= targetSchedules.length + 2; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);
@@ -6135,21 +6265,41 @@ function openEditModal(sched) {
 
     // 役割・資格別プルダウン生成
     const makeOptions = (roleKey, currentVal) => {
-        let filtered;
+        let optHtml = `<option value="">選択してください</option>`;
+        const employees = (currentCompany && currentCompany.employees) ? currentCompany.employees : [];
+
         if (roleKey === 'tech') {
             // 主任技術者は資格を保有しているメンバー全員を対象とする
-            filtered = allMembers.filter(m => 
+            const filtered = allMembers.filter(m => 
                 (m.qualifications && m.qualifications.length > 0) || 
                 (m.customQualifications && m.customQualifications.trim() !== "")
             );
+            filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+            filtered.forEach(m => {
+                const selected = m.name === currentVal ? 'selected' : '';
+                optHtml += `<option value="${m.name}" ${selected}>${m.name}</option>`;
+            });
         } else {
-            filtered = allMembers.filter(m => (m.roles || []).includes(roleKey));
+            // 営業, 工務, 現場（旧site）は社員登録から
+            let targetRole = '';
+            if (roleKey === 'sales') targetRole = '営業';
+            else if (roleKey === 'const') targetRole = '工務';
+            else if (roleKey === 'site') targetRole = '現場';
+
+            const filtered = employees.filter(emp => (emp.employeeRole || emp.role) === targetRole);
+            filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+            filtered.forEach(emp => {
+                if (!emp.name) return;
+                const selected = emp.name === currentVal ? 'selected' : '';
+                optHtml += `<option value="${emp.name}" ${selected}>${emp.name}</option>`;
+            });
         }
-        let optHtml = `<option value="">選択してください</option>`;
-        filtered.forEach(m => {
-            const selected = m.name === currentVal ? 'selected' : '';
-            optHtml += `<option value="${m.name}" ${selected}>${m.name}</option>`;
-        });
+
+        // 現在の値が選択肢に含まれていなければ追加（互換性担保）
+        if (currentVal && !optHtml.includes(`value="${currentVal}"`)) {
+            optHtml += `<option value="${currentVal}" selected>${currentVal}</option>`;
+        }
+
         return optHtml;
     };
 
@@ -6252,7 +6402,7 @@ function openEditModal(sched) {
                 </select>
             </div>
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:3px; color:#1e293b; font-size:0.85rem;">工事担当</label>
+                <label style="display:block; font-weight:600; margin-bottom:3px; color:#1e293b; font-size:0.85rem;">現場担当</label>
                 <select id="edit-site-rep" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
                     ${makeOptions('site', sched.siteRep)}
                 </select>

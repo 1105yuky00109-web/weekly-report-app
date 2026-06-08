@@ -218,7 +218,7 @@
         <nav class="tabs">
             <button class="tab-btn tab-gantt" data-target="schedule-input-view">工事登録</button>
             <button class="tab-btn active tab-gantt" data-target="gantt-view">工程管理表</button>
-            <button class="tab-btn tab-gantt" data-target="qualifications-view">🏅 資格・担当者管理</button>
+            <button class="tab-btn tab-gantt" data-target="qualifications-view">🏅 資格者登録</button>
             <button class="tab-btn tab-weekly" data-target="input-view">週の予定と実績</button>
             <button class="tab-btn tab-weekly" data-target="list-view">提出状況の確認</button>
             <button class="tab-btn tab-weekly" data-target="summary-view">工事別集計</button>
@@ -330,7 +330,7 @@
                         <input type="text" id="sched-subcontractor" placeholder="例: 斎藤組">
                     </div>
                     <div class="form-group">
-                        <label for="sched-site-rep">工事担当</label>
+                        <label for="sched-site-rep">現場担当</label>
                         <select id="sched-site-rep">
                             <option value="">選択してください</option>
                         </select>
@@ -388,6 +388,18 @@
                 <select id="gantt-branch-filter" style="padding:10px;font-size:1rem;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);">
                     <option value="">すべて</option>
                 </select>
+                <label for="gantt-sort" style="font-weight:bold;color:var(--text);margin-left:15px;">並び替え:</label>
+                <select id="gantt-sort" style="padding:10px;font-size:1rem;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);">
+                    <option value="start-asc">開始日順（早い順）</option>
+                    <option value="start-desc">開始日順（遅い順）</option>
+                    <option value="project-asc">工事名（五十音順）</option>
+                    <option value="client-asc">元請（五十音順）</option>
+                    <option value="sales-asc">営業担当者順（五十音順）</option>
+                    <option value="tech-asc">技術者順（五十音順）</option>
+                    <option value="const-asc">工務担当者順（五十音順）</option>
+                    <option value="site-asc">現場担当者順（五十音順）</option>
+                    <option value="createdAt-desc">登録の新しい順</option>
+                </select>
             </div>
             <div class="actions">
                 <button id="btn-export-gantt" class="btn btn-secondary btn-small">📊 Excel出力</button>
@@ -404,30 +416,24 @@
     <!-- ======== 資格・担当者管理 ======== -->
     <main id="qualifications-view" class="view no-print">
         <div class="form-card">
-            <h2>🏅 資格・担当者管理</h2>
+            <h2>🏅 資格者登録</h2>
             <div id="qual-summary-area" style="margin-bottom:20px;"></div>
             <div id="qualifications-summary-container"></div>
-            <h3>担当者と保有資格の登録</h3>
-            <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:15px;">工事予定に登録される担当者の役割と保有資格を設定できます。</p>
+            <h3>資格者登録</h3>
+            <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:15px;">登録された社員に対して保有資格を設定し、資格者として登録します。</p>
             <form id="member-add-form">
                 <div class="form-row">
                     <div class="form-group" style="flex:2;">
                         <label for="member-name">氏名 <span style="color:red">*</span></label>
-                        <input type="text" id="member-name" placeholder="例: 山田 太郎" required>
+                        <select id="member-name" required>
+                            <option value="">選択してください</option>
+                        </select>
                     </div>
                     <div class="form-group" style="flex:1.5; display:none;">
                         <label for="member-branch">所属支店</label>
                         <select id="member-branch">
                             <option value="">選択してください</option>
                         </select>
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label>役割 <span style="color:red">*</span></label>
-                        <div style="display:flex;flex-direction:column;gap:5px;padding-top:5px;">
-                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="sales" required> 営業担当</label>
-                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="const"> 工務担当</label>
-                            <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="radio" name="member-role" value="site"> 工事（現場）担当</label>
-                        </div>
                     </div>
                 </div>
                 <div class="form-group">
@@ -440,11 +446,11 @@
                         <label style="font-weight:normal;display:flex;align-items:center;gap:5px;"><input type="checkbox" name="member-qual" value="exp"> 実務経験</label>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">担当者を登録</button>
+                <button type="submit" class="btn btn-primary">資格者を登録</button>
                 <div id="member-add-message" class="message hidden"></div>
             </form>
             <div style="margin-top:30px;">
-                <h3>登録済み担当者一覧</h3>
+                <h3>登録済み資格者一覧</h3>
                 <div id="member-list-container">
                     <table style="width:100%;border-collapse:collapse;">
                         <thead>
@@ -797,7 +803,7 @@
                 <input type="text" id="edit-subcontractor">
             </div>
             <div class="form-group">
-                <label for="edit-site-rep">工事担当</label>
+                <label for="edit-site-rep">現場担当</label>
                 <select id="edit-site-rep">
                     <option value="">選択してください</option>
                 </select>
