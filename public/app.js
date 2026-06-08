@@ -1988,7 +1988,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const patternClass = s.barPattern === 'stripe' ? 'pattern-stripe' : '';
                 const completedClass = s.completed ? 'completed-bar' : '';
 
-                const barText = `${s.completed ? ' [完了] ' : ''}${s.project}${s.notes ? ` (${s.notes})` : ''}`;
+                const barText = `${s.completed ? '[完了] ' : ''}${s.notes || ''}`;
 
                 html += `<div class="gantt-bar ${patternClass} ${completedClass}" data-id="${s.id}" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; background-color: ${color};" title="【${s.project}】\n期間: ${s.start} 〜 ${s.end}\n備考: ${s.notes || 'なし'}">
                             ${barText}
@@ -3222,7 +3222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     // 結合後の代表セル（開始セル）にラベルをセット
                     const mergedStartCell = row.getCell(barStartCol);
-                    mergedStartCell.value = `${s.completed ? '[完了] ' : ''}${s.project}${s.notes ? ` (${s.notes})` : ''}`;
+                    mergedStartCell.value = `${s.completed ? '[完了] ' : ''}${s.notes || ''}`;
                     mergedStartCell.alignment = { 
                         horizontal: 'center', 
                         vertical: 'middle',
