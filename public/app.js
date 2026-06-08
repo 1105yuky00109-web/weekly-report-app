@@ -3539,10 +3539,22 @@ function getScheduleFormDataString() {
 }
 
 function checkUnsavedScheduleChanges() {
-    if (!lastSavedScheduleDataString) return false;
+    const currentDataStr = getScheduleFormDataString();
+    console.log("[UnsavedScheduleCheck] lastSaved:", lastSavedScheduleDataString);
+    console.log("[UnsavedScheduleCheck] current:", currentDataStr);
+    
+    if (!lastSavedScheduleDataString) {
+        console.log("[UnsavedScheduleCheck] Skipped: lastSaved is empty");
+        return false;
+    }
     const form = document.getElementById('schedule-form');
-    if (!form || form.offsetParent === null) return false;
-    return getScheduleFormDataString() !== lastSavedScheduleDataString;
+    if (!form) {
+        console.log("[UnsavedScheduleCheck] Skipped: form not found");
+        return false;
+    }
+    const isDirty = currentDataStr !== lastSavedScheduleDataString;
+    console.log("[UnsavedScheduleCheck] isDirty:", isDirty);
+    return isDirty;
 }
 
 function showUnsavedScheduleChangesModal({ onSaveAndLeave, onLeaveWithoutSaving, onCancel }) {
