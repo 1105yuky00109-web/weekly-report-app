@@ -3571,6 +3571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const cid = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
             const q = query(collection(db, "schedules"), where("companyId", "==", cid));
+            const querySnapshot = await getDocs(q);
             allSchedules = querySnapshot.docs.map(d => {
                 const data = d.data();
                 const sched = { id: d.id, ...data };
