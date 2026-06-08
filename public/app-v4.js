@@ -7097,6 +7097,11 @@ function openEditModal(sched) {
             </div>
         </div>
 
+        <!-- 数量・担当者セクション -->
+        <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px;">
+            <h4 style="font-size: 1rem; color: #2563eb; margin: 0; font-weight: bold;">数量・担当者</h4>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
             <div>
                 <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">管理補助</label>

@@ -1881,7 +1881,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const cid = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
             const q = query(collection(db, "schedules"), where("companyId", "==", cid));
             const querySnapshot = await getDocs(q);
-            allSchedules = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            allSchedules = querySnapshot.docs.map(d => {
+                const data = d.data();
+                const sched = { id: d.id, ...data };
+                // 過去データ互換（建て方①の日付が空の場合、start/endを建て方①にコピー）
+                if (!sched.dateErection1Start && sched.start) {
+                    sched.dateErection1Start = sched.start;
+                    sched.dateErection1End = sched.end;
+                }
+                return sched;
+            });
             renderGanttChart();
             updateProjectSuggestions();
         } catch (e) {
