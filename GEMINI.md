@@ -29,36 +29,31 @@
   - **SheetJS (xlsx.full.min.js)**: クライアントサイドでの高度なExcelファイル生成
 - **インフラ・公開環境**:
   - **GitHub**: ソースコード管理 (`https://github.com/1105yuky00109-web/weekly-report-app`)
-  - **Netlify**: ホスティング＆継続的デプロイ (CI/CD)
+  - **Firebase Hosting**: ホスティング・公開環境 (`https://weekly-report-93e5f.web.app`)
 
 ---
 
 ## 3. ビルド・デプロイルールと構成
-セキュリティの観点から、APIキーなどのFirebase接続情報はソースコードに直接コミットせず、環境変数からビルド時に動的注入する仕組みを採用しています。
+セキュリティの観点から、フロントエンド用のFirebase APIキーなどの接続情報は、通常ソースコード上では空のプレースホルダーにしてコミットされています。
+デプロイを実行する際、ローカル環境でビルド＆デプロイスクリプトを実行して、一時的に設定情報を自動注入したうえで Firebase Hosting にアップロードします。
 
 ### ディレクトリ構成
 ```text
-├── public/                 # 公開ディレクトリ (Netlify公開対象)
+├── public/                 # 公開ディレクトリ (Firebase Hosting 公開対象)
 │   ├── index.html          # アプリケーションのメインHTML
-│   ├── app.js              # フロントエンドロジック (ビルド時に接続キーが注入される)
-│   └── style.css           # スタイルシート (ダークモード・iPad・印刷用定義含む)
-├── build-inject.js         # ビルド時環境変数注入用Node.jsスクリプト
-├── package.json            # プロジェクト設定 (ビルドスクリプト定義)
-├── netlify.toml            # Netlify用ビルド・デプロイ設定
+│   ├── app.js              # フロントエンドロジック
+│   ├── app-v4.js           # 予定・ガントチャート機能等を含むメインスクリプト
+│   └── style-v4.css        # スタイルシート (ダークモード・iPad・印刷用定義含む)
+├── build-inject.js         # ローカル環境変数注入用Node.jsスクリプト
+├── deploy-local.js         # Firebase Hosting デプロイ用スクリプト (接続情報を一時注入してデプロイ)
+├── package.json            # プロジェクト設定
+├── firebase.json           # Firebase 構成定義ファイル
 └── .gitignore              # Git管理対象外ファイル定義
 ```
 
-### ビルドの仕組み
-Netlifyでビルドが行われる際、`package.json` に定義された `npm run build` (内部的に `node build-inject.js` を実行) が走ります。
-このスクリプトは、Netlify側に設定された環境変数から以下のFirebase設定を読み取り、`public/app.js` のプレースホルダー部分に注入します。
-
-#### 設定が必要な環境変数 (Netlifyダッシュボード上)
-- `FIREBASE_API_KEY`
-- `FIREBASE_AUTH_DOMAIN`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_STORAGE_BUCKET`
-- `FIREBASE_MESSAGING_SENDER_ID`
-- `FIREBASE_APP_ID`
+### デプロイの仕組み
+ローカルのワークスペース上で `node deploy-local.js` を実行します。
+このスクリプトは、スクリプト内に定義された正しいFirebase設定情報を一時的に `public/app.js` や `public/app-v4.js` などの接続設定ブロックに注入し、`npx.cmd firebase deploy --only hosting` を実行して Firebase Hosting へデプロイを行い、デプロイ完了後に自動的に元のプレースホルダー状態に戻します。
 
 ---
 
@@ -151,5 +146,14 @@ Netlifyでビルドが行われる際、`package.json` に定義された `npm r
     *   社員一覧テーブルに「担当」列を追加し、登録済みの担当情報を確認できるように連動を完了。
 *   **バックアップとタグの保存**：
     *   正常動作を確認後、最新のソースコードをGitコミットし、安定版タグ `stable-employee-manage-v1` を作成して GitHub へプッシュ。
+
+### 2026年6月9日
+*   **ガントチャートのレイアウト改善とスクロール無し化**：
+    *   日付列の最小幅制限を 0px に解除し、詳細カラム幅のスリム化（855px ➡ 740px）と併せて横スクロール無しの1画面表示を達成。
+    *   「編集」ボタンを工事名セル内から左端の独立列に切り出し。
+    *   全セルへの自動改行（word wrap）対応を適用し、文字切れを防止。
+    *   編集ボタンクリック時に自動的に「工事登録」タブへ遷移し、フォームトップへスムーズスクロールする処理を実装。
+*   **不要なNetlify記述のクリーンアップ**：
+    *   ドキュメント（`GEMINI.md`）内の古いインフラ定義（Netlify）を全て削除し、実際の構成である「Firebase Hosting」および「`deploy-local.js`」の構成に修正・アップデート。
 
 
