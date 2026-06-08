@@ -6575,6 +6575,15 @@ function checkUnsavedScheduleChanges() {
         console.log("[UnsavedScheduleCheck] Skipped: form not found");
         return false;
     }
+
+    // 新規登録モード（sched-idが空）で、工事名（sched-project）が空の場合は警告をスキップ
+    const idVal = document.getElementById('sched-id')?.value || '';
+    const projVal = document.getElementById('sched-project')?.value.trim() || '';
+    if (!idVal && !projVal) {
+        console.log("[UnsavedScheduleCheck] Skipped: new mode and project is empty");
+        return false;
+    }
+
     const isDirty = currentDataStr !== lastSavedScheduleDataString;
     console.log("[UnsavedScheduleCheck] isDirty:", isDirty);
     return isDirty;
