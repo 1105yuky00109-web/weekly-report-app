@@ -5367,7 +5367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (origCols) {
                     if (origCols.startsWith('35px ')) {
                         origCols = origCols.substring(5);
-                        clone.querySelectorAll('.gantt-cell').forEach(cell => {
+                        clone.querySelectorAll('.gantt-cell, .gantt-bar, .gantt-bar-bg-cell').forEach(cell => {
                             const gridCol = cell.style.gridColumn;
                             if (gridCol) {
                                 const trimCol = gridCol.trim();
