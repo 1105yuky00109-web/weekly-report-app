@@ -3086,8 +3086,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return 'FF' + hex.replace('#', '').toUpperCase();
             };
 
-            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化)
-            const leftWidths = [15, 12, 15, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 5];
+            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化、新12列)
+            const leftWidths = [15, 12, 15, 18, 8, 8, 8, 8, 8, 8, 8, 5];
             sheet.columns = [
                 ...leftWidths.map(w => ({ width: w })),
                 ...dateList.map(() => ({ width: 0.8 })) // タイムライン列をさらに極細化
@@ -3121,7 +3121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (quals.includes('exp')) listPractical.push(nameWithDed);
             });
 
-            const totalCols = 14 + dateList.length;
+            const totalCols = 12 + dateList.length;
 
             // ----------------------------------------
             // 行1: タイトル
@@ -3171,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row5.height = 25;
             
             // 左側結合
-            sheet.mergeCells(5, 1, 5, 14);
+            sheet.mergeCells(5, 1, 5, 12);
             const detailHeaderCell = row5.getCell(1);
             detailHeaderCell.value = '工程詳細情報';
             detailHeaderCell.font = { name: 'MS Gothic', size: 10, bold: true };
@@ -3182,14 +3182,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // 右側月ヘッダー結合
-            let startCol = 15;
+            let startCol = 13;
             dateList.forEach((d, idx) => {
                 const m = d.getMonth() + 1;
                 const nextDate = dateList[idx + 1];
                 const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
 
                 if (isLastDay) {
-                    const endCol = idx + 15; // 1-indexed column index
+                    const endCol = idx + 13; // 1-indexed column index
                     sheet.mergeCells(5, startCol, 5, endCol);
                     const mCell = row5.getCell(startCol);
                     mCell.value = `${m}月`;
@@ -3201,7 +3201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mCell.border = {
                         top: { style: 'medium' },
                         bottom: { style: 'thin' },
-                        left: { style: startCol === 15 ? 'thin' : 'none' },
+                        left: { style: startCol === 13 ? 'thin' : 'none' },
                         right: { style: !nextDate ? 'medium' : 'medium' }
                     };
                     startCol = endCol + 1;
@@ -3215,7 +3215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row6.height = 20;
 
             const leftHeaders = [
-                "工事名", "元請", "現場住所", "仕入先①(柱脚)", "仕入先②(製作1)", "仕入先③(製作2)", 
+                "工事名", "元請", "現場住所", "仕入先", 
                 "管理補助", "数量メモ", "営業担当", "工務担当", "現場担当", "主任技術者", "専任区分", "完了"
             ];
             
@@ -3234,7 +3234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dateList.forEach((d, idx) => {
-                const colIdx = idx + 15;
+                const colIdx = idx + 13;
                 const cell = row6.getCell(colIdx);
                 const day = d.getDay();
                 const isSat = day === 6;
@@ -3270,8 +3270,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const displayAssign = '';
                 const displayCompleted = s.completed ? '✓' : '-';
 
+                // 住所に作業所住所を設定
+                const displayAddress = s.workAddress || s.address || '-';
+
+                // 仕入のグループ化改行表示
+                const supplierLines = getSupplierGroupText(s);
+                const displaySupplier = supplierLines.length > 0 ? supplierLines.join('\n') : '-';
+
                 const leftValues = [
-                    s.project || '', s.client || '-', s.address || '-', s.supplier1 || '-', s.supplier2 || '-', s.supplier3 || '-',
+                    s.project || '', s.client || '-', displayAddress, displaySupplier,
                     s.subcontractor || '-', s.memoQty || '-', s.salesRep || '-', s.constRep || '-', s.siteRep || '-', s.chiefTech || '-',
                     displayAssign, displayCompleted
                 ];
@@ -3281,8 +3288,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.value = val;
                     cell.font = { name: 'MS Gothic', size: 9 };
                     cell.alignment = { 
-                        horizontal: (idx >= 12) ? 'center' : 'left',
-                        vertical: 'middle' 
+                        horizontal: (idx >= 10) ? 'center' : 'left',
+                        vertical: 'middle',
+                        wrapText: (idx === 2 || idx === 3) ? true : false
                     };
                     cell.border = {
                         top: { style: 'thin' },
@@ -3291,14 +3299,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         right: { style: 'thin' }
                     };
                     // 完了かつ完了カラムなら緑色太字
-                    if (idx === 13 && s.completed) {
+                    if (idx === 11 && s.completed) {
                         cell.font = { name: 'MS Gothic', size: 9, bold: true, color: { argb: 'FF16A34A' } };
                     }
                 });
 
                 // カレンダー背景セルの初期化 (土日・月境界の描画)
                 dateList.forEach((d, idx) => {
-                    const colIdx = idx + 15;
+                    const colIdx = idx + 13;
                     const cell = row.getCell(colIdx);
                     const day = d.getDay();
                     const isSat = day === 6;
@@ -3326,70 +3334,84 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 工程バーの書き込み
                 const startLimit = new Date(startStr);
                 const endLimit = new Date(endStr);
-                const sStart = new Date(s.start);
-                const sEnd = new Date(s.end);
 
-                const drawStart = sStart < startLimit ? startLimit : sStart;
-                const drawEnd = sEnd > endLimit ? endLimit : sEnd;
+                // 描画するバーの期間のリスト
+                const barsToDraw = [];
+                
+                // 建て方①
+                if (s.dateErection1Start && s.dateErection1End) {
+                    barsToDraw.push({
+                        start: new Date(s.dateErection1Start),
+                        end: new Date(s.dateErection1End)
+                    });
+                }
+                // 建て方②
+                if (s.dateErection2Start && s.dateErection2End) {
+                    barsToDraw.push({
+                        start: new Date(s.dateErection2Start),
+                        end: new Date(s.dateErection2End)
+                    });
+                }
 
-                const drawStartStr = drawStart.toISOString().split('T')[0];
-                const drawEndStr = drawEnd.toISOString().split('T')[0];
+                barsToDraw.forEach(barInfo => {
+                    const drawStart = barInfo.start < startLimit ? startLimit : barInfo.start;
+                    const drawEnd = barInfo.end > endLimit ? endLimit : barInfo.end;
 
-                const startIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawStartStr);
-                const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
+                    const drawStartStr = drawStart.toISOString().split('T')[0];
+                    const drawEndStr = drawEnd.toISOString().split('T')[0];
 
-                if (startIdx !== -1 && endIdx !== -1) {
-                    const barStartCol = startIdx + 15;
-                    const barEndCol = endIdx + 15;
+                    const startIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawStartStr);
+                    const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
 
-                    // バーに該当する各セルにスタイルを適用 (結合されるため、スタイル共有崩れ対策として個別適用)
-                    const colorARGB = hexToARGB(getBarColorForSiteRep(s.siteRep));
-                    
-                    for (let c = barStartCol; c <= barEndCol; c++) {
-                        const cell = row.getCell(c);
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const barStartCol = startIdx + 13;
+                        const barEndCol = endIdx + 13;
+
+                        // バーに該当する各セルにスタイルを適用
+                        const colorARGB = hexToARGB(getBarColorForSiteRep(s.siteRep));
                         
-                        // ストライプか通常塗りつぶしか
-                        if (s.barPattern === 'stripe') {
-                            cell.fill = {
-                                type: 'pattern',
-                                pattern: 'lightDown',
-                                fgColor: { argb: colorARGB },
-                                bgColor: { argb: 'FFFFFFFF' } // 背景は白
-                            };
-                        } else {
-                            cell.fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: colorARGB }
+                        for (let c = barStartCol; c <= barEndCol; c++) {
+                            const cell = row.getCell(c);
+                            
+                            if (s.barPattern === 'stripe') {
+                                cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'lightDown',
+                                    fgColor: { argb: colorARGB },
+                                    bgColor: { argb: 'FFFFFFFF' }
+                                };
+                            } else {
+                                cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: colorARGB }
+                                };
+                            }
+
+                            cell.font = {
+                                name: 'MS Gothic',
+                                size: 8,
+                                bold: true,
+                                color: { argb: 'FFFFFFFF' },
+                                strike: s.completed ? true : false
                             };
                         }
 
-                        // 完了状態なら半透明グレーに近い枠などを指定するか、値の打消線
-                        cell.font = {
-                            name: 'MS Gothic',
-                            size: 8,
-                            bold: true,
-                            color: { argb: 'FFFFFFFF' }, // 文字は白
-                            strike: s.completed ? true : false
+                        sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
+                        
+                        const mergedStartCell = row.getCell(barStartCol);
+                        mergedStartCell.value = '';
+                        mergedStartCell.alignment = { 
+                            horizontal: 'center', 
+                            vertical: 'middle',
+                            wrapText: false
                         };
                     }
-
-                    // セル結合
-                    sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
-                    
-                    // 結合後の代表セル（開始セル）にラベルをセット
-                    const mergedStartCell = row.getCell(barStartCol);
-                    mergedStartCell.value = '';
-                    mergedStartCell.alignment = { 
-                        horizontal: 'center', 
-                        vertical: 'middle',
-                        wrapText: false
-                    };
-                }
+                });
             });
 
             // 右側の最後の列の右境界線を太線にする
-            const leftColCount = 14;
+            const leftColCount = 12;
             const lastColIdx = leftColCount + dateList.length;
             for (let r = 5; r <= targetSchedules.length + 6; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);

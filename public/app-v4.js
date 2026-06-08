@@ -3182,12 +3182,37 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        const startVal = document.getElementById('sched-start').value;
-        const endVal = document.getElementById('sched-end').value;
-        if (startVal && endVal && startVal > endVal) {
-            alert('終了日は開始日より後の日付にしてください。');
-            return false;
-        }
+        // 各種日付のチェック
+        const p1Start = document.getElementById('sched-date-pedestal1-start').value;
+        const p1End = document.getElementById('sched-date-pedestal1-end').value;
+        if (p1Start && p1End && p1Start > p1End) { alert('柱脚工事①の終了日は開始日より後の日付にしてください。'); return false; }
+
+        const p2Start = document.getElementById('sched-date-pedestal2-start').value;
+        const p2End = document.getElementById('sched-date-pedestal2-end').value;
+        if (p2Start && p2End && p2Start > p2End) { alert('柱脚工事②の終了日は開始日より後の日付にしてください。'); return false; }
+
+        const e1Start = document.getElementById('sched-date-erection1-start').value;
+        const e1End = document.getElementById('sched-date-erection1-end').value;
+        if (e1Start && e1End && e1Start > e1End) { alert('鉄骨建て方①の終了日は開始日より後の日付にしてください。'); return false; }
+
+        const e2Start = document.getElementById('sched-date-erection2-start').value;
+        const e2End = document.getElementById('sched-date-erection2-end').value;
+        if (e2Start && e2End && e2Start > e2End) { alert('鉄骨建て方②の終了日は開始日より後の日付にしてください。'); return false; }
+
+        const rStart = document.getElementById('sched-date-roof-start').value;
+        const rEnd = document.getElementById('sched-date-roof-end').value;
+        if (rStart && rEnd && rStart > rEnd) { alert('屋根工事の終了日は開始日より後の日付にしてください。'); return false; }
+
+        const wStart = document.getElementById('sched-date-wall-start').value;
+        const wEnd = document.getElementById('sched-date-wall-end').value;
+        if (wStart && wEnd && wStart > wEnd) { alert('外壁工事の終了日は開始日より後の日付にしてください。'); return false; }
+
+        // 全体期間の自動決定（建て方①と建て方②を基準に自動算出）
+        const resolvedStart = e1Start || e2Start || '';
+        const resolvedEnd = e2End || e1End || '';
+
+        // 現場住所（作業所住所を互換アドレスに格納）
+        const workAddressVal = document.getElementById('sched-work-address').value.trim();
 
         const qtyVal = document.getElementById('sched-memo-qty').value.trim();
         const qtyHalf = toHalfWidth(qtyVal);
@@ -3201,16 +3226,54 @@ document.addEventListener('DOMContentLoaded', () => {
             project: projectVal,
             branch: resolvedBranch, // 判定した支店を自動設定
             author: document.getElementById('sched-author').value.trim(),
-            start: document.getElementById('sched-start').value,
-            end: document.getElementById('sched-end').value,
+            start: resolvedStart,
+            end: resolvedEnd,
             notes: document.getElementById('sched-notes').value.trim(),
             client: document.getElementById('sched-client').value.trim(),
-            address: document.getElementById('sched-address').value.trim(),
-            supplier1: document.getElementById('sched-supplier1').value.trim(),
-            supplier2: document.getElementById('sched-supplier2').value.trim(),
-            supplier3: document.getElementById('sched-supplier3').value.trim(),
+            clientDirector: document.getElementById('sched-client-director').value.trim(),
+            clientRep: document.getElementById('sched-client-rep').value.trim(),
+            address: workAddressVal, // 互換性のため
+            officeAddress: document.getElementById('sched-office-address').value.trim(),
+            workAddress: workAddressVal,
+            // 日付
+            datePedestal1Start: p1Start,
+            datePedestal1End: p1End,
+            datePedestal2Start: p2Start,
+            datePedestal2End: p2End,
+            dateErection1Start: e1Start,
+            dateErection1End: e1End,
+            dateErection2Start: e2Start,
+            dateErection2End: e2End,
+            dateRoofStart: rStart,
+            dateRoofEnd: rEnd,
+            dateWallStart: wStart,
+            dateWallEnd: wEnd,
+            // 施工体制
+            constPedestal1: document.getElementById('sched-const-pedestal1').value.trim(),
+            constPedestal1Separate: document.getElementById('sched-const-pedestal1-separate').checked,
+            constPedestal2: document.getElementById('sched-const-pedestal2').value.trim(),
+            constPedestal2Separate: document.getElementById('sched-const-pedestal2-separate').checked,
+            constFab1: document.getElementById('sched-const-fab1').value.trim(),
+            constFab1Separate: document.getElementById('sched-const-fab1-separate').checked,
+            constDrawing: document.getElementById('sched-const-drawing').value.trim(),
+            constDrawingSeparate: document.getElementById('sched-const-drawing-separate').checked,
+            constFab2: document.getElementById('sched-const-fab2').value.trim(),
+            constFab2Separate: document.getElementById('sched-const-fab2-separate').checked,
+            constErection: document.getElementById('sched-const-erection').value.trim(),
+            constErectionSeparate: document.getElementById('sched-const-erection-separate').checked,
+            constBolting: document.getElementById('sched-const-bolting').value.trim(),
+            constBoltingSeparate: document.getElementById('sched-const-bolting-separate').checked,
+            constDeck: document.getElementById('sched-const-deck').value.trim(),
+            constDeckSeparate: document.getElementById('sched-const-deck-separate').checked,
+            constStud: document.getElementById('sched-const-stud').value.trim(),
+            constStudSeparate: document.getElementById('sched-const-stud-separate').checked,
+            constWelding: document.getElementById('sched-const-welding').value.trim(),
+            constWeldingSeparate: document.getElementById('sched-const-welding-separate').checked,
+            constCrane: document.getElementById('sched-const-crane').value.trim(),
+            constCraneSeparate: document.getElementById('sched-const-crane-separate').checked,
+
             subcontractor: document.getElementById('sched-subcontractor').value.trim(),
-            memoQty: toHalfWidth(document.getElementById('sched-memo-qty').value.trim()),
+            memoQty: qtyHalf,
             salesRep: document.getElementById('sched-sales-rep').value,
             constRep: document.getElementById('sched-const-rep').value,
             siteRep: document.getElementById('sched-site-rep').value,
@@ -3508,13 +3571,80 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const cid = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
             const q = query(collection(db, "schedules"), where("companyId", "==", cid));
-            const querySnapshot = await getDocs(q);
-            allSchedules = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            allSchedules = querySnapshot.docs.map(d => {
+                const data = d.data();
+                const sched = { id: d.id, ...data };
+                // 過去データ互換（建て方①の日付が空の場合、start/endを建て方①にコピー）
+                if (!sched.dateErection1Start && sched.start) {
+                    sched.dateErection1Start = sched.start;
+                    sched.dateErection1End = sched.end;
+                }
+                return sched;
+            });
             renderGanttChart();
             updateProjectSuggestions();
         } catch (e) {
             console.error("Error loading schedules: ", e);
         }
+    };
+
+    const getSupplierGroupText = (s) => {
+        const groups = [
+            {
+                label: '柱脚',
+                items: [
+                    { val: s.constPedestal1, sep: s.constPedestal1Separate },
+                    { val: s.constPedestal2, sep: s.constPedestal2Separate }
+                ]
+            },
+            {
+                label: '製作',
+                items: [
+                    { val: s.constFab1, sep: s.constFab1Separate },
+                    { val: s.constFab2, sep: s.constFab2Separate }
+                ]
+            },
+            {
+                label: '建て方本締め',
+                items: [
+                    { val: s.constErection, sep: s.constErectionSeparate },
+                    { val: s.constBolting, sep: s.constBoltingSeparate }
+                ]
+            },
+            {
+                label: '床スタッド',
+                items: [
+                    { val: s.constDeck, sep: s.constDeckSeparate },
+                    { val: s.constStud, sep: s.constStudSeparate }
+                ]
+            },
+            {
+                label: '現場溶接',
+                items: [
+                    { val: s.constWelding, sep: s.constWeldingSeparate }
+                ]
+            }
+        ];
+
+        const lines = [];
+        groups.forEach(g => {
+            const resolvedVals = [];
+            g.items.forEach(item => {
+                if (item.sep) {
+                    resolvedVals.push('別途');
+                } else if (item.val && item.val.trim() !== '') {
+                    resolvedVals.push(item.val.trim());
+                }
+            });
+
+            // 重複排除
+            const uniqueVals = [...new Set(resolvedVals)];
+            if (uniqueVals.length > 0) {
+                lines.push(`${g.label}: ${uniqueVals.join(', ')}`);
+            }
+        });
+
+        return lines;
     };
 
     const renderGanttChart = () => {
@@ -3671,6 +3801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ==========================================
         // データ行レンダリング
         // ==========================================
+
         targetSchedules.forEach((s, index) => {
             const rowIndex = index + 2; // ヘッダーが1行だけなので2行目から
 
@@ -3681,12 +3812,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const editBtnHtml = (currentCompany && currentCompany.role === 'admin') ?
                 `<button class="btn btn-secondary btn-small btn-edit-schedule-v4" data-id="${s.id}" style="padding: 2px 6px; font-size: 0.72rem; line-height: 1; height: 18px; margin: 0; white-space: nowrap; background-color: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; flex-shrink: 0;">編集</button>` : '';
 
-            // 10個の縦割りカラム (sticky固定 & 背景色指定、並び替え・仕入れ複数行対応)
-            const supplierParts = [s.supplier1, s.supplier2, s.supplier3].filter(Boolean);
-            const supplierHtml = supplierParts.length > 0 
-                ? supplierParts.map(sup => `<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; line-height: 1.2;">${sup}</div>`).join('')
+            // 住所に作業所住所を設定
+            const displayAddress = s.workAddress || s.address || '-';
+
+            // 仕入のグループ化改行表示
+            const supplierLines = getSupplierGroupText(s);
+            const supplierHtml = supplierLines.length > 0 
+                ? supplierLines.map(line => `<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; line-height: 1.2;">${line}</div>`).join('')
                 : '-';
-            const supplierTitle = supplierParts.length > 0 ? `仕入: ${supplierParts.join(', ')}` : '仕入: -';
+            const supplierTitle = supplierLines.length > 0 ? `仕入:\n${supplierLines.join('\n')}` : '仕入: -';
+
             html += `
                 <!-- 1. 工事名 -->
                 <div class="gantt-cell gantt-proj-cell" style="grid-row: ${rowIndex}; grid-column: 1; text-align: left; justify-content: space-between; padding: 6px 4px; font-size: 0.72rem; border-bottom: 1px solid var(--border); position: sticky; left: 0px; z-index: 15; background: var(--card-bg);" title="${s.project || ''}">
@@ -3701,8 +3836,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${s.client || '-'}
                 </div>
                 <!-- 3. 住所 -->
-                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; border-bottom: 1px solid var(--border); position: sticky; left: 180px; z-index: 15; background: var(--card-bg);" title="住所: ${s.address || '-'}">
-                    ${s.address || '-'}
+                <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 3; text-align: left; justify-content: flex-start; padding: 6px 2px; font-size: 0.7rem; white-space: normal; word-break: break-all; border-bottom: 1px solid var(--border); position: sticky; left: 180px; z-index: 15; background: var(--card-bg);" title="住所: ${displayAddress}">
+                    ${displayAddress}
                 </div>
                 <!-- 4. 仕入 -->
                 <div class="gantt-cell gantt-text-cell" style="grid-row: ${rowIndex}; grid-column: 4; text-align: left; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 4px 2px; font-size: 0.7rem; border-bottom: 1px solid var(--border); position: sticky; left: 260px; z-index: 15; background: var(--card-bg);" title="${supplierTitle}">
@@ -3751,11 +3886,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!str) return '';
                 return str.replace(/\//g, '-');
             };
-            const sStartStr = normalizeDateStr(s.start);
-            const sEndStr = normalizeDateStr(s.end);
-            
-            const drawStartStr = sStartStr < startStr ? startStr : (sStartStr > endStr ? endStr : sStartStr);
-            const drawEndStr = sEndStr > endStr ? endStr : (sEndStr < startStr ? startStr : sEndStr);
 
             const formatDateLocal = (date) => {
                 const y = date.getFullYear();
@@ -3764,23 +3894,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `${y}-${m}-${d}`;
             };
 
-            const startIdx = dateList.findIndex(d => formatDateLocal(d) === drawStartStr);
-            const endIdx = dateList.findIndex(d => formatDateLocal(d) === drawEndStr);
-
-            if (startIdx !== -1 && endIdx !== -1) {
-                const gridStart = startIdx + 11;
-                const gridEnd = endIdx + 12;
-
-                const color = getBarColorForSiteRep(s.siteRep);
-                const patternClass = s.barPattern === 'stripe' ? 'pattern-stripe' : '';
-                const completedClass = s.completed ? 'completed-bar' : '';
-
-                const barText = '';
-
-                html += `<div class="gantt-bar ${patternClass} ${completedClass}" data-id="${s.id}" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; background-color: ${color};" title="【${s.project}】\n期間: ${s.start} 〜 ${s.end}\n備考: ${s.notes || 'なし'}">
-                            ${barText}
-                         </div>`;
+            // 描画するバーの期間のリスト
+            const barsToDraw = [];
+            
+            // 建て方①
+            if (s.dateErection1Start && s.dateErection1End) {
+                barsToDraw.push({
+                    start: normalizeDateStr(s.dateErection1Start),
+                    end: normalizeDateStr(s.dateErection1End),
+                    label: '建て方①'
+                });
             }
+            // 建て方②
+            if (s.dateErection2Start && s.dateErection2End) {
+                barsToDraw.push({
+                    start: normalizeDateStr(s.dateErection2Start),
+                    end: normalizeDateStr(s.dateErection2End),
+                    label: '建て方②'
+                });
+            }
+
+            barsToDraw.forEach(barInfo => {
+                const sStartStr = barInfo.start;
+                const sEndStr = barInfo.end;
+                
+                const drawStartStr = sStartStr < startStr ? startStr : (sStartStr > endStr ? endStr : sStartStr);
+                const drawEndStr = sEndStr > endStr ? endStr : (sEndStr < startStr ? startStr : sEndStr);
+
+                const startIdx = dateList.findIndex(d => formatDateLocal(d) === drawStartStr);
+                const endIdx = dateList.findIndex(d => formatDateLocal(d) === drawEndStr);
+
+                if (startIdx !== -1 && endIdx !== -1) {
+                    const gridStart = startIdx + 11;
+                    const gridEnd = endIdx + 12;
+
+                    const color = getBarColorForSiteRep(s.siteRep);
+                    const patternClass = s.barPattern === 'stripe' ? 'pattern-stripe' : '';
+                    const completedClass = s.completed ? 'completed-bar' : '';
+
+                    const barText = '';
+
+                    html += `<div class="gantt-bar ${patternClass} ${completedClass}" data-id="${s.id}" style="grid-row: ${rowIndex}; grid-column: ${gridStart} / ${gridEnd}; background-color: ${color};" title="【${s.project}】 (${barInfo.label})\n期間: ${barInfo.start} 〜 ${barInfo.end}\n備考: ${s.notes || 'なし'}">
+                                ${barText}
+                             </div>`;
+                }
+            });
         });
 
         if (targetSchedules.length === 0) {
@@ -5870,8 +6028,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return 'FF' + hex.replace('#', '').toUpperCase();
             };
 
-            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化)
-            const leftWidths = [15, 12, 15, 12, 10, 10, 10, 10, 8, 8, 8, 8, 8, 5];
+            // 列幅の設定 (A3縦印刷のために全体的に大幅スリム化、新12列)
+            const leftWidths = [15, 12, 15, 18, 8, 8, 8, 8, 8, 8, 8, 5];
             sheet.columns = [
                 ...leftWidths.map(w => ({ width: w })),
                 ...dateList.map(() => ({ width: 0.8 })) // タイムライン列をさらに極細化
@@ -5905,7 +6063,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (quals.includes('exp')) listPractical.push(nameWithDed);
             });
 
-            const totalCols = 14 + dateList.length;
+            const totalCols = 12 + dateList.length;
 
             // ----------------------------------------
             // 行1: タイトル
@@ -5955,7 +6113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row5.height = 25;
             
             // 左側結合
-            sheet.mergeCells(5, 1, 5, 14);
+            sheet.mergeCells(5, 1, 5, 12);
             const detailHeaderCell = row5.getCell(1);
             detailHeaderCell.value = '工程詳細情報';
             detailHeaderCell.font = { name: 'MS Gothic', size: 10, bold: true };
@@ -5966,14 +6124,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // 右側月ヘッダー結合
-            let startCol = 15;
+            let startCol = 13;
             dateList.forEach((d, idx) => {
                 const m = d.getMonth() + 1;
                 const nextDate = dateList[idx + 1];
                 const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
 
                 if (isLastDay) {
-                    const endCol = idx + 15; // 1-indexed column index
+                    const endCol = idx + 13; // 1-indexed column index
                     sheet.mergeCells(5, startCol, 5, endCol);
                     const mCell = row5.getCell(startCol);
                     mCell.value = `${m}月`;
@@ -5985,7 +6143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mCell.border = {
                         top: { style: 'medium' },
                         bottom: { style: 'thin' },
-                        left: { style: startCol === 15 ? 'thin' : 'none' },
+                        left: { style: startCol === 13 ? 'thin' : 'none' },
                         right: { style: !nextDate ? 'medium' : 'medium' }
                     };
                     startCol = endCol + 1;
@@ -5999,7 +6157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row6.height = 20;
 
             const leftHeaders = [
-                "工事名", "元請", "現場住所", "仕入先①(柱脚)", "仕入先②(製作1)", "仕入先③(製作2)", 
+                "工事名", "元請", "現場住所", "仕入先", 
                 "管理補助", "数量メモ", "営業担当", "工務担当", "現場担当", "主任技術者", "専任区分", "完了"
             ];
             
@@ -6018,7 +6176,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             dateList.forEach((d, idx) => {
-                const colIdx = idx + 15;
+                const colIdx = idx + 13;
                 const cell = row6.getCell(colIdx);
                 const day = d.getDay();
                 const isSat = day === 6;
@@ -6054,8 +6212,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const displayAssign = '';
                 const displayCompleted = s.completed ? '✓' : '-';
 
+                // 住所に作業所住所を設定
+                const displayAddress = s.workAddress || s.address || '-';
+
+                // 仕入のグループ化改行表示
+                const supplierLines = getSupplierGroupText(s);
+                const displaySupplier = supplierLines.length > 0 ? supplierLines.join('\n') : '-';
+
                 const leftValues = [
-                    s.project || '', s.client || '-', s.address || '-', s.supplier1 || '-', s.supplier2 || '-', s.supplier3 || '-',
+                    s.project || '', s.client || '-', displayAddress, displaySupplier,
                     s.subcontractor || '-', s.memoQty || '-', s.salesRep || '-', s.constRep || '-', s.siteRep || '-', s.chiefTech || '-',
                     displayAssign, displayCompleted
                 ];
@@ -6065,8 +6230,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     cell.value = val;
                     cell.font = { name: 'MS Gothic', size: 9 };
                     cell.alignment = { 
-                        horizontal: (idx >= 12) ? 'center' : 'left',
-                        vertical: 'middle' 
+                        horizontal: (idx >= 10) ? 'center' : 'left',
+                        vertical: 'middle',
+                        wrapText: (idx === 2 || idx === 3) ? true : false
                     };
                     cell.border = {
                         top: { style: 'thin' },
@@ -6075,14 +6241,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         right: { style: 'thin' }
                     };
                     // 完了かつ完了カラムなら緑色太字
-                    if (idx === 13 && s.completed) {
+                    if (idx === 11 && s.completed) {
                         cell.font = { name: 'MS Gothic', size: 9, bold: true, color: { argb: 'FF16A34A' } };
                     }
                 });
 
                 // カレンダー背景セルの初期化 (土日・月境界の描画)
                 dateList.forEach((d, idx) => {
-                    const colIdx = idx + 15;
+                    const colIdx = idx + 13;
                     const cell = row.getCell(colIdx);
                     const day = d.getDay();
                     const isSat = day === 6;
@@ -6110,70 +6276,84 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 工程バーの書き込み
                 const startLimit = new Date(startStr);
                 const endLimit = new Date(endStr);
-                const sStart = new Date(s.start);
-                const sEnd = new Date(s.end);
 
-                const drawStart = sStart < startLimit ? startLimit : sStart;
-                const drawEnd = sEnd > endLimit ? endLimit : sEnd;
+                // 描画するバーの期間のリスト
+                const barsToDraw = [];
+                
+                // 建て方①
+                if (s.dateErection1Start && s.dateErection1End) {
+                    barsToDraw.push({
+                        start: new Date(s.dateErection1Start),
+                        end: new Date(s.dateErection1End)
+                    });
+                }
+                // 建て方②
+                if (s.dateErection2Start && s.dateErection2End) {
+                    barsToDraw.push({
+                        start: new Date(s.dateErection2Start),
+                        end: new Date(s.dateErection2End)
+                    });
+                }
 
-                const drawStartStr = drawStart.toISOString().split('T')[0];
-                const drawEndStr = drawEnd.toISOString().split('T')[0];
+                barsToDraw.forEach(barInfo => {
+                    const drawStart = barInfo.start < startLimit ? startLimit : barInfo.start;
+                    const drawEnd = barInfo.end > endLimit ? endLimit : barInfo.end;
 
-                const startIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawStartStr);
-                const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
+                    const drawStartStr = drawStart.toISOString().split('T')[0];
+                    const drawEndStr = drawEnd.toISOString().split('T')[0];
 
-                if (startIdx !== -1 && endIdx !== -1) {
-                    const barStartCol = startIdx + 15;
-                    const barEndCol = endIdx + 15;
+                    const startIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawStartStr);
+                    const endIdx = dateList.findIndex(d => d.toISOString().split('T')[0] === drawEndStr);
 
-                    // バーに該当する各セルにスタイルを適用 (結合されるため、スタイル共有崩れ対策として個別適用)
-                    const colorARGB = hexToARGB(getBarColorForSiteRep(s.siteRep));
-                    
-                    for (let c = barStartCol; c <= barEndCol; c++) {
-                        const cell = row.getCell(c);
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const barStartCol = startIdx + 13;
+                        const barEndCol = endIdx + 13;
+
+                        // バーに該当する各セルにスタイルを適用
+                        const colorARGB = hexToARGB(getBarColorForSiteRep(s.siteRep));
                         
-                        // ストライプか通常塗りつぶしか
-                        if (s.barPattern === 'stripe') {
-                            cell.fill = {
-                                type: 'pattern',
-                                pattern: 'lightDown',
-                                fgColor: { argb: colorARGB },
-                                bgColor: { argb: 'FFFFFFFF' } // 背景は白
-                            };
-                        } else {
-                            cell.fill = {
-                                type: 'pattern',
-                                pattern: 'solid',
-                                fgColor: { argb: colorARGB }
+                        for (let c = barStartCol; c <= barEndCol; c++) {
+                            const cell = row.getCell(c);
+                            
+                            if (s.barPattern === 'stripe') {
+                                cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'lightDown',
+                                    fgColor: { argb: colorARGB },
+                                    bgColor: { argb: 'FFFFFFFF' }
+                                };
+                            } else {
+                                cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: colorARGB }
+                                };
+                            }
+
+                            cell.font = {
+                                name: 'MS Gothic',
+                                size: 8,
+                                bold: true,
+                                color: { argb: 'FFFFFFFF' },
+                                strike: s.completed ? true : false
                             };
                         }
 
-                        // 完了状態なら半透明グレーに近い枠などを指定するか、値の打消線
-                        cell.font = {
-                            name: 'MS Gothic',
-                            size: 8,
-                            bold: true,
-                            color: { argb: 'FFFFFFFF' }, // 文字は白
-                            strike: s.completed ? true : false
+                        sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
+                        
+                        const mergedStartCell = row.getCell(barStartCol);
+                        mergedStartCell.value = '';
+                        mergedStartCell.alignment = { 
+                            horizontal: 'center', 
+                            vertical: 'middle',
+                            wrapText: false
                         };
                     }
-
-                    // セル結合
-                    sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
-                    
-                    // 結合後の代表セル（開始セル）にラベルをセット
-                    const mergedStartCell = row.getCell(barStartCol);
-                    mergedStartCell.value = '';
-                    mergedStartCell.alignment = { 
-                        horizontal: 'center', 
-                        vertical: 'middle',
-                        wrapText: false
-                    };
-                }
+                });
             });
 
             // 右側の最後の列の右境界線を太線にする
-            const leftColCount = 14;
+            const leftColCount = 12;
             const lastColIdx = leftColCount + dateList.length;
             for (let r = 5; r <= targetSchedules.length + 6; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);
@@ -6326,12 +6506,48 @@ function getScheduleFormDataString() {
     const data = {
         project: projectEl.value.trim(),
         client: document.getElementById('sched-client')?.value.trim() || '',
-        address: document.getElementById('sched-address')?.value.trim() || '',
-        start: document.getElementById('sched-start')?.value || '',
-        end: document.getElementById('sched-end')?.value || '',
-        supplier1: document.getElementById('sched-supplier1')?.value.trim() || '',
-        supplier2: document.getElementById('sched-supplier2')?.value.trim() || '',
-        supplier3: document.getElementById('sched-supplier3')?.value.trim() || '',
+        clientDirector: document.getElementById('sched-client-director')?.value.trim() || '',
+        clientRep: document.getElementById('sched-client-rep')?.value.trim() || '',
+        officeAddress: document.getElementById('sched-office-address')?.value.trim() || '',
+        workAddress: document.getElementById('sched-work-address')?.value.trim() || '',
+        // 施工予定日
+        datePedestal1Start: document.getElementById('sched-date-pedestal1-start')?.value || '',
+        datePedestal1End: document.getElementById('sched-date-pedestal1-end')?.value || '',
+        datePedestal2Start: document.getElementById('sched-date-pedestal2-start')?.value || '',
+        datePedestal2End: document.getElementById('sched-date-pedestal2-end')?.value || '',
+        dateErection1Start: document.getElementById('sched-date-erection1-start')?.value || '',
+        dateErection1End: document.getElementById('sched-date-erection1-end')?.value || '',
+        dateErection2Start: document.getElementById('sched-date-erection2-start')?.value || '',
+        dateErection2End: document.getElementById('sched-date-erection2-end')?.value || '',
+        // その他工種
+        dateRoofStart: document.getElementById('sched-date-roof-start')?.value || '',
+        dateRoofEnd: document.getElementById('sched-date-roof-end')?.value || '',
+        dateWallStart: document.getElementById('sched-date-wall-start')?.value || '',
+        dateWallEnd: document.getElementById('sched-date-wall-end')?.value || '',
+        // 施工体制
+        constPedestal1: document.getElementById('sched-const-pedestal1')?.value.trim() || '',
+        constPedestal1Separate: !!document.getElementById('sched-const-pedestal1-separate')?.checked,
+        constPedestal2: document.getElementById('sched-const-pedestal2')?.value.trim() || '',
+        constPedestal2Separate: !!document.getElementById('sched-const-pedestal2-separate')?.checked,
+        constFab1: document.getElementById('sched-const-fab1')?.value.trim() || '',
+        constFab1Separate: !!document.getElementById('sched-const-fab1-separate')?.checked,
+        constDrawing: document.getElementById('sched-const-drawing')?.value.trim() || '',
+        constDrawingSeparate: !!document.getElementById('sched-const-drawing-separate')?.checked,
+        constFab2: document.getElementById('sched-const-fab2')?.value.trim() || '',
+        constFab2Separate: !!document.getElementById('sched-const-fab2-separate')?.checked,
+        constErection: document.getElementById('sched-const-erection')?.value.trim() || '',
+        constErectionSeparate: !!document.getElementById('sched-const-erection-separate')?.checked,
+        constBolting: document.getElementById('sched-const-bolting')?.value.trim() || '',
+        constBoltingSeparate: !!document.getElementById('sched-const-bolting-separate')?.checked,
+        constDeck: document.getElementById('sched-const-deck')?.value.trim() || '',
+        constDeckSeparate: !!document.getElementById('sched-const-deck-separate')?.checked,
+        constStud: document.getElementById('sched-const-stud')?.value.trim() || '',
+        constStudSeparate: !!document.getElementById('sched-const-stud-separate')?.checked,
+        constWelding: document.getElementById('sched-const-welding')?.value.trim() || '',
+        constWeldingSeparate: !!document.getElementById('sched-const-welding-separate')?.checked,
+        constCrane: document.getElementById('sched-const-crane')?.value.trim() || '',
+        constCraneSeparate: !!document.getElementById('sched-const-crane-separate')?.checked,
+
         subcontractor: document.getElementById('sched-subcontractor')?.value.trim() || '',
         memoQty: toHalfWidth(document.getElementById('sched-memo-qty')?.value.trim() || ''),
         salesRep: document.getElementById('sched-sales-rep')?.value || '',
@@ -6476,12 +6692,59 @@ function startEditScheduleMode(sched) {
     document.getElementById('sched-project').value = sched.project || '';
     document.getElementById('sched-branch').value = sched.branch || ''; // 担当支店を追加
     document.getElementById('sched-client').value = sched.client || '';
-    document.getElementById('sched-address').value = sched.address || '';
+    document.getElementById('sched-client-director').value = sched.clientDirector || '';
+    document.getElementById('sched-client-rep').value = sched.clientRep || '';
+    document.getElementById('sched-office-address').value = sched.officeAddress || '';
+    document.getElementById('sched-work-address').value = sched.workAddress || '';
     document.getElementById('sched-start').value = sched.start || '';
     document.getElementById('sched-end').value = sched.end || '';
-    document.getElementById('sched-supplier1').value = sched.supplier1 || '';
-    document.getElementById('sched-supplier2').value = sched.supplier2 || '';
-    document.getElementById('sched-supplier3').value = sched.supplier3 || '';
+
+    // 施工予定日
+    document.getElementById('sched-date-pedestal1-start').value = sched.datePedestal1Start || '';
+    document.getElementById('sched-date-pedestal1-end').value = sched.datePedestal1End || '';
+    document.getElementById('sched-date-pedestal2-start').value = sched.datePedestal2Start || '';
+    document.getElementById('sched-date-pedestal2-end').value = sched.datePedestal2End || '';
+    document.getElementById('sched-date-erection1-start').value = sched.dateErection1Start || '';
+    document.getElementById('sched-date-erection1-end').value = sched.dateErection1End || '';
+    document.getElementById('sched-date-erection2-start').value = sched.dateErection2Start || '';
+    document.getElementById('sched-date-erection2-end').value = sched.dateErection2End || '';
+
+    // その他工種
+    document.getElementById('sched-date-roof-start').value = sched.dateRoofStart || '';
+    document.getElementById('sched-date-roof-end').value = sched.dateRoofEnd || '';
+    document.getElementById('sched-date-wall-start').value = sched.dateWallStart || '';
+    document.getElementById('sched-date-wall-end').value = sched.dateWallEnd || '';
+
+    // 施工体制
+    const setValueAndSync = (id, val, separateId, isSeparate) => {
+        const input = document.getElementById(id);
+        const cb = document.getElementById(separateId);
+        if (input && cb) {
+            input.value = val || '';
+            cb.checked = !!isSeparate;
+            input.disabled = !!isSeparate;
+            if (isSeparate) {
+                input.style.backgroundColor = 'var(--border)';
+                input.style.color = 'var(--text-muted)';
+            } else {
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            }
+        }
+    };
+
+    setValueAndSync('sched-const-pedestal1', sched.constPedestal1, 'sched-const-pedestal1-separate', sched.constPedestal1Separate);
+    setValueAndSync('sched-const-pedestal2', sched.constPedestal2, 'sched-const-pedestal2-separate', sched.constPedestal2Separate);
+    setValueAndSync('sched-const-fab1', sched.constFab1, 'sched-const-fab1-separate', sched.constFab1Separate);
+    setValueAndSync('sched-const-drawing', sched.constDrawing, 'sched-const-drawing-separate', sched.constDrawingSeparate);
+    setValueAndSync('sched-const-fab2', sched.constFab2, 'sched-const-fab2-separate', sched.constFab2Separate);
+    setValueAndSync('sched-const-erection', sched.constErection, 'sched-const-erection-separate', sched.constErectionSeparate);
+    setValueAndSync('sched-const-bolting', sched.constBolting, 'sched-const-bolting-separate', sched.constBoltingSeparate);
+    setValueAndSync('sched-const-deck', sched.constDeck, 'sched-const-deck-separate', sched.constDeckSeparate);
+    setValueAndSync('sched-const-stud', sched.constStud, 'sched-const-stud-separate', sched.constStudSeparate);
+    setValueAndSync('sched-const-welding', sched.constWelding, 'sched-const-welding-separate', sched.constWeldingSeparate);
+    setValueAndSync('sched-const-crane', sched.constCrane, 'sched-const-crane-separate', sched.constCraneSeparate);
+
     document.getElementById('sched-subcontractor').value = sched.subcontractor || '';
     document.getElementById('sched-memo-qty').value = sched.memoQty || '';
     document.getElementById('sched-sales-rep').value = sched.salesRep || '';
@@ -6520,6 +6783,17 @@ function resetScheduleEditMode() {
             const authorEl = document.getElementById('sched-author');
             if (authorEl) authorEl.value = nameDisplay;
         }
+        // 別途チェックボックスのリセット同期
+        document.querySelectorAll('.separate-checkbox').forEach(cb => {
+            cb.checked = false;
+            const targetId = cb.id.replace('-separate', '');
+            const input = document.getElementById(targetId);
+            if (input) {
+                input.disabled = false;
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            }
+        });
     }
     // リセット（新規登録状態）の初期値を保存して変更監視を初期化
     lastSavedScheduleDataString = getScheduleFormDataString();
@@ -6607,7 +6881,7 @@ function openEditModal(sched) {
             ✏️ 工程の編集・修正
         </h3>
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
             <div>
                 <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">工事名 <span style="color:red">*</span></label>
                 <input type="text" id="edit-project" value="${(sched.project || '').replace(/"/g, '&quot;')}"
@@ -6620,46 +6894,206 @@ function openEditModal(sched) {
                 </select>
             </div>
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">元請</label>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">元請業者名</label>
                 <input type="text" id="edit-client" value="${(sched.client || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">現場住所</label>
-            <input type="text" id="edit-address" value="${(sched.address || '').replace(/"/g, '&quot;')}"
-                style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">開始日 <span style="color:red">*</span></label>
-                <input type="date" id="edit-start" value="${sched.start || ''}"
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">所長名</label>
+                <input type="text" id="edit-client-director" value="${(sched.clientDirector || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">終了日 <span style="color:red">*</span></label>
-                <input type="date" id="edit-end" value="${sched.end || ''}"
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">担当者名</label>
+                <input type="text" id="edit-client-rep" value="${(sched.clientRep || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">柱脚 (仕入先①)</label>
-                <input type="text" id="edit-supplier1" value="${(sched.supplier1 || '').replace(/"/g, '&quot;')}"
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">現場事務所住所</label>
+                <input type="text" id="edit-office-address" value="${(sched.officeAddress || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">製作工場① (仕入先②)</label>
-                <input type="text" id="edit-supplier2" value="${(sched.supplier2 || '').replace(/"/g, '&quot;')}"
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">作業所住所</label>
+                <input type="text" id="edit-work-address" value="${(sched.workAddress || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
+        </div>
+
+        <!-- 互換性のための非表示フィールド（全体開始日・終了日） -->
+        <input type="hidden" id="edit-start" value="${sched.start || ''}">
+        <input type="hidden" id="edit-end" value="${sched.end || ''}">
+
+        <!-- 施工予定日セクション -->
+        <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px;">
+            <h4 style="font-size: 1rem; color: #2563eb; margin: 0; font-weight: bold;">施工予定日</h4>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">製作工場② (仕入先③)</label>
-                <input type="text" id="edit-supplier3" value="${(sched.supplier3 || '').replace(/"/g, '&quot;')}"
-                    style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">柱脚工事①</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-pedestal1-start" value="${sched.datePedestal1Start || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-pedestal1-end" value="${sched.datePedestal1End || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+            </div>
+            <div>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">柱脚工事②</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-pedestal2-start" value="${sched.datePedestal2Start || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-pedestal2-end" value="${sched.datePedestal2End || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">鉄骨建て方①</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-erection1-start" value="${sched.dateErection1Start || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-erection1-end" value="${sched.dateErection1End || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+            </div>
+            <div>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">鉄骨建て方②</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-erection2-start" value="${sched.dateErection2Start || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-erection2-end" value="${sched.dateErection2End || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 施工体制セクション -->
+        <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px;">
+            <h4 style="font-size: 1rem; color: #2563eb; margin: 0; font-weight: bold;">施工体制</h4>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>柱脚工事①</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-pedestal1-separate" class="edit-separate-checkbox" ${sched.constPedestal1Separate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-pedestal1" value="${(sched.constPedestal1 || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>柱脚工事②</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-pedestal2-separate" class="edit-separate-checkbox" ${sched.constPedestal2Separate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-pedestal2" value="${(sched.constPedestal2 || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>鉄骨製作①</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-fab1-separate" class="edit-separate-checkbox" ${sched.constFab1Separate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-fab1" value="${(sched.constFab1 || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>施工図</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-drawing-separate" class="edit-separate-checkbox" ${sched.constDrawingSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-drawing" value="${(sched.constDrawing || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>鉄骨製作②</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-fab2-separate" class="edit-separate-checkbox" ${sched.constFab2Separate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-fab2" value="${(sched.constFab2 || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>建て方工事</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-erection-separate" class="edit-separate-checkbox" ${sched.constErectionSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-erection" value="${(sched.constErection || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>本締め工事</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-bolting-separate" class="edit-separate-checkbox" ${sched.constBoltingSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-bolting" value="${(sched.constBolting || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>床版工事</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-deck-separate" class="edit-separate-checkbox" ${sched.constDeckSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-deck" value="${(sched.constDeck || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>スタッド工事</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-stud-separate" class="edit-separate-checkbox" ${sched.constStudSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-stud" value="${(sched.constStud || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>現場溶接工事</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-welding-separate" class="edit-separate-checkbox" ${sched.constWeldingSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-welding" value="${(sched.constWelding || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center; font-weight:600; margin-bottom:3px; font-size:0.85rem; color:#1e293b;">
+                    <span>建て方重機</span>
+                    <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                        <input type="checkbox" id="edit-const-crane-separate" class="edit-separate-checkbox" ${sched.constCraneSeparate ? 'checked' : ''}> 別途
+                    </span>
+                </label>
+                <input type="text" id="edit-const-crane" value="${(sched.constCrane || '').replace(/"/g, '&quot;')}" style="width:100%; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem; color:#1e293b;">
+            </div>
+        </div>
+
+        <!-- その他工種セクション -->
+        <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #2563eb; padding-bottom: 5px;">
+            <h4 style="font-size: 1rem; color: #2563eb; margin: 0; font-weight: bold;">その他工種</h4>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">屋根工事</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-roof-start" value="${sched.dateRoofStart || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-roof-end" value="${sched.dateRoofEnd || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
+            </div>
+            <div>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b; font-size:0.9rem;">外壁工事</label>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="date" id="edit-date-wall-start" value="${sched.dateWallStart || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                    <span>〜</span>
+                    <input type="date" id="edit-date-wall-end" value="${sched.dateWallEnd || ''}" style="flex:1; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9rem;">
+                </div>
             </div>
         </div>
 
@@ -6670,7 +7104,7 @@ function openEditModal(sched) {
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
             <div>
-                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">建・木 数量等</label>
+                <label style="display:block; font-weight:600; margin-bottom:5px; color:#1e293b;">数量（ｔ、㎡）</label>
                 <input type="text" id="edit-memo-qty" value="${(sched.memoQty || '').replace(/"/g, '&quot;')}"
                     style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; font-size:1rem; box-sizing:border-box; color:#1e293b;">
             </div>
@@ -6765,7 +7199,25 @@ function openEditModal(sched) {
         }
     });
 
-
+    // 編集モーダル内での別途工事グレーアウト制御
+    const syncEditSeparate = (cb) => {
+        const targetId = cb.id.replace('-separate', '');
+        const input = document.getElementById(targetId);
+        if (input) {
+            input.disabled = cb.checked;
+            if (cb.checked) {
+                input.style.backgroundColor = 'var(--border)';
+                input.style.color = 'var(--text-muted)';
+            } else {
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            }
+        }
+    };
+    modal.querySelectorAll('.edit-separate-checkbox').forEach(cb => {
+        syncEditSeparate(cb);
+        cb.addEventListener('change', () => syncEditSeparate(cb));
+    });
 
     // オーバーレイ背景クリックで閉じる
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
@@ -6778,17 +7230,87 @@ function openEditModal(sched) {
         saveBtn.disabled = true;
         saveBtn.textContent = '保存中...';
 
+        // 各種日付取得とチェック
+        const p1Start = document.getElementById('edit-date-pedestal1-start').value;
+        const p1End = document.getElementById('edit-date-pedestal1-end').value;
+        if (p1Start && p1End && p1Start > p1End) { alert('柱脚工事①の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        const p2Start = document.getElementById('edit-date-pedestal2-start').value;
+        const p2End = document.getElementById('edit-date-pedestal2-end').value;
+        if (p2Start && p2End && p2Start > p2End) { alert('柱脚工事②の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        const e1Start = document.getElementById('edit-date-erection1-start').value;
+        const e1End = document.getElementById('edit-date-erection1-end').value;
+        if (e1Start && e1End && e1Start > e1End) { alert('鉄骨建て方①の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        const e2Start = document.getElementById('edit-date-erection2-start').value;
+        const e2End = document.getElementById('edit-date-erection2-end').value;
+        if (e2Start && e2End && e2Start > e2End) { alert('鉄骨建て方②の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        const rStart = document.getElementById('edit-date-roof-start').value;
+        const rEnd = document.getElementById('edit-date-roof-end').value;
+        if (rStart && rEnd && rStart > rEnd) { alert('屋根工事の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        const wStart = document.getElementById('edit-date-wall-start').value;
+        const wEnd = document.getElementById('edit-date-wall-end').value;
+        if (wStart && wEnd && wStart > wEnd) { alert('外壁工事の終了日は開始日より後の日付にしてください。'); saveBtn.disabled = false; saveBtn.innerHTML = '💾 保存する'; return; }
+
+        // 全体期間の自動決定（建て方①と建て方②を基準に自動算出）
+        const resolvedStart = e1Start || e2Start || '';
+        const resolvedEnd = e2End || e1End || '';
+
+        // 作業所住所の取得
+        const workAddressVal = document.getElementById('edit-work-address').value.trim();
+
         const updatedData = {
             companyId: currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1],
             project: document.getElementById('edit-project').value.trim(),
             branch: document.getElementById('edit-branch').value, // 担当支店を追加
             client: document.getElementById('edit-client').value.trim(),
-            address: document.getElementById('edit-address').value.trim(),
-            start: document.getElementById('edit-start').value,
-            end: document.getElementById('edit-end').value,
-            supplier1: document.getElementById('edit-supplier1').value.trim(),
-            supplier2: document.getElementById('edit-supplier2').value.trim(),
-            supplier3: document.getElementById('edit-supplier3').value.trim(),
+            clientDirector: document.getElementById('edit-client-director').value.trim(),
+            clientRep: document.getElementById('edit-client-rep').value.trim(),
+            address: workAddressVal, // 互換性のため
+            officeAddress: document.getElementById('edit-office-address').value.trim(),
+            workAddress: workAddressVal,
+            start: resolvedStart,
+            end: resolvedEnd,
+            // 日付
+            datePedestal1Start: p1Start,
+            datePedestal1End: p1End,
+            datePedestal2Start: p2Start,
+            datePedestal2End: p2End,
+            dateErection1Start: e1Start,
+            dateErection1End: e1End,
+            dateErection2Start: e2Start,
+            dateErection2End: e2End,
+            dateRoofStart: rStart,
+            dateRoofEnd: rEnd,
+            dateWallStart: wStart,
+            dateWallEnd: wEnd,
+            // 施工体制
+            constPedestal1: document.getElementById('edit-const-pedestal1').value.trim(),
+            constPedestal1Separate: document.getElementById('edit-const-pedestal1-separate').checked,
+            constPedestal2: document.getElementById('edit-const-pedestal2').value.trim(),
+            constPedestal2Separate: document.getElementById('edit-const-pedestal2-separate').checked,
+            constFab1: document.getElementById('edit-const-fab1').value.trim(),
+            constFab1Separate: document.getElementById('edit-const-fab1-separate').checked,
+            constDrawing: document.getElementById('edit-const-drawing').value.trim(),
+            constDrawingSeparate: document.getElementById('edit-const-drawing-separate').checked,
+            constFab2: document.getElementById('edit-const-fab2').value.trim(),
+            constFab2Separate: document.getElementById('edit-const-fab2-separate').checked,
+            constErection: document.getElementById('edit-const-erection').value.trim(),
+            constErectionSeparate: document.getElementById('edit-const-erection-separate').checked,
+            constBolting: document.getElementById('edit-const-bolting').value.trim(),
+            constBoltingSeparate: document.getElementById('edit-const-bolting-separate').checked,
+            constDeck: document.getElementById('edit-const-deck').value.trim(),
+            constDeckSeparate: document.getElementById('edit-const-deck-separate').checked,
+            constStud: document.getElementById('edit-const-stud').value.trim(),
+            constStudSeparate: document.getElementById('edit-const-stud-separate').checked,
+            constWelding: document.getElementById('edit-const-welding').value.trim(),
+            constWeldingSeparate: document.getElementById('edit-const-welding-separate').checked,
+            constCrane: document.getElementById('edit-const-crane').value.trim(),
+            constCraneSeparate: document.getElementById('edit-const-crane-separate').checked,
+
             subcontractor: document.getElementById('edit-subcontractor').value.trim(),
             memoQty: toHalfWidth(document.getElementById('edit-memo-qty').value.trim()),
             salesRep: document.getElementById('edit-sales-rep').value,
@@ -6802,8 +7324,8 @@ function openEditModal(sched) {
             notes: document.getElementById('edit-notes').value.trim(),
         };
 
-        if (!updatedData.project || !updatedData.start || !updatedData.end) {
-            alert('工事名・開始日・終了日は必須です。');
+        if (!updatedData.project) {
+            alert('工事名は必須です。');
             saveBtn.disabled = false;
             saveBtn.innerHTML = '💾 保存する';
             return;
@@ -7000,6 +7522,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // すでにスタンドアロン起動している場合はボタンを非表示
+    // 施工体制の「別途工事」チェックボックスによるグレーアウト制御
+    const syncSeparateInput = (checkbox) => {
+        const targetId = checkbox.id.replace('-separate', '');
+        const input = document.getElementById(targetId);
+        if (input) {
+            input.disabled = checkbox.checked;
+            if (checkbox.checked) {
+                input.style.backgroundColor = 'var(--border)';
+                input.style.color = 'var(--text-muted)';
+            } else {
+                input.style.backgroundColor = '';
+                input.style.color = '';
+            }
+        }
+    };
+
+    const initSeparateCheckboxes = () => {
+        document.querySelectorAll('.separate-checkbox').forEach(cb => {
+            syncSeparateInput(cb);
+            cb.addEventListener('change', () => syncSeparateInput(cb));
+        });
+    };
+    initSeparateCheckboxes();
+
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
         if (btnInstallApp) btnInstallApp.style.display = 'none';
     }

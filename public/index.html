@@ -240,9 +240,17 @@
                         <input type="text" id="sched-project" placeholder="例: ○○ビル新築工事" required list="project-list" autocomplete="off">
                         <datalist id="project-list"></datalist>
                     </div>
-                    <div class="form-group" style="flex:1;">
-                        <label for="sched-client">元請</label>
+                    <div class="form-group" style="flex:1.5;">
+                        <label for="sched-client">元請業者名</label>
                         <input type="text" id="sched-client" placeholder="例: 西武建設" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="sched-client-director">所長名</label>
+                        <input type="text" id="sched-client-director" placeholder="例: 山田太郎" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="sched-client-rep">担当者名</label>
+                        <input type="text" id="sched-client-rep" placeholder="例: 鈴木一郎" autocomplete="off">
                     </div>
                     <div class="form-group" style="flex:1; display:none;">
                         <label for="sched-branch">担当支店</label>
@@ -252,44 +260,189 @@
                     </div>
                 </div>
 
-                <!-- 3. 現場住所 -->
+                <!-- 3. 現場住所（現場事務所住所 ＆ 作業所住所） -->
                 <div class="form-row">
-                    <div class="form-group" style="flex:2;">
-                        <label for="sched-address">現場住所</label>
-                        <input type="text" id="sched-address" placeholder="例: 東京都新宿区○○" autocomplete="off">
+                    <div class="form-group" style="flex:1;">
+                        <label for="sched-office-address">現場事務所住所</label>
+                        <input type="text" id="sched-office-address" placeholder="例: 東京都新宿区○○" autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="sched-work-address">作業所住所</label>
+                        <input type="text" id="sched-work-address" placeholder="例: 神奈川県横浜市○○" autocomplete="off">
                     </div>
                 </div>
 
-                <!-- 4. 開始日 & 終了日 -->
+                <!-- 互換性のための非表示フィールド（全体開始日・終了日） -->
+                <input type="hidden" id="sched-start">
+                <input type="hidden" id="sched-end">
+
+                <!-- 4. 施工予定日セクション -->
+                <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid var(--primary); padding-bottom: 5px;">
+                    <h3 style="font-size: 1rem; color: var(--primary); margin: 0; font-weight: bold;">施工予定日</h3>
+                </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="sched-start">開始日 <span style="color:red">*</span></label>
-                        <input type="date" id="sched-start" required autocomplete="off">
-                        <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap;">
-                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="today">今日</button>
-                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="tomorrow">明日</button>
-                            <button type="button" class="btn btn-secondary btn-small btn-date-shortcut" data-target="sched-start" data-type="next-monday">来週月曜</button>
+                        <label>柱脚工事①</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-pedestal1-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-pedestal1-end" style="flex:1;" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="sched-end">終了日 <span style="color:red">*</span></label>
-                        <input type="date" id="sched-end" required autocomplete="off">
+                        <label>柱脚工事②</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-pedestal2-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-pedestal2-end" style="flex:1;" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>鉄骨建て方①</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-erection1-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-erection1-end" style="flex:1;" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>鉄骨建て方②</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-erection2-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-erection2-end" style="flex:1;" autocomplete="off">
+                        </div>
                     </div>
                 </div>
 
-                <!-- 5. 仕入 -->
-                <div class="form-row">
+                <!-- 5. 施工体制セクション -->
+                <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid var(--primary); padding-bottom: 5px;">
+                    <h3 style="font-size: 1rem; color: var(--primary); margin: 0; font-weight: bold;">施工体制</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 20px;">
                     <div class="form-group">
-                        <label for="sched-supplier1">仕入（仕入先①）</label>
-                        <input type="text" id="sched-supplier1" placeholder="例: センクシア" autocomplete="off">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>柱脚工事①</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-pedestal1-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-pedestal1" placeholder="業者名" autocomplete="off" class="const-company-input">
                     </div>
                     <div class="form-group">
-                        <label for="sched-supplier2">製作工場①（仕入先②）</label>
-                        <input type="text" id="sched-supplier2" placeholder="例: たかね工業" autocomplete="off">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>柱脚工事②</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-pedestal2-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-pedestal2" placeholder="業者名" autocomplete="off" class="const-company-input">
                     </div>
                     <div class="form-group">
-                        <label for="sched-supplier3">製作工場②（仕入先③）</label>
-                        <input type="text" id="sched-supplier3" placeholder="例: 大建工業" autocomplete="off">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>鉄骨製作①</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-fab1-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-fab1" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>施工図</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-drawing-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-drawing" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>鉄骨製作②</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-fab2-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-fab2" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>建て方工事</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-erection-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-erection" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>本締め工事</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-bolting-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-bolting" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>床版工事</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-deck-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-deck" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>スタッド工事</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-stud-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-stud" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>現場溶接工事</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-welding-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-welding" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center; color: var(--text-main);">
+                            <span>建て方重機</span>
+                            <span style="font-size:0.75rem; font-weight:normal; display:flex; align-items:center; gap:3px;">
+                                <input type="checkbox" id="sched-const-crane-separate" class="separate-checkbox"> 別途工事
+                            </span>
+                        </label>
+                        <input type="text" id="sched-const-crane" placeholder="業者名" autocomplete="off" class="const-company-input">
+                    </div>
+                </div>
+
+                <!-- その他工種セクション -->
+                <div style="margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid var(--primary); padding-bottom: 5px;">
+                    <h3 style="font-size: 1rem; color: var(--primary); margin: 0; font-weight: bold;">その他工種</h3>
+                </div>
+                <div class="form-row" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>屋根工事</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-roof-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-roof-end" style="flex:1;" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>外壁工事</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="date" id="sched-date-wall-start" style="flex:1;" autocomplete="off">
+                            <span style="color:var(--text-main);">〜</span>
+                            <input type="date" id="sched-date-wall-end" style="flex:1;" autocomplete="off">
+                        </div>
                     </div>
                 </div>
 
