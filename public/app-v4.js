@@ -5363,8 +5363,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const gridEl = clone.querySelector('.gantt-grid');
             if (gridEl) {
                 gridEl.style.width = 'max-content';
-                const origCols = gridEl.style.gridTemplateColumns;
+                let origCols = gridEl.style.gridTemplateColumns;
                 if (origCols) {
+                    if (origCols.startsWith('35px ')) {
+                        origCols = origCols.substring(5);
+                        clone.querySelectorAll('.gantt-cell').forEach(cell => {
+                            const gridCol = cell.style.gridColumn;
+                            if (gridCol) {
+                                const trimCol = gridCol.trim();
+                                if (trimCol === '1' || trimCol.startsWith('1 /') || trimCol.startsWith('1/')) {
+                                    cell.remove();
+                                } else {
+                                    const parts = trimCol.split('/');
+                                    const newCol = parts.map(p => {
+                                        const val = parseInt(p.trim());
+                                        return isNaN(val) ? p : (val - 1).toString();
+                                    }).join(' / ');
+                                    cell.style.gridColumn = newCol;
+                                    const leftVal = cell.style.left;
+                                    if (leftVal && leftVal.endsWith('px')) {
+                                        const px = parseInt(leftVal);
+                                        if (!isNaN(px)) {
+                                            cell.style.left = `${px - 35}px`;
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
                     gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '3px').replace(/1fr/g, '3px');
                 }
             }
