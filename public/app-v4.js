@@ -48,6 +48,7 @@ let allSchedules = [];
 let allMembers = [];
 let currentIsPlanEditable = true;
 let currentIsActualEditable = true;
+let lastSavedScheduleDataString = '';
 
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
 async function resolveUserCompany(email) {
@@ -367,6 +368,7 @@ onAuthStateChanged(auth, async (user) => {
             if (typeof window.loadSchedules === 'function') await window.loadSchedules();
             if (typeof window.loadReports === 'function') await window.loadReports(false);
             setupNotification();
+            resetScheduleEditMode();
             if ('clearAppBadge' in navigator) {
                 navigator.clearAppBadge().catch(err => console.error('Failed to clear app badge:', err));
             }
@@ -2048,6 +2050,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     };
 
+
+
     const weekInput = document.getElementById('week');
     const weekDisplayHint = document.getElementById('week-display-hint');
     if (weekInput) {
@@ -2161,7 +2165,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const currentActiveTab = document.querySelector('.tab-btn.active');
-            const isLeavingInputView = currentActiveTab && currentActiveTab.dataset.target === 'schedule-input-view';
+            const isLeavingWeeklyInputView = currentActiveTab && currentActiveTab.dataset.target === 'input-view';
+            const isLeavingScheduleInputView = currentActiveTab && currentActiveTab.dataset.target === 'schedule-input-view';
             const isClickingCurrent = currentActiveTab === btn;
 
             if (isClickingCurrent) return;
@@ -2182,7 +2187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            if (isLeavingInputView && checkUnsavedChanges()) {
+            if (isLeavingWeeklyInputView && checkUnsavedChanges()) {
                 showUnsavedChangesModal({
                     onSaveAndLeave: async () => {
                         const badge = document.getElementById('report-status-badge');
@@ -2202,6 +2207,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         // キャンセル
                     }
                 });
+            } else if (isLeavingScheduleInputView && checkUnsavedScheduleChanges()) {
+                showUnsavedScheduleChangesModal({
+                    onSaveAndLeave: async () => {
+                        const success = await saveScheduleForm();
+                        if (success) {
+                            executeTabSwitch();
+                        }
+                    },
+                    onLeaveWithoutSaving: () => {
+                        // 保存せずに遷移するので変更フラグを初期化
+                        lastSavedScheduleDataString = getScheduleFormDataString();
+                        executeTabSwitch();
+                    },
+                    onCancel: () => {
+                        // キャンセル
+                    }
+                });
             } else {
                 executeTabSwitch();
             }
@@ -2210,7 +2232,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ブラウザのタブ閉じ・リロード時の警告
     window.addEventListener('beforeunload', (e) => {
-        if (checkUnsavedChanges()) {
+        if (checkUnsavedChanges() || checkUnsavedScheduleChanges()) {
             e.preventDefault();
             e.returnValue = '';
         }
@@ -3141,82 +3163,97 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 予定(Schedule)保存 - Firebase Firestore
+    // 予定(Schedule)保存 - Firebase Firestore (非同期関数化)
+    const saveScheduleForm = async () => {
+        const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
+        const schedId = document.getElementById('sched-id').value;
+        let resolvedBranch = '';
+        if (currentCompany && currentCompany.role === 'employee') {
+            const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
+            resolvedBranch = (myEmpInfo && myEmpInfo.branch) ? myEmpInfo.branch : '';
+        } else {
+            const ganttFilter = document.getElementById('gantt-branch-filter');
+            resolvedBranch = ganttFilter ? ganttFilter.value : '';
+        }
+
+        const projectVal = document.getElementById('sched-project').value.trim();
+        if (!projectVal) {
+            alert('工事名を入力してください。');
+            return false;
+        }
+
+        const startVal = document.getElementById('sched-start').value;
+        const endVal = document.getElementById('sched-end').value;
+        if (startVal && endVal && startVal > endVal) {
+            alert('終了日は開始日より後の日付にしてください。');
+            return false;
+        }
+
+        const schedData = {
+            companyId,
+            project: projectVal,
+            branch: resolvedBranch, // 判定した支店を自動設定
+            author: document.getElementById('sched-author').value.trim(),
+            start: document.getElementById('sched-start').value,
+            end: document.getElementById('sched-end').value,
+            notes: document.getElementById('sched-notes').value.trim(),
+            client: document.getElementById('sched-client').value.trim(),
+            address: document.getElementById('sched-address').value.trim(),
+            supplier1: document.getElementById('sched-supplier1').value.trim(),
+            supplier2: document.getElementById('sched-supplier2').value.trim(),
+            supplier3: document.getElementById('sched-supplier3').value.trim(),
+            subcontractor: document.getElementById('sched-subcontractor').value.trim(),
+            memoQty: document.getElementById('sched-memo-qty').value.trim(),
+            salesRep: document.getElementById('sched-sales-rep').value,
+            constRep: document.getElementById('sched-const-rep').value,
+            siteRep: document.getElementById('sched-site-rep').value,
+            chiefTech: document.getElementById('sched-chief-tech').value,
+            assignType: "none",
+            barColor: getBarColorForSiteRep(document.getElementById('sched-site-rep').value),
+            barPattern: document.getElementById('sched-bar-pattern').value,
+            completed: document.getElementById('sched-completed').checked,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            if (schedId) {
+                await updateDoc(doc(db, "schedules", schedId), schedData);
+                alert('工事情報を更新しました！');
+            } else {
+                await addDoc(collection(db, "schedules"), schedData);
+                alert('工事情報を登録しました！');
+            }
+            const msg = document.getElementById('sched-submit-message');
+            if (msg) {
+                msg.textContent = schedId ? '変更を保存しました！' : '予定を保存しました！';
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 3000);
+            }
+            
+            // 編集モードを解除
+            resetScheduleEditMode();
+            
+            // ガントチャートを再読み込み
+            await loadSchedules();
+            return true;
+        } catch (error) {
+            console.error("Error saving document: ", error);
+            alert('保存に失敗しました。接続設定を確認してください。');
+            return false;
+        }
+    };
+
     const schedForm = document.getElementById('schedule-form');
     if (schedForm) {
         schedForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const companyId = currentCompany ? currentCompany.companyId : currentUser.email.split('@')[1];
-            const schedId = document.getElementById('sched-id').value;
-            let resolvedBranch = '';
-            if (currentCompany && currentCompany.role === 'employee') {
-                const myEmpInfo = currentCompany.employees ? currentCompany.employees.find(e => e.uid === currentUser.uid) : null;
-                resolvedBranch = (myEmpInfo && myEmpInfo.branch) ? myEmpInfo.branch : '';
-            } else {
-                const ganttFilter = document.getElementById('gantt-branch-filter');
-                resolvedBranch = ganttFilter ? ganttFilter.value : '';
-            }
-
-            const startVal = document.getElementById('sched-start').value;
-            const endVal = document.getElementById('sched-end').value;
-            if (startVal && endVal && startVal > endVal) {
-                alert('終了日は開始日より後の日付にしてください。');
-                return;
-            }
-
-            const schedData = {
-                companyId,
-                project: document.getElementById('sched-project').value.trim(),
-                branch: resolvedBranch, // 判定した支店を自動設定
-                author: document.getElementById('sched-author').value.trim(),
-                start: document.getElementById('sched-start').value,
-                end: document.getElementById('sched-end').value,
-                notes: document.getElementById('sched-notes').value.trim(),
-                client: document.getElementById('sched-client').value.trim(),
-                address: document.getElementById('sched-address').value.trim(),
-                supplier1: document.getElementById('sched-supplier1').value.trim(),
-                supplier2: document.getElementById('sched-supplier2').value.trim(),
-                supplier3: document.getElementById('sched-supplier3').value.trim(),
-                subcontractor: document.getElementById('sched-subcontractor').value.trim(),
-                memoQty: document.getElementById('sched-memo-qty').value.trim(),
-                salesRep: document.getElementById('sched-sales-rep').value,
-                constRep: document.getElementById('sched-const-rep').value,
-                siteRep: document.getElementById('sched-site-rep').value,
-                chiefTech: document.getElementById('sched-chief-tech').value,
-                assignType: "none",
-                barColor: getBarColorForSiteRep(document.getElementById('sched-site-rep').value),
-                barPattern: document.getElementById('sched-bar-pattern').value,
-                completed: document.getElementById('sched-completed').checked,
-                timestamp: new Date().toISOString()
-            };
-            try {
-                if (schedId) {
-                    await updateDoc(doc(db, "schedules", schedId), schedData);
-                    alert('工事情報を更新しました！');
-                } else {
-                    await addDoc(collection(db, "schedules"), schedData);
-                    alert('工事情報を登録しました！');
-                }
-                const msg = document.getElementById('sched-submit-message');
-                msg.textContent = schedId ? '変更を保存しました！' : '予定を保存しました！';
-                msg.classList.remove('hidden');
-                
-                // 編集モードを解除
-                resetScheduleEditMode();
-                
-                // ガントチャートを再読み込み
-                await loadSchedules();
-
+            const success = await saveScheduleForm();
+            if (success) {
                 // 自動で工程管理表（gantt-view）タブへ切り替える
                 const ganttTabBtn = document.querySelector('.tab-btn[data-target="gantt-view"]');
                 if (ganttTabBtn) {
                     ganttTabBtn.click();
                 }
-                
-                setTimeout(() => msg.classList.add('hidden'), 3000);
-            } catch (error) {
-                console.error("Error saving document: ", error);
-                alert('保存に失敗しました。接続設定を確認してください。');
             }
         });
     }
@@ -6259,6 +6296,134 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- 予定・工程入力フォーム未保存監視ヘルパー (グローバル定義) ---
+function getScheduleFormDataString() {
+    const projectEl = document.getElementById('sched-project');
+    if (!projectEl) return '';
+    const data = {
+        project: projectEl.value.trim(),
+        client: document.getElementById('sched-client')?.value.trim() || '',
+        address: document.getElementById('sched-address')?.value.trim() || '',
+        start: document.getElementById('sched-start')?.value || '',
+        end: document.getElementById('sched-end')?.value || '',
+        supplier1: document.getElementById('sched-supplier1')?.value.trim() || '',
+        supplier2: document.getElementById('sched-supplier2')?.value.trim() || '',
+        supplier3: document.getElementById('sched-supplier3')?.value.trim() || '',
+        subcontractor: document.getElementById('sched-subcontractor')?.value.trim() || '',
+        memoQty: document.getElementById('sched-memo-qty')?.value.trim() || '',
+        salesRep: document.getElementById('sched-sales-rep')?.value || '',
+        constRep: document.getElementById('sched-const-rep')?.value || '',
+        siteRep: document.getElementById('sched-site-rep')?.value || '',
+        chiefTech: document.getElementById('sched-chief-tech')?.value || '',
+        barPattern: document.getElementById('sched-bar-pattern')?.value || 'solid',
+        completed: !!document.getElementById('sched-completed')?.checked,
+        notes: document.getElementById('sched-notes')?.value.trim() || ''
+    };
+    return JSON.stringify(data);
+}
+
+function checkUnsavedScheduleChanges() {
+    if (!lastSavedScheduleDataString) return false;
+    const form = document.getElementById('schedule-form');
+    if (!form || form.offsetParent === null) return false;
+    return getScheduleFormDataString() !== lastSavedScheduleDataString;
+}
+
+function showUnsavedScheduleChangesModal({ onSaveAndLeave, onLeaveWithoutSaving, onCancel }) {
+    const existing = document.getElementById('unsaved-schedule-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'unsaved-schedule-modal';
+    modal.style = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: inherit;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: var(--bg-card, #ffffff);
+            color: var(--text, #000000);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            max-width: 440px;
+            width: 90%;
+            border: 1px solid var(--border, #e2e8f0);
+            animation: unsavedModalScale 0.2s ease-out;
+        ">
+            <h3 style="margin-top: 0; font-size: 1.15rem; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                ⚠️ 編集中の工事情報があります
+            </h3>
+            <p style="margin: 16px 0 24px; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #475569);">
+                入力された工事情報の変更内容が保存されていません。移動する前に変更を保存しますか？
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button id="unsaved-sched-save-btn" style="
+                    padding: 10px 16px;
+                    background: var(--primary, #2563eb);
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: background 0.15s;
+                ">はい、保存して移動する</button>
+                
+                <button id="unsaved-sched-discard-btn" style="
+                    padding: 10px 16px;
+                    background: #f1f5f9;
+                    color: #475569;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: background 0.15s;
+                ">保存せずに移動する</button>
+                
+                <button id="unsaved-sched-cancel-btn" style="
+                    padding: 10px 16px;
+                    background: transparent;
+                    color: #64748b;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                ">キャンセル（編集を続ける）</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cleanup = () => modal.remove();
+
+    document.getElementById('unsaved-sched-save-btn').onclick = async () => {
+        cleanup();
+        await onSaveAndLeave();
+    };
+    document.getElementById('unsaved-sched-discard-btn').onclick = () => {
+        cleanup();
+        onLeaveWithoutSaving();
+    };
+    document.getElementById('unsaved-sched-cancel-btn').onclick = () => {
+        cleanup();
+        onCancel();
+    };
+}
+
 // --- 予定・工程入力フォーム編集モード制御 ---
 function startEditScheduleMode(sched) {
     const idInput = document.getElementById('sched-id');
@@ -6296,6 +6461,9 @@ function startEditScheduleMode(sched) {
     // タブ切り替え
     const tabBtn = document.querySelector('.tab-btn[data-target="schedule-input-view"]');
     if (tabBtn) tabBtn.click();
+
+    // 編集初期状態を保存して変更監視を開始
+    lastSavedScheduleDataString = getScheduleFormDataString();
 }
 
 function resetScheduleEditMode() {
@@ -6318,6 +6486,8 @@ function resetScheduleEditMode() {
             if (authorEl) authorEl.value = nameDisplay;
         }
     }
+    // リセット（新規登録状態）の初期値を保存して変更監視を初期化
+    lastSavedScheduleDataString = getScheduleFormDataString();
 }
 
 // --- ガントチャート予定編集モーダル ---
