@@ -6126,6 +6126,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExportGantt.addEventListener('click', async () => {
             if (typeof ExcelJS === 'undefined') return alert('ExcelJSライブラリの読み込みに失敗しました。');
             
+            const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
+            
             const selectedYear = parseInt(ganttYearSelect.value, 10);
             if (isNaN(selectedYear)) return alert('年度が選択されていません。');
 
@@ -6419,17 +6421,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // 建て方①
                 if (s.dateErection1Start && s.dateErection1End) {
-                    barsToDraw.push({
-                        start: new Date(s.dateErection1Start),
-                        end: new Date(s.dateErection1End)
-                    });
+                    const st = new Date(s.dateErection1Start);
+                    const ed = new Date(s.dateErection1End);
+                    if (isValidDate(st) && isValidDate(ed)) {
+                        barsToDraw.push({ start: st, end: ed });
+                    }
                 }
                 // 建て方②
                 if (s.dateErection2Start && s.dateErection2End) {
-                    barsToDraw.push({
-                        start: new Date(s.dateErection2Start),
-                        end: new Date(s.dateErection2End)
-                    });
+                    const st = new Date(s.dateErection2Start);
+                    const ed = new Date(s.dateErection2End);
+                    if (isValidDate(st) && isValidDate(ed)) {
+                        barsToDraw.push({ start: st, end: ed });
+                    }
                 }
 
                 barsToDraw.forEach(barInfo => {
@@ -6490,7 +6494,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // 右側の最後の列の右境界線を太線にする
-            const leftColCount = 12;
+            const leftColCount = 16;
             const lastColIdx = leftColCount + dateList.length;
             for (let r = 5; r <= targetSchedules.length + 6; r++) {
                 const cell = sheet.getRow(r).getCell(lastColIdx);
