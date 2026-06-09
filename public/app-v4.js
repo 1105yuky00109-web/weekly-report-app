@@ -6126,6 +6126,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btnExportGantt.addEventListener('click', async () => {
             if (typeof ExcelJS === 'undefined') return alert('ExcelJSライブラリの読み込みに失敗しました。');
             
+            // ボタン連打防止
+            btnExportGantt.disabled = true;
+            const originalText = btnExportGantt.textContent;
+            btnExportGantt.textContent = '⏳ 出力中...';
+            
             const isValidDate = (d) => d instanceof Date && !isNaN(d.getTime());
             
             const selectedYear = parseInt(ganttYearSelect.value, 10);
@@ -6324,19 +6329,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nextDate = dateList[idx + 1];
                 const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
 
-                cell.border = {
+                const borderObj = {
                     top: { style: 'thin' },
-                    bottom: { style: 'medium' },
-                    left: { style: 'none' },
-                    right: { style: isLastDay ? 'medium' : 'thin' }
+                    bottom: { style: 'medium' }
                 };
+                if (isLastDay) {
+                    borderObj.right = { style: 'medium' };
+                }
+                cell.border = borderObj;
 
                 if (isSat) {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } }; // 薄い青
                 } else if (isSun) {
                     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEECEC' } }; // 薄い赤
-                } else {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
                 }
             });
 
@@ -6385,7 +6390,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // カレンダー背景セルの初期化 (土日・月境界の描画)
+                // カレンダー背景セルの初期化 (土日・月境界の描画 - 高速化のため不要な平日白塗りや罫線をスキップ)
                 dateList.forEach((d, idx) => {
                     const colIdx = idx + 17;
                     const cell = row.getCell(colIdx);
@@ -6396,19 +6401,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const nextDate = dateList[idx + 1];
                     const isLastDay = !nextDate || nextDate.getMonth() !== d.getMonth();
 
-                    cell.border = {
-                        top: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        left: { style: 'none' },
-                        right: { style: isLastDay ? 'medium' : 'thin' }
-                    };
+                    if (isLastDay) {
+                        cell.border = {
+                            right: { style: 'medium' }
+                        };
+                    }
 
                     if (isSat) {
                         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } };
                     } else if (isSun) {
                         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEECEC' } };
-                    } else {
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
                     }
                 });
 
@@ -6480,7 +6482,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             };
                         }
 
-                        sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
+                        if (barStartCol < barEndCol) {
+                            sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
+                        }
                         
                         const mergedStartCell = row.getCell(barStartCol);
                         mergedStartCell.value = '';
@@ -6531,6 +6535,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error("Excel export error: ", err);
                 alert("Excel出力中にエラーが発生しました。");
+            } finally {
+                // ボタンの無効化解除
+                btnExportGantt.disabled = false;
+                btnExportGantt.textContent = originalText;
             }
         });
     }
