@@ -2182,6 +2182,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     document.body.classList.remove('print-a3-landscape');
                     if (btn.dataset.target === 'list-view') loadReports(false);
+                    if (btn.dataset.target === 'input-view') {
+                        loadReports(false);
+                        loadReportForSelectedWeek();
+                    }
                     if (btn.dataset.target === 'schedule-input-view') {
                         const idInput = document.getElementById('sched-id');
                         if (!idInput || !idInput.value) {
@@ -5181,11 +5185,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 工事別集計画面の支店フィルター
                         const summaryFilterBranchSelect = document.getElementById('summary-filter-branch');
                         const summaryFilterBranch = summaryFilterBranchSelect ? summaryFilterBranchSelect.value : '';
-                        if (summaryFilterBranch) {
-                            const projBranch = getProjectBranch(proj);
-                            if (projBranch && projBranch !== summaryFilterBranch) {
-                                return;
-                            }
+                        if (summaryFilterBranch && getProjectBranch(proj) !== summaryFilterBranch) {
+                            return;
                         }
 
                         const auth = r.author || '不明';
