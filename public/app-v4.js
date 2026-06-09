@@ -2289,7 +2289,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 休みボタンと前日コピーボタンの制御
         document.querySelectorAll('.leave-quick-btn, .btn-copy-prev').forEach(btn => {
-            if (isPlanEditable) {
+            if (isPlanEditable || isActualEditable) {
                 btn.style.pointerEvents = 'auto';
                 btn.style.opacity = '1';
                 btn.disabled = false;
