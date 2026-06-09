@@ -5395,7 +5395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                     }
-                    gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '2px').replace(/1fr/g, '2px');
+                    gridEl.style.gridTemplateColumns = origCols.replace(/minmax\(0,\s*1fr\)/g, '1px').replace(/1fr/g, '1px');
                 }
             }
             

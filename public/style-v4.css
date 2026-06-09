@@ -222,8 +222,7 @@ th { background-color: #f1f5f9; font-weight: 600; white-space: nowrap; }
         display: block !important;
     }
     #print-active-area .gantt-grid {
-        /* カレンダー各日の列幅を3pxの固定幅にして、A3横の1ページ内に1年間（365日）が美しく収まるようにする */
-        grid-template-columns: 100px 80px 80px 70px 45px 45px 45px 45px 60px 45px repeat(366, 3px) !important;
+        /* カレンダー各日の列幅は JS (app-v4.js) 側で動的に上書きされます */
         width: max-content !important;
         display: grid !important;
     }
