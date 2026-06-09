@@ -437,15 +437,11 @@ onAuthStateChanged(auth, async (user) => {
                 }
             }
 
-            // 【救済措置】一時的にパスワード変更モーダルの表示を完全に強制無効化
-            passModal.style.display = 'none';
-            /*
             if (myEmpInfo && myEmpInfo.mustChangePassword === true) {
                 passModal.style.display = 'flex';
             } else {
                 passModal.style.display = 'none';
             }
-            */
         if (loadingContainer) loadingContainer.classList.add('hidden');
         }
     } else {
