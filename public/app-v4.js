@@ -4174,7 +4174,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // displayName優先、なければメールのID部分で比較
         const myName = currentUser.displayName || currentUser.email.split('@')[0];
         // 確定済み(confirmed)またはステータス未定義の過去データのみをコピー対象とする
-        const myReports = allReports.filter(r => r.author === myName && (r.status === undefined || r.status === 'confirmed'));
+        const myReports = allReports.filter(r => {
+            const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : r.status === 'plan' ? 'uncreated' : 'draft');
+            return r.author === myName && (actualStatus === 'submitted' || actualStatus === 'approved');
+        });
         myReports.sort((a, b) => (a.week < b.week ? 1 : -1)); // 降順
         
         select.innerHTML = '<option value="">過去の日報からコピーして作成...</option>';
@@ -5154,8 +5157,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const projectMap = {};
         
         allReports.forEach(r => {
-            // 実績確定済み(confirmed)またはステータス未定義の過去データのみを集計対象とする
-            if (r.status !== undefined && r.status !== 'confirmed') return;
+            // 実績確定（提出済み）または承認済みのデータのみを集計対象とする（過去データとの互換性含む）
+            const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : r.status === 'plan' ? 'uncreated' : 'draft');
+            if (actualStatus !== 'submitted' && actualStatus !== 'approved') return;
             const days = ['月','火','水','木','金','土','日'];
             const dates = getDaysOfWeek(r.week);
             if (!dates) return;
@@ -6538,11 +6542,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof XLSX === 'undefined') return alert('Excelライブラリの読み込みに失敗しました。');
             const filterMonth = document.getElementById('filter-month').value;
             const filterAuthor = document.getElementById('filter-author').value;
-            const filtered = allReports.filter(r => 
-                (r.status === undefined || r.status === 'confirmed') &&
-                (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
-                (filterAuthor === '' || r.author === filterAuthor)
-            );
+            const filtered = allReports.filter(r => {
+                const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : r.status === 'plan' ? 'uncreated' : 'draft');
+                return (actualStatus === 'submitted' || actualStatus === 'approved') &&
+                       (filterMonth === '' || getMonthStr(r.week) === filterMonth) && 
+                       (filterAuthor === '' || r.author === filterAuthor);
+            });
             const rows = [];
             const authorProjectHours = {};
 
