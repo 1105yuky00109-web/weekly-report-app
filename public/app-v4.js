@@ -5181,8 +5181,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         // 工事別集計画面の支店フィルター
                         const summaryFilterBranchSelect = document.getElementById('summary-filter-branch');
                         const summaryFilterBranch = summaryFilterBranchSelect ? summaryFilterBranchSelect.value : '';
-                        if (summaryFilterBranch && getProjectBranch(proj) !== summaryFilterBranch) {
-                            return;
+                        if (summaryFilterBranch) {
+                            const projBranch = getProjectBranch(proj);
+                            if (projBranch && projBranch !== summaryFilterBranch) {
+                                return;
+                            }
                         }
 
                         const auth = r.author || '不明';
