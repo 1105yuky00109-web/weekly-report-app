@@ -6482,17 +6482,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             };
                         }
 
-                        if (barStartCol < barEndCol) {
-                            sheet.mergeCells(rowIndex, barStartCol, rowIndex, barEndCol);
-                        }
-                        
-                        const mergedStartCell = row.getCell(barStartCol);
-                        mergedStartCell.value = '';
-                        mergedStartCell.alignment = { 
-                            horizontal: 'center', 
-                            vertical: 'middle',
-                            wrapText: false
-                        };
+                        // 重複マージによるファイル破損を防ぐためセル結合(mergeCells)は行わず、各セルを単体で塗りつぶす仕様に変更します。
                     }
                 });
             });
