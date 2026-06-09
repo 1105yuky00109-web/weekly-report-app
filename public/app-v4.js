@@ -3745,7 +3745,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedBranch = ganttBranchFilter ? ganttBranchFilter.value : '';
         let filteredSchedules = allSchedules;
         if (selectedBranch) {
-            filteredSchedules = allSchedules.filter(s => s.branch === selectedBranch);
+            filteredSchedules = allSchedules.filter(s => !s.branch || s.branch === selectedBranch);
         }
 
         // 年度と重なるスケジュールを抽出
