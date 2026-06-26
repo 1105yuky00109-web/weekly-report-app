@@ -4343,7 +4343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://127.0.0.1:5001/weekly-report-93e5f/us-central1'
+                ? 'http://127.0.0.1:5005/weekly-report-93e5f/us-central1'
                 : 'https://us-central1-weekly-report-93e5f.cloudfunctions.net';
                 
             const response = await fetch(`${baseUrl}/sendRemindNotification`, {
