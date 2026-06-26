@@ -50,5 +50,12 @@
   },
   "functions": {
     "source": "functions"
+  },
+  "emulators": {
+    "hosting": { "port": 5004 },
+    "firestore": { "port": 8084 },
+    "auth": { "port": 9101 },
+    "functions": { "port": 5005 },
+    "ui": { "enabled": true, "port": 4004 }
   }
 }
