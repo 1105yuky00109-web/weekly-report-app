@@ -2767,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section morning">
                         <div class="time-section-header">🌅 午前</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project morning-project" placeholder="支店・現場名" list="project-suggestions"
+                            <input type="text" class="section-project morning-project" placeholder="支店・現場名" list="project-suggestions" autocomplete="off"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail morning-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -2781,7 +2781,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section afternoon">
                         <div class="time-section-header">🌤 午後</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project afternoon-project" placeholder="支店・現場名" list="project-suggestions"
+                            <input type="text" class="section-project afternoon-project" placeholder="支店・現場名" list="project-suggestions" autocomplete="off"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail afternoon-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -2795,7 +2795,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="time-section night">
                         <div class="time-section-header">🌙 夜間</div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                            <input type="text" class="section-project night-project" placeholder="支店・現場名" list="project-suggestions"
+                            <input type="text" class="section-project night-project" placeholder="支店・現場名" list="project-suggestions" autocomplete="off"
                                 style="flex:2;min-width:130px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
                             <input type="text" class="section-detail night-detail" placeholder="作業内容・備考"
                                 style="flex:3;min-width:180px;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;background:#ffffff;color:#000000;">
@@ -4090,20 +4090,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateProjectSuggestions = () => {
         if (!currentUser) return;
         
-        const myName = currentUser.displayName || currentUser.email.split('@')[0];
-        
-        const mySuggestions = new Set();
-        const otherSuggestions = new Set();
-        
-        // 支店候補の追加（単一の「支店」のみを残す）
-        const branchSuggestions = ['支店'];
+        const projectSuggestions = new Set();
         
         // サジェストから除外する工事名・項目の判定関数
         const isExcludedProject = (proj) => {
             if (!proj) return true;
             const normalized = proj.trim();
             // 有給・有休、欠勤・休日・休み、本社、支店
-            if (['有給', '有休', '欠勤', '休日', '休み', '本社', '支店'].includes(normalized)) {
+            if (['有給', '暗黙', '有休', '欠勤', '休日', '休み', '本社', '支店'].includes(normalized)) {
                 return true;
             }
             // 個別支店名（例：東京支店）も除外する
@@ -4116,48 +4110,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // スケジュール（工事情報）から取得
         allSchedules.forEach(s => { 
             if (s.project && !isExcludedProject(s.project)) {
-                otherSuggestions.add(s.project); 
+                projectSuggestions.add(s.project.trim()); 
             }
         });
         
-        // 過去の日報データから取得 (新旧形式に対応)
-        allReports.forEach(r => {
-            if (r.dailyLogs) {
-                const isMe = r.author === myName;
-                const targetSet = isMe ? mySuggestions : otherSuggestions;
-                
-                Object.values(r.dailyLogs).forEach(dayLog => {
-                    if (Array.isArray(dayLog)) {
-                        // 旧形式（配列）
-                        dayLog.forEach(t => { 
-                            if (t.project && !isExcludedProject(t.project)) {
-                                targetSet.add(t.project); 
-                            }
-                        });
-                    } else if (dayLog && typeof dayLog === 'object') {
-                        // 新形式（オブジェクト）
-                        ['morning', 'afternoon', 'night'].forEach(sec => {
-                            const proj = dayLog[sec]?.project;
-                            if (proj && !isExcludedProject(proj)) {
-                                targetSet.add(proj);
-                            }
-                        });
-                    }
-                });
-            }
-        });
-        
-        // ソートして連結
-        // 1. 本人が入力した過去の工事名
-        // 2. 支店名「支店」の項目
-        // 3. その他（他人が入力した工事、スケジュール工事等）
-        // 4. 「有休」（一番最後）
-        const mySorted = Array.from(mySuggestions).sort();
-        const otherSorted = Array.from(otherSuggestions).sort().filter(p => !mySuggestions.has(p) && !branchSuggestions.includes(p));
+        // ソートして「支店」「有休」を結合して最終候補とする
+        const sortedProjects = Array.from(projectSuggestions).sort();
         
         const finalSuggestions = [
-            ...mySorted,
-            ...otherSorted,
+            ...sortedProjects,
             '支店',
             '有休'
         ];
