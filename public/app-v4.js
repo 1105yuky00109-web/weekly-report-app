@@ -3365,6 +3365,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!weekInput || !authorInput) return;
         const weekVal = weekInput.value;
         const authorVal = authorInput.value;
+
+        // 実績提出時の未来・今週期間内ブロック処理
+        if (status === 'confirmed') {
+            const days = getDaysOfWeek(weekVal);
+            if (days) {
+                const sunday = days[6];
+                sunday.setHours(23, 59, 59, 999); // 週の最終日（日曜日）の23:59:59
+                if (new Date() < sunday) {
+                    alert('この週の期間が終了するまで実績の提出はできません。期間が終了した翌週の月曜日以降に提出してください。（入力中の実績は「下書き保存」で一時保存できます）');
+                    return;
+                }
+            }
+        }
+
         const existingReport = allReports.find(r => r.week === weekVal && r.author === authorVal);
         
         if (existingReport && existingReport.actualStatus === 'approved') {
@@ -5122,9 +5136,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const projectMap = {};
         
         allReports.forEach(r => {
-            // 実績確定（提出済み）または承認済みのデータのみを集計対象とする（過去データとの互換性含む）
+            // 実績承認済みのデータのみを集計対象とする（過去データとの互換性含む）
             const actualStatus = r.actualStatus || (r.status === 'approved' ? 'approved' : r.status === 'confirmed' ? 'submitted' : r.status === 'plan' ? 'uncreated' : 'draft');
-            if (actualStatus !== 'submitted' && actualStatus !== 'approved') return;
+            if (actualStatus !== 'approved') return;
             const days = ['月','火','水','木','金','土','日'];
             const dates = getDaysOfWeek(r.week);
             if (!dates) return;
