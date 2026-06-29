@@ -5169,11 +5169,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         let hrs = 0;
                         if (t.timeline) {
                             if (summaryDisplayMode === 'site') {
-                                // 現場従事時間（黒：現場管理のみ）
-                                hrs = t.timeline.split('').filter(s => s === '1').length * 0.5;
+                                // 現場従事時間（黒：現場管理「1」のみ）
+                                // 午前・午後・夜間の各期間に対応するタイムラインの範囲から「1」のみを抽出して集計
+                                let sub = '';
+                                const tl = t.timeline;
+                                if (t.period === 'morning') sub = tl.substring(0, 8);
+                                else if (t.period === 'afternoon') sub = tl.substring(10, 18);
+                                else if (t.period === 'night') sub = tl.substring(18);
+                                
+                                if (sub) {
+                                    hrs = sub.split('').filter(s => s === '1').length * 0.5;
+                                } else {
+                                    // 過去の配列形式データなどのフォールバック
+                                    hrs = tl.split('').filter(s => s === '1').length * 0.5;
+                                }
                             } else {
-                                // 合計時間（作業・移動・現場管理以外の業務）
-                                hrs = t.timeline.split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                                // 合計時間（分解済みの t.hours を使用して二重カウントを防止）
+                                hrs = parseFloat(t.hours || 0);
                             }
                         } else {
                             // タイムラインが存在しない過去データ等のフォールバック
