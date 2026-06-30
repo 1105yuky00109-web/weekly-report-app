@@ -9,7 +9,7 @@ const firebaseConfig = {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, updatePassword, sendPasswordResetEmail, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc, onSnapshot, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, query, orderBy, where, doc, updateDoc, deleteDoc, onSnapshot, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 // Firebase初期化
@@ -59,6 +59,20 @@ let lastSavedScheduleDataString = '';
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
 async function resolveUserCompany(email) {
     try {
+        // 代理ログイン（なりすまし）モードの処理
+        let impCompanyId = sessionStorage.getItem('impersonate_company_id');
+        const isDeveloper = email && email.toLowerCase().trim() === 'steelworks@areva.co.jp';
+        if (impCompanyId && isDeveloper) {
+            const docRef = doc(db, "companies", impCompanyId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const companyData = docSnap.data();
+                companyData.companyId = impCompanyId;
+                companyData.role = 'admin';
+                return companyData;
+            }
+        }
+
         // 1. adminEmails（管理者）に含まれる会社をクエリ
         const qAdmin = query(collection(db, "companies"), where("adminEmails", "array-contains", email));
         const adminSnapshot = await getDocs(qAdmin);
@@ -281,9 +295,38 @@ onAuthStateChanged(auth, async (user) => {
             try { await user.reload(); user = auth.currentUser; } catch(e) {}
         }
 
-        // ログイン成功時
         currentUser = auth.currentUser;
         
+        // 開発者用ボタンと代理ログインUIの初期化
+        const isDeveloper = currentUser.email && currentUser.email.toLowerCase().trim() === 'steelworks@areva.co.jp';
+        const devAdminBtn = document.getElementById('btn-dev-admin');
+        const impersonateBadge = document.getElementById('impersonate-badge');
+        const impersonateEndBtn = document.getElementById('btn-impersonate-end');
+
+        // 🔧 開発管理画面へボタンの表示
+        if (devAdminBtn) {
+            devAdminBtn.style.display = isDeveloper ? 'inline-block' : 'none';
+            devAdminBtn.onclick = () => {
+                window.location.href = 'system-admin.html';
+            };
+        }
+
+        // 代理ログイン中UIの表示
+        const impCompanyId = sessionStorage.getItem('impersonate_company_id');
+        if (impCompanyId && isDeveloper) {
+            if (impersonateBadge) impersonateBadge.style.display = 'inline-block';
+            if (impersonateEndBtn) {
+                impersonateEndBtn.style.display = 'inline-block';
+                impersonateEndBtn.onclick = () => {
+                    sessionStorage.removeItem('impersonate_company_id');
+                    window.location.href = 'system-admin.html';
+                };
+            }
+        } else {
+            if (impersonateBadge) impersonateBadge.style.display = 'none';
+            if (impersonateEndBtn) impersonateEndBtn.style.display = 'none';
+        }
+
         // 所属会社の解決
         currentCompany = await resolveUserCompany(currentUser.email);
         if (!currentCompany) {
