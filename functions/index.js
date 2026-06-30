@@ -1,6 +1,7 @@
 // functions/index.js
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { FieldValue } = require('firebase-admin/firestore');
 const Stripe = require('stripe');
 require('dotenv').config();
 
@@ -135,7 +136,8 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
       maxUsers: planInfo.maxUsers,
       ownerUid: adminUid,
       adminEmails: [adminEmail],
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      stripeCustomerId: customerId,
+      createdAt: FieldValue.serverTimestamp(),
       status: 'active',
     });
     // Store subscription info
@@ -286,8 +288,8 @@ exports.addEmployee = functions.https.onRequest(async (req, res) => {
 
     // 4. 会社ドキュメントの memberEmails および employees 配列に追加 (初回ログイン時にパスワード変更を求めるフラグを付与)
     await companyRef.update({
-      memberEmails: admin.firestore.FieldValue.arrayUnion(employeeEmail),
-      employees: admin.firestore.FieldValue.arrayUnion({
+      memberEmails: FieldValue.arrayUnion(employeeEmail),
+      employees: FieldValue.arrayUnion({
         uid: employeeUid,
         name: employeeName,
         email: employeeEmail,
