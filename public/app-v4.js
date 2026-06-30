@@ -1673,16 +1673,16 @@ const normalizeDailyTasks = (dayLog) => {
         ['morning', 'afternoon', 'night'].forEach(period => {
             const sec = dayLog[period];
             if (sec && (sec.project || sec.detail)) {
-                // timelineから時間数を計算 (午前: 0-7, 午後: 10-17, 夜間: 18以降)
+                // timelineから時間数を計算 (午前: 8:00-12:00 -> 6-14, 午後: 13:00-17:00 -> 16-24, 夜間: 17:00以降 -> 24以降)
                 let h = 0;
                 const tl = dayLog.timeline || '';
                 if (tl) {
                     if (period === 'morning') {
-                        h = tl.substring(0, 8).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                        h = tl.substring(6, 14).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
                     } else if (period === 'afternoon') {
-                        h = tl.substring(10, 18).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                        h = tl.substring(16, 24).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
                     } else if (period === 'night') {
-                        h = tl.substring(18).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
+                        h = tl.substring(24).split('').filter(s => s === '1' || s === '3' || s === '5').length * 0.5;
                     }
                 }
                 ts.push({
@@ -5173,9 +5173,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 // 午前・午後・夜間の各期間に対応するタイムラインの範囲から「1」のみを抽出して集計
                                 let sub = '';
                                 const tl = t.timeline;
-                                if (t.period === 'morning') sub = tl.substring(0, 8);
-                                else if (t.period === 'afternoon') sub = tl.substring(10, 18);
-                                else if (t.period === 'night') sub = tl.substring(18);
+                                if (t.period === 'morning') sub = tl.substring(6, 14);
+                                else if (t.period === 'afternoon') sub = tl.substring(16, 24);
+                                else if (t.period === 'night') sub = tl.substring(24);
                                 
                                 if (sub) {
                                     hrs = sub.split('').filter(s => s === '1').length * 0.5;
