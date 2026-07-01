@@ -57,9 +57,9 @@ let currentIsActualEditable = true;
 let lastSavedScheduleDataString = '';
 
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
-async function resolveUserCompany(email) {
+async function resolveUserCompany(email, uid) {
     try {
-        // 代理ログイン（なりすまし）モードの処理
+        // 0. 代理ログイン（なりすまし）モードの処理
         let impCompanyId = sessionStorage.getItem('impersonate_company_id');
         const isDeveloper = email && email.toLowerCase().trim() === 'steelworks@areva.co.jp';
         if (impCompanyId && isDeveloper) {
@@ -73,26 +73,43 @@ async function resolveUserCompany(email) {
             }
         }
 
-        // 1. adminEmails（管理者）に含まれる会社をクエリ
-        const qAdmin = query(collection(db, "companies"), where("adminEmails", "array-contains", email));
-        const adminSnapshot = await getDocs(qAdmin);
-        if (!adminSnapshot.empty) {
-            const docSnap = adminSnapshot.docs[0];
-            const companyData = docSnap.data();
-            companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
-            companyData.role = 'admin'; // 管理者権限
-            return companyData;
+        // 1. ownerUid判定
+        if (uid) {
+            const qOwner = query(collection(db, "companies"), where("ownerUid", "==", uid));
+            const ownerSnapshot = await getDocs(qOwner);
+            if (!ownerSnapshot.empty) {
+                const docSnap = ownerSnapshot.docs[0];
+                const companyData = docSnap.data();
+                companyData.companyId = companyData.companyId || docSnap.id;
+                companyData.role = 'admin';
+                return companyData;
+            }
         }
 
-        // 2. memberEmails（一般社員）に含まれる会社をクエリ
-        const qMember = query(collection(db, "companies"), where("memberEmails", "array-contains", email));
-        const memberSnapshot = await getDocs(qMember);
-        if (!memberSnapshot.empty) {
-            const docSnap = memberSnapshot.docs[0];
-            const companyData = docSnap.data();
-            companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
-            companyData.role = 'employee'; // 一般社員権限
-            return companyData;
+        // 2. adminEmails（管理者）に含まれる会社をクエリ
+        if (email) {
+            const qAdmin = query(collection(db, "companies"), where("adminEmails", "array-contains", email));
+            const adminSnapshot = await getDocs(qAdmin);
+            if (!adminSnapshot.empty) {
+                const docSnap = adminSnapshot.docs[0];
+                const companyData = docSnap.data();
+                companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
+                companyData.role = 'admin'; // 管理者権限
+                return companyData;
+            }
+        }
+
+        // 3. memberEmails（一般社員）に含まれる会社をクエリ
+        if (email) {
+            const qMember = query(collection(db, "companies"), where("memberEmails", "array-contains", email));
+            const memberSnapshot = await getDocs(qMember);
+            if (!memberSnapshot.empty) {
+                const docSnap = memberSnapshot.docs[0];
+                const companyData = docSnap.data();
+                companyData.companyId = companyData.companyId || docSnap.id; // ドキュメントIDを会社IDとして補完
+                companyData.role = 'employee'; // 一般社員権限
+                return companyData;
+            }
         }
         
         // いずれにも該当しない場合は null を返す
@@ -328,7 +345,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // 所属会社の解決
-        currentCompany = await resolveUserCompany(currentUser.email);
+        currentCompany = await resolveUserCompany(currentUser.email, currentUser.uid);
         if (!currentCompany) {
             // 所属会社が解決できない未登録ユーザーは強制ログアウトしてエラー表示
             await signOut(auth);
