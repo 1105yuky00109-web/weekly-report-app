@@ -1,12 +1,12 @@
 // public/system-admin.js
 const firebaseConfig = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: "",
-    measurementId: ""
+    apiKey: "AIzaSyBero5buqjW670UPObtf4QiVX-rkhhFfPs",
+    authDomain: "weekly-report-93e5f.firebaseapp.com",
+    projectId: "weekly-report-93e5f",
+    storageBucket: "weekly-report-93e5f.firebasestorage.app",
+    messagingSenderId: "905872831436",
+    appId: "1:905872831436:web:1367ad0b1d54d9bba7a369",
+    measurementId: "G-HC3D9SGNJ0"
 };
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
