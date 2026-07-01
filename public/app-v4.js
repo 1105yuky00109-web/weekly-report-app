@@ -347,7 +347,6 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // 代理閲覧中UIの表示
-        const impCompanyId = sessionStorage.getItem('impersonate_company_id');
         if (impCompanyId && isDeveloper) {
             if (impersonateBadge) impersonateBadge.style.display = 'inline-block';
             if (impersonateEndBtn) {
