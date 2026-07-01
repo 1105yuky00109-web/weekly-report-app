@@ -27,18 +27,27 @@ let lastSavedScheduleDataString = '';
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
 async function resolveUserCompany(email, uid) {
     try {
-        // 0. 代理ログイン（なりすまし）モードの処理
+        // 0. 代理ログイン（なりすまし）モードおよび開発者判定の処理
         let impCompanyId = sessionStorage.getItem('impersonate_company_id');
         const isDeveloper = email && email.toLowerCase().trim() === 'steelworks@areva.co.jp';
-        if (impCompanyId && isDeveloper) {
-            const docRef = doc(db, "companies", impCompanyId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                const companyData = docSnap.data();
-                companyData.companyId = impCompanyId;
-                companyData.role = 'admin';
-                return companyData;
+        if (isDeveloper) {
+            if (impCompanyId) {
+                const docRef = doc(db, "companies", impCompanyId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const companyData = docSnap.data();
+                    companyData.companyId = impCompanyId;
+                    companyData.role = 'admin';
+                    return companyData;
+                }
             }
+            // 代理ログイン対象が未設定の段階では、ログインを通すためにダミー会社情報を返却
+            return {
+                companyId: "developer_temp_company",
+                companyName: "AREVA 開発管理",
+                role: "admin",
+                employees: []
+            };
         }
 
         // 1. ownerUid判定
