@@ -3,10 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>開発者専用 企業代理閲覧管理画面 - 工事・日報管理システム</title>
+    <title>開発元管理ダッシュボード - 工事・日報管理システム</title>
     <link rel="stylesheet" href="style-v4.css?v=20260609-09">
+    <style>
+        body {
+            font-family: 'Inter', 'Outfit', sans-serif;
+            background-color: var(--bg-color, #f8fafc);
+            color: var(--text-color, #1e293b);
+            margin: 0;
+            padding: 20px;
+        }
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--card-bg, #ffffff);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 30px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color, #e2e8f0);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            color: #2563eb;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .dev-email {
+            font-weight: bold;
+            color: #475569;
+        }
+        .btn-logout {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-logout:hover {
+            background-color: #dc2626;
+        }
+        .control-panel {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+        }
+        .control-panel h2 {
+            font-size: 1.4rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        .control-panel p {
+            color: #64748b;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+        }
+        .btn-blue {
+            background-color: #3b82f6;
+        }
+        .btn-blue:hover {
+            background-color: #2563eb;
+        }
+        .btn-green {
+            background-color: #10b981;
+        }
+        .btn-green:hover {
+            background-color: #059669;
+        }
+        .filter-select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.95rem;
+            min-width: 200px;
+        }
+        .company-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .company-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fff;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+        }
+        .company-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        /* カード枠線のカラーバリエーション */
+        .company-card.style-0 { border-color: #c084fc; } /* 紫 */
+        .company-card.style-1 { border-color: #fdba74; } /* オレンジ */
+        .company-card.style-2 { border-color: #93c5fd; } /* 青 */
+        .company-card.style-3 { border-color: #86efac; } /* 緑 */
+        
+        .company-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        .company-info {
+            font-size: 0.95rem;
+            color: #475569;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .company-info strong {
+            color: #1e293b;
+        }
+        .card-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .btn-card-action {
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-enter { background-color: #4f46e5; }
+        .btn-enter:hover { background-color: #4338ca; }
+        .btn-edit-mail { background-color: #f59e0b; }
+        .btn-edit-mail:hover { background-color: #d97706; }
+        .btn-reset-pw { background-color: #10b981; }
+        .btn-reset-pw:hover { background-color: #059669; }
+        
+        .card-footer-tip {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 10px;
+        }
+
+        .data-section {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .data-count {
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+        .data-table-wrapper {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f8fafc;
+        }
+        .badge-cid {
+            background-color: #e2e8f0;
+            color: #475569;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #4b5563;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link:hover {
+            color: #111827;
+        }
+        #loading {
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 40px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <!-- グローバルエラーハンドリング -->
     <script>
-        // クライアントサイドのエラーをキャッチして画面に赤枠で表示するデバッグスクリプト
         window.onerror = function(message, source, lineno, colno, error) {
             const div = document.createElement('div');
             div.style.position = 'fixed';
@@ -34,7 +290,6 @@
             return false;
         };
 
-        // Promiseの例外（非同期エラー）もキャッチする
         window.onunhandledrejection = function(event) {
             const div = document.createElement('div');
             div.style.position = 'fixed';
@@ -59,112 +314,58 @@
             document.body.appendChild(div);
         };
     </script>
-    <style>
-        body {
-            font-family: 'Inter', 'Outfit', sans-serif;
-            background-color: var(--bg-color, #f8fafc);
-            color: var(--text-color, #1e293b);
-            margin: 0;
-            padding: 20px;
-        }
-        .admin-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: var(--card-bg, #ffffff);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            padding: 30px;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--border-color, #e2e8f0);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        h1 {
-            font-size: 1.8rem;
-            color: #10b981;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .company-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .company-card {
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 8px;
-            padding: 20px;
-            background: var(--bg-color, #f8fafc);
-            transition: all 0.2s;
-        }
-        .company-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-        }
-        .company-name {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: var(--primary-color, #2563eb);
-        }
-        .company-info {
-            font-size: 0.9rem;
-            color: var(--text-muted, #64748b);
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-        .btn-impersonate {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            transition: background-color 0.2s;
-            width: 100%;
-            justify-content: center;
-        }
-        .btn-impersonate:hover {
-            background-color: #1d4ed8;
-        }
-        .back-link {
-            text-decoration: none;
-            color: #4b5563;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .back-link:hover {
-            color: #111827;
-        }
-        #loading {
-            text-align: center;
-            font-size: 1.2rem;
-            padding: 40px;
-            color: var(--text-muted, #64748b);
-        }
-    </style>
-</head>
-<body>
+
     <div class="admin-container">
         <header>
-            <h1>🔧 開発者管理画面</h1>
-            <a href="index.html" class="back-link">⬅️ システム画面へ戻る</a>
+            <h1>🔧 工事・日報管理システム 開発元管理ダッシュボード</h1>
+            <div class="header-right">
+                <span id="dev-email-display" class="dev-email">読み込み中...</span>
+                <button id="btn-dev-logout" class="btn-logout">ログアウト</button>
+                <a href="index.html" id="btn-back-to-system" class="back-link" style="display:none; margin-left: 15px;">⬅️ 動作確認画面へ</a>
+            </div>
         </header>
 
+        <!-- 全体コントロール -->
+        <section class="control-panel">
+            <h2>⚙️ 全体コントロール</h2>
+            <p>本番環境のデータベース（Firestore）から全体の稼働状況を監視します。</p>
+            <div class="control-buttons">
+                <button id="btn-reload-data" class="btn-action btn-blue">🔄 本番データ再読み込み</button>
+                <button id="btn-show-all-data" class="btn-action btn-green">🌐 全社データ表示</button>
+                <select id="select-company-filter" class="filter-select">
+                    <option value="all">全社データ表示</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 企業カード一覧 -->
         <div id="loading">企業データを読み込み中...</div>
         <div id="company-list" class="company-grid" style="display:none;"></div>
+
+        <!-- 全社工程表データ一覧 -->
+        <section class="data-section">
+            <div class="section-header">
+                <span class="section-title">全社 工事予定データー一覧</span>
+                <span id="data-count-display" class="data-count">全 0 件</span>
+            </div>
+            <div class="data-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>会社ID / 会社名</th>
+                            <th>作成者</th>
+                            <th>工事名（プロジェクト）</th>
+                            <th>作成日</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedules-table-body">
+                        <tr>
+                            <td colspan="4" style="text-align:center; color:#94a3b8;">データがありません。「全社データ表示」を押すか、企業を選択してください。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
     <!-- JS -->

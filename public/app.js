@@ -119,6 +119,16 @@ onAuthStateChanged(auth, async (user) => {
 
         // ログイン成功時
         currentUser = auth.currentUser;
+
+        const isDeveloper = currentUser.email && currentUser.email.toLowerCase().trim() === 'steelworks@areva.co.jp';
+        const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const impCompanyId = sessionStorage.getItem('impersonate_company_id');
+
+        if (isDeveloper && !isLocal && !impCompanyId) {
+            window.location.replace('system-admin.html');
+            return;
+        }
+
         document.getElementById('current-user-email').textContent = currentUser.email;
         
         // 所属会社の解決

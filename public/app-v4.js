@@ -325,13 +325,22 @@ onAuthStateChanged(auth, async (user) => {
         
         // 開発者用ボタンと代理閲覧UIの初期化
         const isDeveloper = currentUser.email && currentUser.email.toLowerCase().trim() === 'steelworks@areva.co.jp';
+        const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const impCompanyId = sessionStorage.getItem('impersonate_company_id');
+
+        // 本番環境で代理閲覧中ではない開発者が index.html にアクセスした場合、一般画面を見せずに即座に強制リダイレクト
+        if (isDeveloper && !isLocal && !impCompanyId) {
+            window.location.replace('system-admin.html');
+            return;
+        }
+
         const devAdminBtn = document.getElementById('btn-dev-admin');
         const impersonateBadge = document.getElementById('impersonate-badge');
         const impersonateEndBtn = document.getElementById('btn-impersonate-end');
 
-        // 🔧 開発管理画面へボタンの表示
+        // 🔧 開発管理画面へボタンの表示（ローカル環境でのみ表示、本番では非表示）
         if (devAdminBtn) {
-            devAdminBtn.style.display = isDeveloper ? 'inline-block' : 'none';
+            devAdminBtn.style.display = (isDeveloper && isLocal) ? 'inline-block' : 'none';
             devAdminBtn.onclick = () => {
                 window.location.href = 'system-admin.html';
             };
