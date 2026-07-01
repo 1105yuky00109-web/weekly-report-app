@@ -107,8 +107,9 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 function escapeHTML(str) {
-    if (!str) return '';
-    return str.replace(/[&<>'"]/g, 
+    if (str === null || str === undefined) return '';
+    const valStr = String(str);
+    return valStr.replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
