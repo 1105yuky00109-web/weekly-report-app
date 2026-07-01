@@ -5,6 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>開発者専用 企業代理閲覧管理画面 - 工事・日報管理システム</title>
     <link rel="stylesheet" href="style-v4.css?v=20260609-09">
+    <script>
+        // クライアントサイドのエラーをキャッチして画面に赤枠で表示するデバッグスクリプト
+        window.onerror = function(message, source, lineno, colno, error) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.backgroundColor = 'rgba(255, 230, 230, 0.95)';
+            div.style.color = '#ff0000';
+            div.style.padding = '20px';
+            div.style.fontSize = '14px';
+            div.style.zIndex = '999999';
+            div.style.overflow = 'auto';
+            div.style.fontFamily = 'monospace';
+            
+            let errorDetails = '<h3>🚨 JS実行エラーが発生しました</h3>';
+            errorDetails += '<b>メッセージ:</b> ' + message + '<br>';
+            errorDetails += '<b>ソース:</b> ' + source + '<br>';
+            errorDetails += '<b>行番号:</b> ' + lineno + ':' + colno + '<br>';
+            if (error && error.stack) {
+                errorDetails += '<b>スタックトレース:</b><br><pre>' + error.stack + '</pre>';
+            }
+            div.innerHTML = errorDetails;
+            document.body.appendChild(div);
+            return false;
+        };
+
+        // Promiseの例外（非同期エラー）もキャッチする
+        window.onunhandledrejection = function(event) {
+            const div = document.createElement('div');
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.backgroundColor = 'rgba(255, 230, 230, 0.95)';
+            div.style.color = '#ff0000';
+            div.style.padding = '20px';
+            div.style.fontSize = '14px';
+            div.style.zIndex = '999999';
+            div.style.overflow = 'auto';
+            div.style.fontFamily = 'monospace';
+
+            let errorDetails = '<h3>🚨 非同期Promiseエラーが発生しました</h3>';
+            errorDetails += '<b>理由:</b> ' + event.reason + '<br>';
+            if (event.reason && event.reason.stack) {
+                errorDetails += '<b>スタックトレース:</b><br><pre>' + event.reason.stack + '</pre>';
+            }
+            div.innerHTML = errorDetails;
+            document.body.appendChild(div);
+        };
+    </script>
     <style>
         body {
             font-family: 'Inter', 'Outfit', sans-serif;

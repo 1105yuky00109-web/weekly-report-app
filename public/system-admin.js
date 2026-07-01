@@ -96,7 +96,13 @@ onAuthStateChanged(auth, async (user) => {
 
     } catch (e) {
         console.error("Error loading companies:", e);
-        document.getElementById('loading').textContent = "データの読み込み中にエラーが発生しました。";
+        document.getElementById('loading').innerHTML = `
+            <div style="color:#ef4444;text-align:left;padding:10px;background:#fee2e2;border-radius:6px;border:1px solid #fca5a5;">
+                <strong>データの読み込み中にエラーが発生しました:</strong><br>
+                <span>${e.message}</span><br>
+                <pre style="margin-top:10px;font-size:0.8rem;white-space:pre-wrap;">${e.stack || ''}</pre>
+            </div>
+        `;
     }
 });
 
