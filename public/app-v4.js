@@ -18,9 +18,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ローカル実行時はエミュレータに接続する
-if (location.hostname === "localhost") {
-    connectFirestoreEmulator(db, "localhost", 8084);
-    connectAuthEmulator(auth, "http://localhost:9101");
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    connectFirestoreEmulator(db, "127.0.0.1", 8084);
+    connectAuthEmulator(auth, "http://127.0.0.1:9101");
 }
 let messaging = null;
 const isFcmSupported = () => {
@@ -59,7 +59,7 @@ let lastSavedScheduleDataString = '';
 // ユーザーの所属する会社をFirestoreの adminEmails / memberEmails から解決する関数
 async function resolveUserCompany(email, uid) {
     try {
-        // 0. 代理ログイン（なりすまし）モードおよび開発者判定の処理
+        // 0. 代理閲覧モードおよび開発者判定の処理
         let impCompanyId = sessionStorage.getItem('impersonate_company_id');
         const isDeveloper = email && email.toLowerCase().trim() === 'steelworks@areva.co.jp';
         if (isDeveloper) {
@@ -73,7 +73,7 @@ async function resolveUserCompany(email, uid) {
                     return companyData;
                 }
             }
-            // 代理ログイン対象が未設定の段階では、ログインを通すためにダミー会社情報を返却
+            // 代理閲覧対象が未設定の段階では、ログインを通すためにダミー会社情報を返却
             return {
                 companyId: "developer_temp_company",
                 companyName: "AREVA 開発管理",
@@ -323,7 +323,7 @@ onAuthStateChanged(auth, async (user) => {
 
         currentUser = auth.currentUser;
         
-        // 開発者用ボタンと代理ログインUIの初期化
+        // 開発者用ボタンと代理閲覧UIの初期化
         const isDeveloper = currentUser.email && currentUser.email.toLowerCase().trim() === 'steelworks@areva.co.jp';
         const devAdminBtn = document.getElementById('btn-dev-admin');
         const impersonateBadge = document.getElementById('impersonate-badge');
@@ -337,7 +337,7 @@ onAuthStateChanged(auth, async (user) => {
             };
         }
 
-        // 代理ログイン中UIの表示
+        // 代理閲覧中UIの表示
         const impCompanyId = sessionStorage.getItem('impersonate_company_id');
         if (impCompanyId && isDeveloper) {
             if (impersonateBadge) impersonateBadge.style.display = 'inline-block';

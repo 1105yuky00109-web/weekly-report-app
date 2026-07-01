@@ -19,9 +19,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ローカル実行時はエミュレータに接続する
-if (location.hostname === "localhost") {
-    connectFirestoreEmulator(db, "localhost", 8084);
-    connectAuthEmulator(auth, "http://localhost:9101");
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    connectFirestoreEmulator(db, "127.0.0.1", 8084);
+    connectAuthEmulator(auth, "http://127.0.0.1:9101");
 }
 
 const DEVELOPER_EMAILS = ['steelworks@areva.co.jp'];
@@ -74,7 +74,7 @@ onAuthStateChanged(auth, async (user) => {
                         <strong>Owner UID:</strong> <span style="font-size:0.8rem;color:#888;">${escapeHTML(ownerUid)}</span>
                     </div>
                     <button class="btn-impersonate" data-id="${escapeHTML(companyId)}">
-                        👤 入力画面へ
+                        👤 この会社で開く
                     </button>
                 </div>
             `;
@@ -84,7 +84,7 @@ onAuthStateChanged(auth, async (user) => {
         loadingDiv.style.display = 'none';
         companyListDiv.style.display = 'grid';
 
-        // 代理ログインボタンのイベントリスナー
+        // 代理閲覧ボタンのイベントリスナー
         companyListDiv.querySelectorAll('.btn-impersonate').forEach(btn => {
             btn.onclick = () => {
                 const companyId = btn.dataset.id;
